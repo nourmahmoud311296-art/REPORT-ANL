@@ -1,0 +1,4004 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>لوحة تحليل أداء السائقين</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>">
+<meta name="theme-color" content="#6366f1">
+<meta name="description" content="نظام تحليل أداء السائقين — لوحة تحكم متكاملة مع مزامنة سحابية">
+<meta property="og:title" content="لوحة تحليل أداء السائقين">
+<meta property="og:description" content="نظام المتابعة والتقارير — Dashboard for Drivers Performance">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<style>
+/* ==========================================================================
+   NEO ANALYTICS — Premium Dashboard Theme
+   ========================================================================== */
+:root{
+  --primary:#6366f1;
+  --primary-2:#8b5cf6;
+  --primary-3:#06b6d4;
+  --primary-soft:rgba(99,102,241,.08);
+  --primary-dark:#4f46e5;
+  --accent:#06b6d4;
+  --card:#ffffff;
+  --bg:#f5f6fa;
+  --bg-2:#fafbfd;
+  --bg-3:#eef0f7;
+  --text:#0b1220;
+  --text-2:#334155;
+  --muted:#64748b;
+  --muted-2:#94a3b8;
+  --border:#e7e9f0;
+  --border-2:#f0f2f8;
+  --radius:18px;
+  --radius-sm:12px;
+  --radius-lg:24px;
+  --fs:14.5px;
+  --green:#10b981; --green-soft:#ecfdf5; --green-ink:#047857;
+  --red:#ef4444;   --red-soft:#fef2f2;   --red-ink:#b91c1c;
+  --amber:#f59e0b; --amber-soft:#fffbeb; --amber-ink:#b45309;
+  --violet:#8b5cf6;--cyan:#06b6d4;
+  --grad-brand:linear-gradient(135deg,#6366f1 0%,#8b5cf6 55%,#06b6d4 100%);
+  --grad-hero:linear-gradient(135deg,#0f172a 0%,#1e1b4b 45%,#4338ca 100%);
+  --grad-side:linear-gradient(180deg,#0b1220 0%,#121a33 50%,#1a1f3d 100%);
+  --shadow-xs:0 1px 2px rgba(15,23,42,.04);
+  --shadow-sm:0 1px 3px rgba(15,23,42,.05),0 1px 2px rgba(15,23,42,.03);
+  --shadow:0 6px 20px -6px rgba(15,23,42,.10),0 2px 6px -2px rgba(15,23,42,.05);
+  --shadow-md:0 14px 34px -12px rgba(15,23,42,.16),0 4px 10px -4px rgba(15,23,42,.06);
+  --shadow-lg:0 32px 70px -30px rgba(15,23,42,.35);
+  --shadow-glow:0 18px 40px -18px rgba(99,102,241,.55);
+  --focus:0 0 0 3px rgba(99,102,241,.18);
+  --glass:saturate(180%) blur(18px);
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;
+  font-family:'Tajawal','Inter','Segoe UI',system-ui,-apple-system,sans-serif;
+  background:var(--bg);
+  background-image:
+    radial-gradient(900px 500px at 100% 0%,rgba(99,102,241,.06),transparent 60%),
+    radial-gradient(900px 500px at 0% 100%,rgba(6,182,212,.05),transparent 60%);
+  color:var(--text);
+  font-size:var(--fs);
+  line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+}
+button,input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
+button{cursor:pointer;border:0;background:none;padding:0}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:8px;border:3px solid transparent;background-clip:padding-box}
+::-webkit-scrollbar-thumb:hover{background:#94a3b8;background-clip:padding-box;border:3px solid transparent}
+.app{display:flex;min-height:100vh}
+.main{flex:1;min-width:0;display:flex;flex-direction:column}
+.sidebar{
+  width:272px;flex:0 0 272px;
+  background:var(--grad-side);
+  border-inline-end:1px solid rgba(255,255,255,.06);
+  display:flex;flex-direction:column;
+  position:sticky;top:0;height:100vh;z-index:40;
+  overflow:hidden;
+  transition:transform .28s cubic-bezier(.4,0,.2,1);
+  color:#cbd5e1;
+}
+.sidebar::before{
+  content:'';position:absolute;top:-120px;right:-100px;width:320px;height:320px;
+  background:radial-gradient(circle,rgba(139,92,246,.35),transparent 65%);
+  pointer-events:none;
+}
+.sidebar::after{
+  content:'';position:absolute;bottom:-140px;left:-120px;width:340px;height:340px;
+  background:radial-gradient(circle,rgba(6,182,212,.22),transparent 65%);
+  pointer-events:none;
+}
+.brand{
+  display:flex;gap:12px;align-items:center;
+  padding:22px 18px;
+  border-bottom:1px solid rgba(255,255,255,.06);
+  position:relative;z-index:1;
+}
+.logo{
+  width:44px;height:44px;flex:0 0 44px;
+  border-radius:13px;display:grid;place-items:center;
+  font-size:20px;color:#fff;overflow:hidden;
+  background:var(--grad-brand);
+  box-shadow:0 8px 22px -8px rgba(99,102,241,.7),inset 0 0 0 1px rgba(255,255,255,.12);
+}
+.logo img{width:100%;height:100%;object-fit:cover;border-radius:13px}
+.brand-title{font-weight:800;color:#fff;font-size:14.5px;line-height:1.3;letter-spacing:-.2px}
+.brand-sub{font-size:11.5px;color:#94a3b8;margin-top:2px;font-weight:500}
+.nav{
+  padding:14px 12px;display:flex;flex-direction:column;gap:3px;
+  overflow-y:auto;flex:1;position:relative;z-index:1;
+}
+.nav::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1)}
+.nav-item{
+  display:flex;align-items:center;gap:12px;
+  padding:11px 13px;border-radius:12px;
+  background:transparent;border:0;color:#94a3b8;
+  font-weight:600;text-align:start;width:100%;
+  transition:all .18s ease;
+  font-size:13.5px;position:relative;
+}
+.nav-item:hover{background:rgba(255,255,255,.05);color:#e2e8f0}
+.nav-item.active{
+  background:linear-gradient(90deg,rgba(99,102,241,.22),rgba(139,92,246,.10));
+  color:#fff;font-weight:700;
+  box-shadow:inset 0 0 0 1px rgba(139,92,246,.25);
+}
+.nav-item.active::before{
+  content:'';position:absolute;inset-inline-start:0;top:8px;bottom:8px;width:3px;
+  border-radius:3px;background:var(--grad-brand);
+  box-shadow:0 0 14px rgba(139,92,246,.8);
+}
+.nav-item .ic{font-size:17px;width:22px;text-align:center;line-height:1}
+.nav-item .badge{
+  margin-inline-start:auto;
+  background:rgba(255,255,255,.08);color:#cbd5e1;
+  font-size:11px;padding:2px 8px;border-radius:20px;font-weight:700;
+}
+.nav-item.active .badge{background:var(--grad-brand);color:#fff}
+.side-bottom{
+  padding:12px;border-top:1px solid rgba(255,255,255,.06);
+  display:flex;flex-direction:column;gap:3px;position:relative;z-index:1;
+}
+.side-btn{
+  display:flex;align-items:center;gap:12px;
+  padding:10px 13px;border-radius:11px;border:0;
+  background:transparent;color:#94a3b8;
+  font-weight:600;text-align:start;width:100%;font-size:13px;
+  transition:all .18s;
+}
+.side-btn:hover{background:rgba(255,255,255,.05);color:#e2e8f0}
+.side-btn .si{font-size:16px;width:20px;text-align:center}
+.user-box{
+  display:flex;align-items:center;gap:11px;
+  padding:11px 12px;margin-bottom:8px;
+  background:rgba(255,255,255,.05);border-radius:13px;
+  border:1px solid rgba(255,255,255,.06);
+}
+.ub-avatar{
+  width:38px;height:38px;flex:0 0 38px;border-radius:11px;
+  display:grid;place-items:center;color:#fff;font-weight:800;font-size:15px;
+  background:var(--grad-brand);
+  box-shadow:0 6px 16px -6px rgba(99,102,241,.7);
+}
+.ub-info{flex:1;min-width:0}
+.ub-name{color:#fff;font-weight:700;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ub-role{color:#94a3b8;font-size:11px;margin-top:1px;font-weight:500}
+.ub-out{
+  width:32px;height:32px;border-radius:9px;border:0;
+  background:transparent;color:#94a3b8;
+  display:grid;place-items:center;font-size:14px;transition:.15s;
+}
+.ub-out:hover{background:rgba(239,68,68,.18);color:#fca5a5}
+.topbar{
+  display:flex;align-items:center;gap:10px;
+  padding:14px 24px;
+  background:rgba(255,255,255,.75);
+  backdrop-filter:var(--glass);-webkit-backdrop-filter:var(--glass);
+  border-bottom:1px solid var(--border);
+  position:sticky;top:0;z-index:30;flex-wrap:wrap;
+}
+.topbar h1{
+  margin:0;font-size:17px;font-weight:800;flex:1;min-width:120px;
+  color:var(--text);letter-spacing:-.3px;
+}
+.topbar-actions{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.icon-btn{
+  width:38px;height:38px;border-radius:11px;
+  border:1px solid var(--border);
+  background:var(--card);color:var(--text-2);
+  display:grid;place-items:center;font-size:15px;
+  transition:all .18s;position:relative;
+}
+.icon-btn:hover{background:var(--bg-2);border-color:#d1d5db;color:var(--text);transform:translateY(-1px);box-shadow:var(--shadow-sm)}
+.icon-btn.danger:hover{background:var(--red-soft);border-color:#fecaca;color:var(--red)}
+.icon-btn.wa{
+  background:linear-gradient(135deg,#25D366,#128C7E);
+  border-color:transparent;color:#fff;
+  box-shadow:0 6px 16px -6px rgba(37,211,102,.5);
+}
+.icon-btn.wa:hover{box-shadow:0 8px 22px -6px rgba(37,211,102,.7);transform:translateY(-1px)}
+.notif-badge{
+  position:absolute;top:-5px;inset-inline-end:-5px;
+  background:linear-gradient(135deg,#ef4444,#dc2626);color:#fff;font-size:10px;font-weight:800;
+  min-width:18px;height:18px;border-radius:10px;
+  display:grid;place-items:center;padding:0 5px;
+  border:2px solid #fff;
+  box-shadow:0 4px 10px -2px rgba(239,68,68,.6);
+}
+#menuBtn{display:none}
+.view{
+  padding:26px;display:flex;flex-direction:column;gap:22px;
+  max-width:1600px;width:100%;margin:0 auto;
+}
+.card{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow-sm);
+  transition:box-shadow .25s,border-color .25s,transform .25s;
+  overflow:hidden;
+  position:relative;
+}
+.card:hover{box-shadow:var(--shadow)}
+.card-head{
+  display:flex;align-items:center;gap:10px;
+  padding:18px 22px;
+  border-bottom:1px solid var(--border-2);
+  font-weight:700;font-size:14.5px;flex-wrap:wrap;
+  color:var(--text);letter-spacing:-.2px;
+  background:linear-gradient(180deg,#fff,#fcfcfe);
+}
+.card-head .spacer{flex:1}
+.card-body{padding:22px}
+.grid{display:grid;gap:16px}
+.g2{grid-template-columns:repeat(auto-fit,minmax(330px,1fr))}
+.g3{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
+.g4{grid-template-columns:repeat(auto-fit,minmax(210px,1fr))}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.muted{color:var(--muted)}
+.small{font-size:12.5px}
+.empty{
+  padding:48px 16px;text-align:center;color:var(--muted);font-size:13.5px;
+}
+.btn{
+  display:inline-flex;align-items:center;gap:7px;
+  padding:9px 16px;border-radius:11px;
+  border:1px solid var(--border);
+  background:var(--card);color:var(--text-2);
+  font-weight:600;font-size:13.5px;
+  transition:all .18s;white-space:nowrap;
+}
+.btn:hover{background:var(--bg-2);border-color:#d1d5db;color:var(--text);box-shadow:var(--shadow-xs)}
+.btn:active{transform:translateY(1px)}
+.btn-primary{
+  background:var(--grad-brand);border-color:transparent;color:#fff;
+  box-shadow:var(--shadow-glow);
+}
+.btn-primary:hover{filter:brightness(1.06);color:#fff;transform:translateY(-1px);box-shadow:0 14px 30px -12px rgba(99,102,241,.75)}
+.btn-danger{background:var(--red-soft);border-color:#fecaca;color:var(--red-ink)}
+.btn-danger:hover{background:#fee2e2;border-color:#fca5a5;color:var(--red-ink)}
+.btn-ghost{background:transparent;border-color:transparent;color:var(--muted);padding:6px 10px}
+.btn-ghost:hover{background:var(--primary-soft);color:var(--primary);border-color:transparent}
+.btn-sm{padding:6px 12px;font-size:12.5px;border-radius:10px}
+.btn:focus-visible,.icon-btn:focus-visible,.tool-btn:focus-visible{
+  outline:0;box-shadow:var(--focus);
+}
+.view-toggle{
+  display:inline-flex;gap:3px;
+  background:var(--bg-3);padding:3px;border-radius:11px;
+  border:1px solid var(--border);
+}
+.view-toggle button{
+  padding:5px 12px;border:0;background:transparent;border-radius:8px;
+  font-size:12.5px;font-weight:600;color:var(--muted);transition:all .18s;
+}
+.view-toggle button:hover{color:var(--text)}
+.view-toggle button.active{background:var(--card);color:var(--primary);font-weight:700;box-shadow:var(--shadow-xs)}
+.kpi{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:20px;
+  display:flex;flex-direction:column;gap:12px;
+  box-shadow:var(--shadow-sm);
+  transition:box-shadow .25s,transform .25s,border-color .25s;
+  position:relative;overflow:hidden;
+}
+.kpi::before{
+  content:'';position:absolute;top:0;inset-inline-start:0;width:100%;height:3px;
+  background:linear-gradient(90deg,var(--k),transparent);
+  opacity:.7;
+}
+.kpi:hover{box-shadow:var(--shadow-md);transform:translateY(-3px);border-color:#d1d5db}
+.kpi-top{display:flex;align-items:flex-start;gap:14px}
+.kpi-icon{
+  width:48px;height:48px;flex:0 0 48px;border-radius:14px;
+  display:grid;place-items:center;font-size:22px;
+  background:color-mix(in srgb,var(--k) 12%,#fff);
+  color:var(--k);
+  border:1px solid color-mix(in srgb,var(--k) 22%,#fff);
+  box-shadow:0 6px 14px -8px color-mix(in srgb,var(--k) 60%,transparent);
+}
+.kpi-label{font-size:12px;color:var(--muted);font-weight:700;letter-spacing:.2px;text-transform:uppercase}
+.kpi-value{
+  font-size:28px;font-weight:800;line-height:1.05;
+  letter-spacing:-.8px;margin-top:4px;color:var(--text);
+  font-variant-numeric:tabular-nums;
+}
+.kpi-delta{
+  display:inline-flex;align-items:center;gap:4px;
+  font-size:11.5px;font-weight:700;
+  padding:3px 10px;border-radius:20px;align-self:flex-start;
+}
+.kpi-delta.up{background:var(--green-soft);color:var(--green-ink)}
+.kpi-delta.down{background:var(--red-soft);color:var(--red-ink)}
+.kpi-spark svg{display:block;width:100%;height:38px}
+.tbl-wrap{
+  overflow-x:auto;border-radius:14px;
+  border:1px solid var(--border);
+  background:var(--card);
+}
+table{width:100%;border-collapse:collapse;font-size:13.5px;min-width:520px}
+thead th{
+  background:linear-gradient(180deg,#fafbfd,#f3f5fa);
+  text-align:start;padding:13px 16px;
+  font-weight:700;color:var(--muted);
+  border-bottom:1px solid var(--border);
+  white-space:nowrap;font-size:11px;
+  text-transform:uppercase;letter-spacing:.5px;
+}
+tbody td{
+  padding:14px 16px;
+  border-bottom:1px solid var(--border-2);
+  vertical-align:middle;color:var(--text-2);
+}
+tbody tr{transition:background .15s}
+tbody tr:last-child td{border-bottom:0}
+tbody tr:hover{background:linear-gradient(90deg,var(--primary-soft),transparent 60%)}
+.tbl-actions{display:flex;gap:4px;justify-content:flex-end}
+.cards-grid{
+  display:grid;gap:16px;
+  grid-template-columns:repeat(auto-fill,minmax(280px,1fr));
+}
+.item-card{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:var(--radius-sm);
+  padding:18px;
+  transition:all .25s;
+  box-shadow:var(--shadow-xs);
+  position:relative;overflow:hidden;
+}
+.item-card::before{
+  content:'';position:absolute;top:0;inset-inline-start:0;width:100%;height:3px;
+  background:var(--grad-brand);opacity:0;transition:opacity .25s;
+}
+.item-card:hover{
+  transform:translateY(-3px);
+  box-shadow:var(--shadow-md);
+  border-color:#d1d5db;
+}
+.item-card:hover::before{opacity:1}
+.item-card .ic-header{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.item-card .ic-avatar{
+  width:44px;height:44px;border-radius:12px;
+  display:grid;place-items:center;color:#fff;font-size:17px;font-weight:800;
+  background:var(--grad-brand);
+  flex:0 0 44px;
+  box-shadow:0 8px 18px -8px rgba(99,102,241,.7);
+}
+.item-card .ic-name{font-weight:700;font-size:14.5px;color:var(--text)}
+.item-card .ic-sub{font-size:11.5px;color:var(--muted);font-weight:500;margin-top:2px}
+.item-card .ic-rows{display:flex;flex-direction:column;gap:8px;font-size:12.5px}
+.item-card .ic-rows > div{display:flex;justify-content:space-between;gap:8px}
+.item-card .ic-rows .k{color:var(--muted);font-weight:500}
+.item-card .ic-rows .v{font-weight:700;color:var(--text)}
+.item-card .ic-actions{
+  display:flex;gap:4px;margin-top:14px;justify-content:flex-end;
+  border-top:1px solid var(--border-2);padding-top:12px;
+}
+.chip{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:4px 11px;border-radius:9px;
+  font-size:11.5px;font-weight:700;
+  line-height:1.6;
+}
+.chip.green{background:var(--green-soft);color:var(--green-ink)}
+.chip.red{background:var(--red-soft);color:var(--red-ink)}
+.chip.amber{background:var(--amber-soft);color:var(--amber-ink)}
+.chip.blue{background:#eff6ff;color:#1d4ed8}
+.chip.gray{background:var(--bg-3);color:var(--muted)}
+.chip.violet{background:#f5f3ff;color:#6d28d9}
+.chip.grade{
+  width:34px;height:34px;padding:0;justify-content:center;
+  border-radius:10px;font-size:15px;font-weight:800;color:#fff;
+  box-shadow:0 4px 10px -4px rgba(15,23,42,.35);
+}
+.chip.grade.A{background:linear-gradient(135deg,#10b981,#059669)}
+.chip.grade.B{background:linear-gradient(135deg,#3b82f6,#2563eb)}
+.chip.grade.C{background:linear-gradient(135deg,#8b5cf6,#7c3aed)}
+.chip.grade.D{background:linear-gradient(135deg,#f59e0b,#d97706)}
+.chip.grade.E{background:linear-gradient(135deg,#f97316,#ea580c)}
+.chip.grade.F{background:linear-gradient(135deg,#ef4444,#dc2626)}
+.field{display:flex;flex-direction:column;gap:6px}
+.field label{font-size:12.5px;font-weight:600;color:var(--text-2)}
+.field .req{color:var(--red)}
+input,select,textarea{
+  width:100%;padding:11px 14px;
+  border:1px solid var(--border);
+  border-radius:11px;
+  background:var(--card);outline:none;
+  transition:border-color .18s,box-shadow .18s,background .18s;
+  font-size:13.5px;
+}
+input::placeholder,textarea::placeholder{color:var(--muted-2)}
+input:hover,select:hover,textarea:hover{border-color:#d1d5db}
+input:focus,select:focus,textarea:focus{
+  border-color:var(--primary);
+  box-shadow:var(--focus);
+  background:#fff;
+}
+textarea{resize:vertical;min-height:70px}
+.form-grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(210px,1fr))}
+.hint{font-size:11.5px;color:var(--muted)}
+.err{color:var(--red);font-size:12.5px;font-weight:600;margin-top:6px}
+.chart{width:100%;height:auto;display:block;overflow:visible}
+.cax{font-size:11px;fill:var(--muted-2);font-weight:600}
+.cval{font-size:11.5px;fill:var(--text-2);font-weight:700}
+.dnum{font-size:28px;font-weight:800;fill:var(--text)}
+.dlbl{font-size:11px;fill:var(--muted);font-weight:600}
+.legend{display:flex;flex-wrap:wrap;gap:16px;justify-content:center;margin-top:16px}
+.legend span{display:flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;color:var(--text-2)}
+.legend i{width:11px;height:11px;border-radius:4px;display:inline-block}
+.chart-type-selector{
+  display:inline-flex;gap:3px;
+  background:var(--bg-3);padding:3px;border-radius:10px;
+  border:1px solid var(--border);
+}
+.chart-type-selector button{
+  padding:5px 10px;border:0;background:transparent;
+  border-radius:7px;font-size:13px;color:var(--muted);
+  transition:all .18s;
+}
+.chart-type-selector button:hover{color:var(--text)}
+.chart-type-selector button.active{
+  background:var(--card);color:var(--primary);box-shadow:var(--shadow-xs);
+}
+.toolbar{
+  display:flex;gap:8px;flex-wrap:wrap;padding:10px;
+  background:rgba(255,255,255,.85);
+  backdrop-filter:var(--glass);-webkit-backdrop-filter:var(--glass);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow-sm);
+  position:sticky;top:78px;z-index:20;
+}
+.tool-btn{
+  display:inline-flex;align-items:center;
+  height:44px;width:44px;padding:0;overflow:hidden;
+  border-radius:12px;border:1px solid var(--border);
+  background:var(--card);color:var(--text-2);
+  font-weight:600;font-size:13.5px;
+  transition:all .3s cubic-bezier(.4,0,.2,1);white-space:nowrap;
+}
+.tool-btn .ti{width:42px;flex:0 0 42px;text-align:center;font-size:15px}
+.tool-btn .tt{opacity:0;transition:opacity .2s .06s;padding-inline-end:16px}
+.tool-btn:hover,.tool-btn:focus-visible{
+  width:170px;background:var(--grad-brand);border-color:transparent;color:#fff;
+  box-shadow:var(--shadow-glow);
+}
+.tool-btn:hover .tt,.tool-btn:focus-visible .tt{opacity:1}
+.tool-btn.danger:hover{background:linear-gradient(135deg,#ef4444,#dc2626);box-shadow:0 12px 28px -12px rgba(239,68,68,.7)}
+.toolbar.idle .tool-btn{width:44px}
+.toolbar.idle .tool-btn .tt{opacity:0}
+.tabs{
+  display:flex;gap:4px;flex-wrap:wrap;
+  background:var(--bg-3);padding:5px;border-radius:14px;
+  border:1px solid var(--border);width:fit-content;
+}
+.tab{
+  padding:9px 16px;border-radius:9px;border:0;background:transparent;
+  font-weight:600;font-size:13px;color:var(--muted);transition:.18s;
+}
+.tab:hover{color:var(--text)}
+.tab.active{background:var(--card);color:var(--primary);font-weight:700;box-shadow:var(--shadow-xs)}
+.overlay{
+  position:fixed;inset:0;
+  background:rgba(11,18,32,.55);
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  display:grid;place-items:center;z-index:100;padding:18px;
+  animation:fade .2s ease;
+}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+.modal{
+  background:var(--card);
+  border-radius:22px;width:min(780px,100%);max-height:90vh;
+  display:flex;flex-direction:column;
+  box-shadow:var(--shadow-lg);
+  animation:pop .28s cubic-bezier(.34,1.3,.64,1);
+  overflow:hidden;
+  border:1px solid var(--border);
+}
+@keyframes pop{
+  from{transform:scale(.96) translateY(14px);opacity:0}
+  to{transform:scale(1) translateY(0);opacity:1}
+}
+.modal-head{
+  display:flex;align-items:center;gap:10px;
+  padding:20px 24px;border-bottom:1px solid var(--border);
+  background:linear-gradient(180deg,#fff,#fafbfd);
+}
+.modal-head h3{
+  margin:0;font-size:16px;font-weight:800;flex:1;color:var(--text);
+  letter-spacing:-.2px;
+}
+.modal-body{padding:24px;overflow-y:auto}
+.modal-foot{
+  padding:16px 24px;border-top:1px solid var(--border);
+  display:flex;gap:8px;justify-content:flex-end;background:var(--bg-2);
+}
+.notif-panel{
+  position:fixed;top:80px;inset-inline-end:18px;
+  width:min(410px,calc(100vw - 36px));
+  max-height:min(580px,76vh);
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:20px;
+  box-shadow:var(--shadow-lg);
+  z-index:150;display:none;flex-direction:column;overflow:hidden;
+}
+.notif-panel.open{display:flex;animation:pop .22s}
+.notif-head{
+  display:flex;align-items:center;gap:10px;
+  padding:16px 20px;border-bottom:1px solid var(--border);
+  background:linear-gradient(180deg,#fff,#fafbfd);
+}
+.notif-head h4{margin:0;flex:1;font-size:14.5px;font-weight:800;color:var(--text)}
+.notif-list{flex:1;overflow-y:auto}
+.notif-item{
+  padding:15px 20px;border-bottom:1px solid var(--border-2);
+  display:flex;gap:12px;align-items:flex-start;
+  transition:background .18s;
+}
+.notif-item:last-child{border-bottom:0}
+.notif-item:hover{background:var(--bg-2)}
+.notif-item.unread{background:linear-gradient(90deg,var(--primary-soft),transparent)}
+.notif-item .ni{
+  width:40px;height:40px;flex:0 0 40px;border-radius:12px;
+  display:grid;place-items:center;font-size:18px;
+  background:var(--bg-3);
+}
+.notif-item .nt{font-weight:700;font-size:13.5px;margin-bottom:3px;color:var(--text)}
+.notif-item .nb{font-size:12.5px;color:var(--muted);line-height:1.55}
+.notif-item .nd{font-size:11px;color:var(--muted-2);margin-top:6px;font-weight:600}
+#toast{position:fixed;bottom:26px;inset-inline-start:26px;display:flex;flex-direction:column;gap:10px;z-index:600}
+.toast{
+  background:var(--text);color:#f8fafc;
+  padding:13px 18px;border-radius:14px;
+  font-weight:600;font-size:13.5px;
+  box-shadow:var(--shadow-lg);
+  animation:slide .28s cubic-bezier(.4,0,.2,1);
+  display:flex;align-items:center;gap:10px;
+  max-width:380px;
+  border:1px solid rgba(255,255,255,.08);
+}
+.toast.ok{background:linear-gradient(135deg,#047857,#10b981)}
+.toast.err{background:linear-gradient(135deg,#b91c1c,#ef4444)}
+.toast.warn{background:linear-gradient(135deg,#b45309,#f59e0b)}
+@keyframes slide{
+  from{transform:translateY(18px);opacity:0}
+  to{transform:translateY(0);opacity:1}
+}
+.perm-list{display:flex;flex-direction:column;gap:10px}
+.perm-row{
+  display:flex;align-items:center;gap:12px;
+  padding:14px 16px;border:1px solid var(--border);
+  border-radius:14px;background:var(--card);flex-wrap:wrap;
+  transition:.18s;
+}
+.perm-row:hover{border-color:var(--primary);box-shadow:var(--shadow-xs)}
+.perm-row .pn{font-weight:700;font-size:13.5px;min-width:130px;color:var(--text)}
+.perm-row .pc{display:flex;gap:6px;flex-wrap:wrap}
+.perm-check{
+  display:inline-flex;align-items:center;gap:6px;
+  background:var(--card);border:1px solid var(--border);
+  padding:7px 12px;border-radius:10px;
+  font-size:12px;font-weight:600;cursor:pointer;transition:.18s;
+  color:var(--text-2);
+}
+.perm-check:hover{border-color:var(--primary);background:var(--primary-soft)}
+.perm-check input{width:auto;padding:0;margin:0;accent-color:var(--primary)}
+.perm-check:has(input:checked){
+  background:var(--primary-soft);border-color:var(--primary);color:var(--primary-dark);
+  font-weight:700;
+}
+.swatches{display:flex;gap:9px;flex-wrap:wrap}
+.swatch{
+  width:36px;height:36px;border-radius:11px;border:2px solid var(--card);cursor:pointer;
+  transition:.18s;box-shadow:0 0 0 1px var(--border);
+}
+.swatch:hover{transform:scale(1.12)}
+.swatch.sel{box-shadow:0 0 0 3px var(--text);transform:scale(1.06)}
+.share-box{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.share-box input{font-size:12px;direction:ltr;text-align:left;flex:1;min-width:180px}
+.checkbox-list{
+  max-height:260px;overflow-y:auto;
+  border:1px solid var(--border);border-radius:14px;padding:12px;
+  display:grid;gap:8px;
+  grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+  background:var(--bg-2);
+}
+.login-screen{
+  position:fixed;inset:0;
+  background:
+    radial-gradient(1000px 700px at 15% 20%,rgba(139,92,246,.45),transparent 55%),
+    radial-gradient(1000px 700px at 85% 80%,rgba(6,182,212,.32),transparent 55%),
+    linear-gradient(135deg,#070b18,#121a3d 55%,#1e1b4b);
+  display:grid;place-items:center;z-index:500;padding:20px;overflow:hidden;
+}
+.login-screen::before{
+  content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;
+  background:
+    radial-gradient(circle at 30% 30%,rgba(139,92,246,.22),transparent 40%),
+    radial-gradient(circle at 70% 70%,rgba(6,182,212,.20),transparent 40%);
+  animation:float 22s ease-in-out infinite;pointer-events:none;
+}
+@keyframes float{0%,100%{transform:translate(0,0)}50%{transform:translate(2%,2%)}}
+.login-card{
+  background:rgba(255,255,255,.98);
+  border-radius:26px;padding:42px 36px;
+  width:min(460px,100%);
+  box-shadow:0 60px 120px -30px rgba(0,0,0,.7),0 0 0 1px rgba(255,255,255,.06);
+  animation:pop .38s;
+  position:relative;z-index:1;
+  backdrop-filter:blur(10px);
+}
+.login-logo{
+  width:80px;height:80px;border-radius:22px;margin:0 auto 20px;
+  overflow:hidden;display:grid;place-items:center;font-size:36px;color:#fff;
+  background:var(--grad-brand);
+  box-shadow:0 20px 44px -14px rgba(99,102,241,.75);
+}
+.login-logo img{width:100%;height:100%;object-fit:cover;border-radius:22px}
+.login-card h2{margin:0 0 6px;text-align:center;font-size:24px;font-weight:800;color:var(--text);letter-spacing:-.5px}
+.login-card>.sub{text-align:center;margin:0 0 28px;color:var(--muted);font-size:13.5px;font-weight:500}
+.login-card form{display:flex;flex-direction:column;gap:16px}
+.login-card .btn{justify-content:center;padding:13px;font-size:14.5px;border-radius:13px}
+.login-hint{
+  margin-top:24px;padding:14px 16px;
+  background:var(--bg-3);border-radius:14px;
+  font-size:12px;color:var(--text-2);text-align:center;line-height:1.6;
+  border:1px solid var(--border);
+}
+.login-hint b{color:var(--text);font-size:12.5px;display:block;margin-bottom:4px;font-weight:700}
+.perf-hero{
+  background:var(--grad-hero);
+  border-radius:24px;padding:32px;color:#fff;
+  position:relative;overflow:hidden;
+  box-shadow:0 28px 60px -24px rgba(30,27,75,.7),inset 0 0 0 1px rgba(255,255,255,.06);
+  display:grid;grid-template-columns:auto 1fr;gap:32px;align-items:center;
+}
+.perf-hero::before{
+  content:'';position:absolute;top:-100px;right:-80px;width:340px;height:340px;
+  background:radial-gradient(circle,rgba(139,92,246,.65),transparent 65%);pointer-events:none;
+}
+.perf-hero::after{
+  content:'';position:absolute;bottom:-120px;left:-100px;width:380px;height:380px;
+  background:radial-gradient(circle,rgba(6,182,212,.45),transparent 65%);pointer-events:none;
+}
+.perf-hero-info{position:relative;z-index:1}
+.perf-hero-info .ph-sub{font-size:12.5px;color:#a5b4fc;font-weight:700;margin-bottom:8px;letter-spacing:.3px}
+.perf-hero-info .ph-title{font-size:27px;font-weight:800;letter-spacing:-.7px;margin-bottom:12px}
+.perf-hero-info .ph-desc{font-size:13.5px;color:#c7d2fe;line-height:1.65;font-weight:500;max-width:560px}
+.perf-hero-stats{display:flex;gap:26px;flex-wrap:wrap;margin-top:22px;position:relative;z-index:1}
+.ph-stat{
+  display:flex;flex-direction:column;gap:4px;
+  padding:12px 16px;border-radius:14px;
+  background:rgba(255,255,255,.06);
+  border:1px solid rgba(255,255,255,.1);
+  backdrop-filter:blur(8px);
+  min-width:120px;
+}
+.ph-stat .phs-v{font-size:23px;font-weight:800;letter-spacing:-.5px;font-variant-numeric:tabular-nums}
+.ph-stat .phs-l{font-size:11px;color:#a5b4fc;font-weight:700}
+.perf-ring{position:relative;z-index:1;width:180px;height:180px;flex:0 0 180px}
+.perf-ring svg{transform:rotate(-90deg);width:100%;height:100%}
+.perf-ring .pr-bg{fill:none;stroke:rgba(255,255,255,.10);stroke-width:13}
+.perf-ring .pr-fg{fill:none;stroke:url(#ringGrad);stroke-width:13;stroke-linecap:round;transition:stroke-dasharray 1.2s cubic-bezier(.4,0,.2,1);
+  filter:drop-shadow(0 0 12px rgba(139,92,246,.6))}
+.perf-ring .pr-center{position:absolute;inset:0;display:grid;place-items:center;text-align:center}
+.perf-ring .pr-num{font-size:40px;font-weight:800;letter-spacing:-1.4px;line-height:1;font-variant-numeric:tabular-nums}
+.perf-ring .pr-lbl{font-size:11px;color:#a5b4fc;font-weight:700;margin-top:6px;letter-spacing:.3px}
+.cloud-status{
+  display:inline-flex;align-items:center;gap:6px;
+  font-size:11.5px;font-weight:700;
+  padding:5px 11px;border-radius:10px;
+  border:1px solid var(--border);
+  background:var(--card);color:var(--muted);
+}
+.cloud-status.on{color:var(--green-ink);background:var(--green-soft);border-color:#a7f3d0}
+.cloud-status.off{color:var(--amber-ink);background:var(--amber-soft);border-color:#fde68a}
+.cloud-status.syncing{color:#1d4ed8;background:#eff6ff;border-color:#bfdbfe}
+.goal-card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:16px;padding:20px;position:relative;overflow:hidden;
+  transition:.25s;
+}
+.goal-card:hover{box-shadow:var(--shadow);border-color:#d1d5db}
+.goal-card::before{
+  content:'';position:absolute;inset-inline-start:0;top:0;bottom:0;width:3px;
+  background:var(--grad-brand);
+}
+.goal-title{font-weight:700;font-size:13.5px;color:var(--text);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.goal-values{display:flex;justify-content:space-between;margin-bottom:12px;font-size:12.5px}
+.goal-values .gv-l{color:var(--muted);font-weight:500}
+.goal-values .gv-v{font-weight:800;color:var(--text);font-variant-numeric:tabular-nums}
+.goal-bar{height:9px;border-radius:9px;background:var(--bg-3);overflow:hidden;position:relative}
+.goal-bar > i{
+  display:block;height:100%;border-radius:9px;
+  transition:width .9s cubic-bezier(.4,0,.2,1);
+  background:var(--grad-brand);
+  box-shadow:0 0 12px rgba(99,102,241,.5);
+}
+.goal-bar.exceed > i{background:linear-gradient(90deg,#10b981,#06b6d4);box-shadow:0 0 12px rgba(16,185,129,.5)}
+.goal-pct{margin-top:10px;font-size:12px;font-weight:800;text-align:center}
+.logo-upload{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+.logo-preview{
+  width:64px;height:64px;border-radius:16px;
+  display:grid;place-items:center;font-size:28px;
+  background:var(--grad-brand);color:#fff;
+  overflow:hidden;flex:0 0 64px;
+  box-shadow:0 10px 24px -10px rgba(99,102,241,.65);
+}
+.logo-preview img{width:100%;height:100%;object-fit:cover}
+.grades-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-top:12px}
+.grade-box{
+  display:flex;flex-direction:column;align-items:center;gap:8px;
+  padding:16px 10px;border-radius:14px;
+  background:var(--bg-2);border:1px solid var(--border);
+  transition:.2s;
+}
+.grade-box:hover{border-color:var(--primary);background:var(--primary-soft);transform:translateY(-2px);box-shadow:var(--shadow-sm)}
+.grade-box .gb-letter{
+  font-size:21px;font-weight:800;
+  width:44px;height:44px;border-radius:12px;
+  display:grid;place-items:center;color:#fff;
+  box-shadow:0 6px 16px -6px rgba(15,23,42,.4);
+}
+.grade-box .gb-letter.A{background:linear-gradient(135deg,#10b981,#059669)}
+.grade-box .gb-letter.B{background:linear-gradient(135deg,#3b82f6,#2563eb)}
+.grade-box .gb-letter.C{background:linear-gradient(135deg,#8b5cf6,#7c3aed)}
+.grade-box .gb-letter.D{background:linear-gradient(135deg,#f59e0b,#d97706)}
+.grade-box .gb-letter.E{background:linear-gradient(135deg,#f97316,#ea580c)}
+.grade-box .gb-letter.F{background:linear-gradient(135deg,#ef4444,#dc2626)}
+.grade-box input{text-align:center;font-weight:800;font-size:14px;padding:6px 4px}
+.grade-box .gb-lbl{font-size:10.5px;color:var(--muted);font-weight:600;text-align:center}
+.insight-tile{
+  padding:18px;border-radius:16px;
+  border:1px solid var(--border);
+  background:linear-gradient(180deg,#fff,#fafbfd);
+  transition:.25s;position:relative;overflow:hidden;
+}
+.insight-tile:hover{transform:translateY(-2px);box-shadow:var(--shadow-sm)}
+.insight-tile .it-label{font-size:11.5px;color:var(--muted);font-weight:700;letter-spacing:.2px;text-transform:uppercase;display:flex;align-items:center;gap:6px}
+.insight-tile .it-value{font-size:20px;font-weight:800;margin-top:8px;color:var(--text);letter-spacing:-.4px}
+.insight-tile .it-sub{font-size:11.5px;color:var(--muted);margin-top:4px;font-weight:500}
+.insight-tile.tone-green{background:linear-gradient(180deg,#ecfdf5,#f6fffb);border-color:#a7f3d0}
+.insight-tile.tone-green .it-label{color:#047857}
+.insight-tile.tone-green .it-value{color:#065f46}
+.insight-tile.tone-amber{background:linear-gradient(180deg,#fffbeb,#fffdf5);border-color:#fde68a}
+.insight-tile.tone-amber .it-label{color:#b45309}
+.insight-tile.tone-amber .it-value{color:#92400e}
+.insight-tile.tone-blue{background:linear-gradient(180deg,#eff6ff,#f7faff);border-color:#bfdbfe}
+.insight-tile.tone-blue .it-label{color:#1d4ed8}
+.insight-tile.tone-blue .it-value{color:#1e3a8a}
+
+/* شاشة التحميل السحابية */
+#loadingOverlay{
+  position:fixed;inset:0;display:none;place-items:center;
+  background:
+    radial-gradient(1000px 700px at 15% 20%,rgba(139,92,246,.45),transparent 55%),
+    radial-gradient(1000px 700px at 85% 80%,rgba(6,182,212,.32),transparent 55%),
+    linear-gradient(135deg,#070b18,#121a3d 55%,#1e1b4b);
+  z-index:9999;color:#fff;font-family:inherit;
+}
+#loadingOverlay.show{display:grid}
+#loadingOverlay .lo-box{text-align:center;animation:pop .35s}
+#loadingOverlay .lo-icon{font-size:56px;margin-bottom:16px;display:block;animation:pulse 1.4s ease-in-out infinite}
+#loadingOverlay .lo-title{font-size:20px;font-weight:800;letter-spacing:-.4px;margin-bottom:8px}
+#loadingOverlay .lo-sub{font-size:13px;color:#a5b4fc;font-weight:500}
+#loadingOverlay .lo-bar{width:220px;height:4px;background:rgba(255,255,255,.12);border-radius:4px;margin:22px auto 0;overflow:hidden}
+#loadingOverlay .lo-bar i{display:block;height:100%;width:40%;border-radius:4px;background:var(--grad-brand);animation:slide-bar 1.2s ease-in-out infinite}
+@keyframes pulse{0%,100%{transform:scale(1);opacity:.9}50%{transform:scale(1.08);opacity:1}}
+@keyframes slide-bar{0%{margin-inline-start:-40%}100%{margin-inline-start:100%}}
+
+@media(max-width:980px){
+  .sidebar{position:fixed;inset-inline-start:0;top:0;transform:translateX(100%)}
+  [dir=ltr] .sidebar{transform:translateX(-100%)}
+  .sidebar.open{transform:translateX(0);box-shadow:var(--shadow-lg)}
+  #menuBtn{display:grid}
+  .view{padding:18px}.toolbar{top:70px}
+  .perf-hero{grid-template-columns:1fr;text-align:center;justify-items:center}
+  .perf-hero-stats{justify-content:center}
+  .grades-grid{grid-template-columns:repeat(3,1fr)}
+}
+@media(max-width:600px){
+  .kpi-value{font-size:22px}
+  .topbar h1{font-size:15px}
+  .topbar{padding:12px 14px;gap:6px}
+  .perf-ring{width:150px;height:150px;flex:0 0 150px}
+  .perf-ring .pr-num{font-size:30px}
+  .login-card{padding:30px 24px}
+  .grades-grid{grid-template-columns:repeat(2,1fr)}
+  .view{padding:14px;gap:16px}
+  .modal{border-radius:18px}
+  .modal-body{padding:18px}
+  .perf-hero{padding:24px}
+}
+</style>
+</head>
+<body>
+
+<div class="app" id="app" style="display:none">
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <div class="logo" id="sidebarLogo">📊</div>
+      <div>
+        <div class="brand-title" id="brandTitle">تحليل أداء السائقين</div>
+        <div class="brand-sub" id="brandSub">نظام المتابعة والتقارير</div>
+      </div>
+    </div>
+    <nav class="nav" id="nav"></nav>
+    <div class="side-bottom">
+      <div class="user-box" id="userBox"></div>
+      <button class="side-btn" id="btnPerm"><span class="si">🛡️</span><span id="permLbl">الصلاحيات (المالك)</span></button>
+      <button class="side-btn" id="btnPwd"><span class="si">🔑</span><span id="pwdLbl">تغيير كلمة المرور</span></button>
+      <button class="side-btn" id="btnSet"><span class="si">⚙️</span><span id="setLbl">الإعدادات</span></button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <button class="icon-btn" id="menuBtn">☰</button>
+      <h1 id="pageTitle"></h1>
+      <div class="topbar-actions">
+        <span class="cloud-status off" id="cloudStatus">☁️ <span id="cloudText">غير متصل</span></span>
+        <button class="icon-btn" id="syncBtn" title="مزامنة سحابية">🔄</button>
+        <button class="icon-btn" id="shareBtn" title="نسخ رابط المشاركة">🔗</button>
+        <button class="icon-btn" id="importBtn" title="استيراد">📥</button>
+        <button class="icon-btn" id="exportBtn" title="تصدير">📤</button>
+        <button class="icon-btn danger" id="resetBtn" title="إعادة تعيين">♻️</button>
+        <button class="icon-btn wa" id="waBtn" title="تواصل واتساب">💬</button>
+        <button class="icon-btn" id="notifBtn" title="الإشعارات">
+          🔔<span class="notif-badge" id="notifBadge" style="display:none">0</span>
+        </button>
+        <button class="icon-btn" id="langBtn" title="Language">🌐</button>
+        <button class="icon-btn" id="topSet" title="الإعدادات">⚙️</button>
+      </div>
+    </header>
+    <div class="view" id="view"></div>
+  </main>
+</div>
+
+<div class="login-screen" id="loginScreen" style="display:none">
+  <div class="login-card">
+    <div class="login-logo" id="loginLogo">📊</div>
+    <h2 id="lgTitle">تسجيل الدخول</h2>
+    <p class="sub" id="lgSub">نظام تحليل أداء السائقين</p>
+    <form id="loginForm" novalidate>
+      <div class="field">
+        <label id="lgIdLbl">البريد الإلكتروني أو رقم الجوال <span class="req">*</span></label>
+        <input name="identifier" id="lgId" required autocomplete="username" dir="ltr" placeholder="example@domain.com">
+      </div>
+      <div class="field">
+        <label id="lgPwLbl">كلمة المرور <span class="req">*</span></label>
+        <input type="password" name="password" id="lgPw" required autocomplete="current-password" placeholder="••••••••">
+      </div>
+      <div class="err" id="lgErr" style="display:none"></div>
+      <button type="submit" class="btn btn-primary" id="lgBtn">🔓 دخول</button>
+    </form>
+    <div class="login-hint" id="lgHint">
+      <b>🔒 بيانات الدخول محمية</b>
+      للحصول على بيانات الدخول، يُرجى التواصل مع مالك النظام.
+    </div>
+  </div>
+</div>
+
+<div class="notif-panel" id="notifPanel">
+  <div class="notif-head">
+    <h4>🔔 <span id="ntfTitle">الإشعارات</span></h4>
+    <button class="btn btn-sm" id="markAllRead">تحديد الكل كمقروء</button>
+    <button class="icon-btn" id="closeNotif" style="width:32px;height:32px">✕</button>
+  </div>
+  <div class="notif-list" id="notifList"></div>
+</div>
+
+<div id="loadingOverlay">
+  <div class="lo-box">
+    <span class="lo-icon">☁️</span>
+    <div class="lo-title" id="loTitle">جاري تحميل البيانات من السحابة…</div>
+    <div class="lo-sub" id="loSub">يرجى الانتظار لحظات</div>
+    <div class="lo-bar"><i></i></div>
+  </div>
+</div>
+
+<div id="modalRoot"></div>
+<div id="toast"></div>
+
+<script>
+/* ==========================================================================
+   1) الترجمة
+   ========================================================================== */
+const I18N = {
+  ar:{
+    app_title:'تحليل أداء السائقين', app_sub:'نظام المتابعة والتقارير',
+    nav_dashboard:'لوحة التحكم', nav_daily:'التقارير اليومية', nav_reps:'السائقين',
+    nav_supervisors:'المشرفين', nav_cars:'السيارات', nav_analytics:'التحليلات', nav_goals:'الأهداف',
+    btn_add:'إضافة', btn_edit:'تعديل', btn_save:'حفظ', btn_cancel:'إلغاء', btn_close:'إغلاق',
+    btn_search:'بحث', btn_export:'تصدير', btn_import:'استيراد',
+    btn_sync:'مزامنة', btn_reset:'إعادة تعيين', btn_refresh:'تحديث', btn_language:'اللغة',
+    btn_settings:'الإعدادات', btn_permissions:'الصلاحيات (المالك)', btn_compare:'مقارنة',
+    btn_view:'عرض', btn_share:'إنشاء الرابط', btn_copy:'نسخ', btn_share_link:'نسخ رابط المشاركة',
+    btn_login:'دخول', btn_logout:'تسجيل الخروج',
+    kpi_reps:'عدد السائقين', kpi_supervisors:'عدد المشرفين', kpi_orders:'إجمالي الطلبات',
+    kpi_hours:'ساعات العمل', kpi_violations:'المخالفات', kpi_cars:'السيارات',
+    kpi_accepted:'مخالفات مقبولة', kpi_rejected:'مخالفات مرفوضة', kpi_avg:'متوسط الطلبات/سائق',
+    fld_name:'الاسم', fld_phone:'رقم الجوال', fld_code:'المعرّف ID', fld_app:'التطبيق المستخدم',
+    fld_supervisor:'المشرف', fld_region:'المنطقة', fld_orders:'عدد الطلبات',
+    fld_hours:'ساعات العمل', fld_violations:'عدد المخالفات', fld_accepted:'المخالفات المقبولة',
+    fld_rejected:'المخالفات المرفوضة', fld_start:'بداية العمل', fld_end:'نهاية العمل',
+    fld_date:'التاريخ', fld_brand:'الماركة', fld_model:'الطراز', fld_plate:'رقم اللوحة',
+    fld_year:'سنة الصنع', fld_status:'الحالة', fld_type:'النوع', fld_cost:'التكلفة',
+    fld_desc:'الوصف', fld_car:'المركبة', fld_rep:'السائق', fld_start_date:'بداية الاستخدام',
+    fld_end_date:'نهاية الاستخدام', fld_start_km:'عداد البداية', fld_end_km:'عداد النهاية',
+    fld_km:'العداد (كم)', fld_next_km:'التغيير القادم (كم)', fld_next_date:'تاريخ التغيير القادم',
+    fld_permissions:'الصلاحيات', fld_none:'— بدون —', fld_all:'الكل',
+    fld_email:'بيانات الدخول', fld_password:'كلمة المرور', fld_rating:'التقييم',
+    t_daily:'التقرير اليومي', t_reps:'سجل السائقين', t_sups:'سجل المشرفين',
+    t_cars:'سجل المركبات', t_maint:'الصيانة والأعطال', t_usage:'استخدام المركبات',
+    t_oil:'جدول تغيير الزيت', t_top:'الأفضل أداءً', t_recent:'أحدث التقارير',
+    t_orders_rep:'الطلبات لكل سائق', t_hours_rep:'ساعات العمل لكل سائق',
+    t_viol:'توزيع المخالفات', t_trend:'اتجاه الطلبات (7 أيام)',
+    t_sup_perf:'أداء المشرفين', t_compare:'المقارنة بين اليومين',
+    msg_saved:'تم الحفظ بنجاح', msg_deleted:'تم الحذف', msg_updated:'تم التحديث',
+    msg_reset:'تمت إعادة التعيين', msg_synced:'تمت المزامنة مع السحابة', msg_copied:'تم نسخ الرابط',
+    msg_imported:'تم استيراد البيانات', msg_import_err:'ملف غير صالح',
+    msg_confirm_del:'هل أنت متأكد من الحذف؟', msg_confirm_reset:'سيتم حذف كل البيانات وإعادة التعيين. متابعة؟',
+    msg_confirm_logout:'هل تريد تسجيل الخروج؟',
+    msg_required:'يرجى تعبئة جميع الحقول الإلزامية',
+    msg_viol:'عدد المخالفات المقبولة والمرفوضة أكبر من إجمالي المخالفات',
+    msg_login_err:'البريد/الجوال أو كلمة المرور غير صحيحة',
+    msg_cloud_ok:'متصل بالسحابة', msg_cloud_off:'غير متصل', msg_cloud_sync:'جارٍ المزامنة...',
+    msg_no_cloud:'لم يتم إعداد السحابة', msg_cloud_fail:'فشلت المزامنة',
+    msg_cloud_pull:'تم جلب البيانات من السحابة',
+    msg_set_cloud:'يرجى إعداد jsonbin.io أولاً',
+    msg_link_ready:'الرابط جاهز للمشاركة',
+    msg_no_wa:'لم يتم إعداد رقم الواتساب', msg_wa_sent:'تم فتح واتساب',
+    msg_goal_saved:'تم حفظ الأهداف',
+    msg_no_perm:'هذه العملية للمالك فقط',
+    msg_pwd_changed:'تم تغيير كلمة المرور بنجاح',
+    msg_pwd_wrong:'كلمة المرور الحالية غير صحيحة',
+    msg_pwd_mismatch:'كلمتا المرور غير متطابقتين',
+    msg_pwd_short:'كلمة المرور يجب أن تكون 4 أحرف على الأقل',
+    msg_saved_grade:'تم حفظ قيم التقييم',
+    no_data:'لا توجد بيانات لعرضها', total:'الإجمالي', today:'اليوم',
+    date1:'التاريخ الأول', date2:'التاريخ الثاني (اختياري)',
+    fld_sections:'الأقسام المسموحة', st_active:'نشط', st_inactive:'غير نشط',
+    st_maintenance:'في الصيانة', st_broken:'معطل', st_available:'متاح',
+    mt_maint:'صيانة', mt_fault:'عطل',
+    all_sups:'كل المشرفين', all_regions:'كل المناطق',
+    fld_notes:'ملاحظات', fld_created:'وقت التسجيل (تلقائي)',
+    settings_theme:'لون الواجهة', settings_font:'حجم الخط', settings_share:'رابط المشاركة',
+    settings_charts:'الرسوم الظاهرة في التحليلات', settings_owner:'بيانات المالك (الدخول)',
+    settings_save_owner:'حفظ بيانات المالك', top_rep:'أفضل سائق',
+    sel_date_hint:'اختر يوماً واحداً أو يومين للمقارنة',
+    role_owner:'المالك', role_supervisor:'مشرف',
+    notif_title:'الإشعارات', notif_empty:'لا توجد إشعارات حالياً',
+    login_title:'تسجيل الدخول', login_sub:'نظام تحليل أداء السائقين',
+    login_id:'البريد الإلكتروني أو رقم الجوال', login_pwd:'كلمة المرور',
+    welcome:'مرحباً',
+    perf_score:'مؤشر الأداء العام', perf_score_sub:'نظرة شاملة على أداء الفريق',
+    perf_desc:'يُحسب المؤشر من الطلبات، الالتزام بالساعات، ونسبة قبول المخالفات.',
+    perf_excellent:'ممتاز', perf_good:'جيد', perf_fair:'مقبول', perf_poor:'يحتاج تحسين',
+    perf_avg_orders:'متوسط الطلبات اليومية', perf_avg_hours:'متوسط ساعات العمل',
+    perf_accept_rate:'نسبة قبول المخالفات', perf_total_reps:'عدد السائقين',
+    perf_weekly:'اتجاه الأداء — آخر 7 أيام',
+    perf_insights:'رؤى سريعة',
+    insight_best_sup:'أفضل مشرف هذا الأسبوع',
+    insight_growth:'نمو الطلبات مقارنة بالأمس',
+    insight_risk:'سائقون يحتاجون متابعة',
+    hidden_creds:'•••• مخفي ••••',
+    cloud_section:'☁️ مزامنة jsonbin.io',
+    cloud_key:'Master Key', cloud_bin:'Bin ID',
+    cloud_save:'حفظ', cloud_sync_now:'مزامنة الآن',
+    cloud_pull_now:'جلب من السحابة', cloud_test:'اختبار الاتصال',
+    cloud_desc:'أدخل مفتاحك و Bin ID من حسابك على jsonbin.io.',
+    branding_section:'🎨 هوية الواجهة',
+    brand_app_name:'اسم الواجهة', brand_app_sub:'الوصف الفرعي',
+    brand_logo:'شعار الواجهة', brand_logo_hint:'اختر صورة من جهازك (PNG/JPG، حجم أقصى 500KB)',
+    brand_logo_remove:'إزالة الشعار',
+    brand_save:'حفظ الهوية',
+    credentials_toggle:'👁️ إظهار/إخفاء بيانات الدخول',
+    credentials_show:'إظهار', credentials_hide:'إخفاء',
+    whatsapp_section:'💬 تواصل واتساب', whatsapp_number:'رقم الواتساب الدولي',
+    whatsapp_hint:'مثال: 966501234567 (بدون + أو مسافات)',
+    whatsapp_message:'الرسالة الافتراضية', whatsapp_open:'فتح المحادثة',
+    view_table:'جدول', view_cards:'بطاقات',
+    chart_type:'نوع الرسم', chart_bar:'أعمدة', chart_line:'خطي', chart_donut:'دائري', chart_pie:'حلقي',
+    goals_title:'🎯 الأهداف',
+    goals_desc:'يحدد المالك الأهداف الشهرية ويتم ربطها تلقائياً ببيانات التقارير.',
+    goals_monthly_orders:'هدف الطلبات الشهرية',
+    goals_monthly_hours:'هدف ساعات العمل الشهرية',
+    goals_max_violations:'الحد الأقصى للمخالفات الشهرية',
+    goals_min_accept_rate:'الحد الأدنى لنسبة قبول المخالفات (%)',
+    goals_per_rep_daily:'هدف الطلبات اليومية لكل سائق',
+    goals_save:'حفظ الأهداف',
+    goals_period:'فترة التقييم', goals_period_month:'هذا الشهر', goals_period_week:'هذا الأسبوع', goals_period_today:'اليوم',
+    goals_achieved:'%', goals_target:'الهدف', goals_actual:'الفعلي', goals_remaining:'المتبقي',
+    goals_exceeded:'تم تجاوز الهدف', goals_on_track:'على المسار الصحيح', goals_behind:'يحتاج تحسين',
+    goals_overall:'مؤشر الأهداف العام', goals_no_goal:'لم يتم تحديد هدف',
+    grades_section:'⭐ نظام التقييم A-F',
+    grades_desc:'حدد الحد الأدنى لعدد الطلبات لكل فئة. يتم احتساب التقييم تلقائياً عند إضافة تقرير.',
+    grades_save:'حفظ قيم التقييم',
+    grades_hint:'الحد الأدنى من الطلبات اليومية للحصول على هذه الفئة',
+    pwd_section:'🔑 تغيير كلمة المرور',
+    pwd_current:'كلمة المرور الحالية',
+    pwd_new:'كلمة المرور الجديدة',
+    pwd_confirm:'تأكيد كلمة المرور الجديدة',
+    pwd_save:'تغيير كلمة المرور',
+    pwd_owner_note:'لتغيير كلمة مرور المشرفين، استخدم قسم الإعدادات في نموذج المشرف.',
+    my_reps:'سائقيني',
+    reports_of_my_reps:'تقارير سائقيّ'
+  },
+  en:{
+    app_title:'Drivers Performance', app_sub:'Tracking & Reporting System',
+    nav_dashboard:'Dashboard', nav_daily:'Daily Reports', nav_reps:'Drivers',
+    nav_supervisors:'Supervisors', nav_cars:'Vehicles', nav_analytics:'Analytics', nav_goals:'Goals',
+    btn_add:'Add', btn_edit:'Edit', btn_save:'Save', btn_cancel:'Cancel', btn_close:'Close',
+    btn_search:'Search', btn_export:'Export', btn_import:'Import',
+    btn_sync:'Sync', btn_reset:'Reset', btn_refresh:'Refresh', btn_language:'Language',
+    btn_settings:'Settings', btn_permissions:'Permissions (Owner)', btn_compare:'Compare',
+    btn_view:'View', btn_share:'Generate Link', btn_copy:'Copy', btn_share_link:'Copy share link',
+    btn_login:'Sign In', btn_logout:'Logout',
+    kpi_reps:'Total Drivers', kpi_supervisors:'Supervisors', kpi_orders:'Total Orders',
+    kpi_hours:'Work Hours', kpi_violations:'Violations', kpi_cars:'Vehicles',
+    kpi_accepted:'Accepted', kpi_rejected:'Rejected', kpi_avg:'Avg Orders/Driver',
+    fld_name:'Name', fld_phone:'Phone', fld_code:'ID', fld_app:'App',
+    fld_supervisor:'Supervisor', fld_region:'Region', fld_orders:'Orders',
+    fld_hours:'Hours', fld_violations:'Violations', fld_accepted:'Accepted',
+    fld_rejected:'Rejected', fld_start:'Start', fld_end:'End',
+    fld_date:'Date', fld_brand:'Brand', fld_model:'Model', fld_plate:'Plate',
+    fld_year:'Year', fld_status:'Status', fld_type:'Type', fld_cost:'Cost',
+    fld_desc:'Description', fld_car:'Vehicle', fld_rep:'Driver', fld_start_date:'Start Date',
+    fld_end_date:'End Date', fld_start_km:'Start Odometer', fld_end_km:'End Odometer',
+    fld_km:'Odometer', fld_next_km:'Next Change', fld_next_date:'Next Change Date',
+    fld_permissions:'Permissions', fld_none:'— None —', fld_all:'All',
+    fld_email:'Credentials', fld_password:'Password', fld_rating:'Rating',
+    t_daily:'Daily Report', t_reps:'Drivers List', t_sups:'Supervisors List',
+    t_cars:'Vehicles List', t_maint:'Maintenance & Faults', t_usage:'Vehicle Usage',
+    t_oil:'Oil Change Schedule', t_top:'Top Performers', t_recent:'Recent Reports',
+    t_orders_rep:'Orders per Driver', t_hours_rep:'Work Hours per Driver',
+    t_viol:'Violations Distribution', t_trend:'Orders Trend (7 days)',
+    t_sup_perf:'Supervisors Performance', t_compare:'Two-Day Comparison',
+    msg_saved:'Saved', msg_deleted:'Deleted', msg_updated:'Updated',
+    msg_reset:'Reset completed', msg_synced:'Synced with cloud', msg_copied:'Link copied',
+    msg_imported:'Data imported', msg_import_err:'Invalid file',
+    msg_confirm_del:'Are you sure?', msg_confirm_reset:'All data will be erased. Continue?',
+    msg_confirm_logout:'Do you want to logout?',
+    msg_required:'Please fill all required fields',
+    msg_viol:'Accepted + rejected exceed total',
+    msg_login_err:'Invalid credentials',
+    msg_cloud_ok:'Cloud connected', msg_cloud_off:'Offline', msg_cloud_sync:'Syncing...',
+    msg_no_cloud:'Cloud not configured', msg_cloud_fail:'Sync failed',
+    msg_cloud_pull:'Data pulled from cloud',
+    msg_set_cloud:'Configure jsonbin.io first',
+    msg_link_ready:'Link ready to share',
+    msg_no_wa:'WhatsApp number not set', msg_wa_sent:'WhatsApp opened',
+    msg_goal_saved:'Goals saved',
+    msg_no_perm:'Owner only',
+    msg_pwd_changed:'Password changed successfully',
+    msg_pwd_wrong:'Current password is incorrect',
+    msg_pwd_mismatch:'Passwords do not match',
+    msg_pwd_short:'Password must be at least 4 characters',
+    msg_saved_grade:'Grade values saved',
+    no_data:'No data', total:'Total', today:'Today',
+    date1:'First date', date2:'Second date (optional)',
+    fld_sections:'Allowed sections', st_active:'Active', st_inactive:'Inactive',
+    st_maintenance:'Maintenance', st_broken:'Broken', st_available:'Available',
+    mt_maint:'Maintenance', mt_fault:'Fault',
+    all_sups:'All supervisors', all_regions:'All regions',
+    fld_notes:'Notes', fld_created:'Created at',
+    settings_theme:'Theme', settings_font:'Font size', settings_share:'Share link',
+    settings_charts:'Visible analytics charts', settings_owner:'Owner credentials',
+    settings_save_owner:'Save owner credentials', top_rep:'Top driver',
+    sel_date_hint:'Pick one or two days to compare',
+    role_owner:'Owner', role_supervisor:'Supervisor',
+    notif_title:'Notifications', notif_empty:'No notifications yet',
+    login_title:'Sign In', login_sub:'Drivers Performance System',
+    login_id:'Email or Phone', login_pwd:'Password',
+    welcome:'Welcome',
+    perf_score:'Overall Performance Score', perf_score_sub:'Team performance at a glance',
+    perf_desc:'Score computed from orders, hours adherence, and violation acceptance.',
+    perf_excellent:'Excellent', perf_good:'Good', perf_fair:'Fair', perf_poor:'Needs Improvement',
+    perf_avg_orders:'Avg daily orders', perf_avg_hours:'Avg daily hours',
+    perf_accept_rate:'Violation acceptance', perf_total_reps:'Active drivers',
+    perf_weekly:'Performance trend — last 7 days',
+    perf_insights:'Quick insights',
+    insight_best_sup:'Top supervisor this week',
+    insight_growth:'Orders growth vs. yesterday',
+    insight_risk:'Drivers needing attention',
+    hidden_creds:'•••• hidden ••••',
+    cloud_section:'☁️ jsonbin.io Sync',
+    cloud_key:'Master Key', cloud_bin:'Bin ID',
+    cloud_save:'Save', cloud_sync_now:'Sync Now',
+    cloud_pull_now:'Pull from Cloud', cloud_test:'Test Connection',
+    cloud_desc:'Enter your Master Key and Bin ID from jsonbin.io.',
+    branding_section:'🎨 Interface Branding',
+    brand_app_name:'App Name', brand_app_sub:'Subtitle',
+    brand_logo:'Logo', brand_logo_hint:'Pick an image (PNG/JPG, max 500KB)',
+    brand_logo_remove:'Remove Logo', brand_save:'Save Branding',
+    credentials_toggle:'👁️ Show/Hide Credentials',
+    credentials_show:'Show', credentials_hide:'Hide',
+    whatsapp_section:'💬 WhatsApp Contact', whatsapp_number:'WhatsApp Number',
+    whatsapp_hint:'Example: 966501234567 (no + or spaces)',
+    whatsapp_message:'Default Message', whatsapp_open:'Open Chat',
+    view_table:'Table', view_cards:'Cards',
+    chart_type:'Chart Type', chart_bar:'Bar', chart_line:'Line', chart_donut:'Donut', chart_pie:'Pie',
+    goals_title:'🎯 Goals',
+    goals_desc:'Owner defines monthly targets, auto-linked to report data.',
+    goals_monthly_orders:'Monthly Orders Target',
+    goals_monthly_hours:'Monthly Hours Target',
+    goals_max_violations:'Max Monthly Violations',
+    goals_min_accept_rate:'Min Violation Acceptance (%)',
+    goals_per_rep_daily:'Daily Orders per Driver',
+    goals_save:'Save Goals',
+    goals_period:'Evaluation Period', goals_period_month:'This Month', goals_period_week:'This Week', goals_period_today:'Today',
+    goals_achieved:'%', goals_target:'Target', goals_actual:'Actual', goals_remaining:'Remaining',
+    goals_exceeded:'Exceeded', goals_on_track:'On Track', goals_behind:'Behind',
+    goals_overall:'Overall Goals Score', goals_no_goal:'No goal set',
+    grades_section:'⭐ Grades A-F',
+    grades_desc:'Set minimum orders per grade. Rating is auto-computed when adding a report.',
+    grades_save:'Save Grades',
+    grades_hint:'Minimum daily orders to earn this grade',
+    pwd_section:'🔑 Change Password',
+    pwd_current:'Current Password',
+    pwd_new:'New Password',
+    pwd_confirm:'Confirm New Password',
+    pwd_save:'Change Password',
+    pwd_owner_note:'To change supervisor passwords, use the supervisor edit form.',
+    my_reps:'My Drivers',
+    reports_of_my_reps:"My drivers' reports"
+  }
+};
+const t = k => (I18N[state.lang] && I18N[state.lang][k]) || I18N.ar[k] || k;
+
+/* ==========================================================================
+   2) أدوات
+   ========================================================================== */
+const $  = (s,r=document)=>r.querySelector(s);
+const $$ = (s,r=document)=>[...r.querySelectorAll(s)];
+const uid = ()=> Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+const esc = s => String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const num = v => { const n = parseFloat(v); return isNaN(n)?0:n; };
+const sum = (arr,k)=> arr.reduce((a,b)=>a+num(b[k]),0);
+const round1 = n => Math.round(n*10)/10;
+const todayStr = ()=> new Date().toISOString().slice(0,10);
+const dayName = d => {
+  const days = state.lang==='ar'
+    ? ['الأحد','الإثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت']
+    : ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  return days[new Date(d+'T00:00:00').getDay()];
+};
+const shortLabel = (s,n=11)=>{ s = String(s||''); return s.length>n ? s.slice(0,n)+'…' : s; };
+const monthStart = ()=>{ const d = new Date(); d.setDate(1); return d.toISOString().slice(0,10); };
+const weekStart = ()=>{ const d = new Date(); d.setDate(d.getDate()-6); return d.toISOString().slice(0,10); };
+function hashPwd(pwd){
+  let h = 0; pwd = String(pwd||'');
+  for(let i=0;i<pwd.length;i++){ h = ((h<<5)-h) + pwd.charCodeAt(i); h |= 0; }
+  return 'h' + Math.abs(h).toString(36) + '_' + pwd.length;
+}
+function toast(msg,type=''){
+  const el = document.createElement('div');
+  el.className = 'toast ' + type;
+  el.innerHTML = `<span>${type==='ok'?'✅':type==='err'?'⛔':type==='warn'?'⚠️':'ℹ️'}</span><span>${esc(msg)}</span>`;
+  $('#toast').appendChild(el);
+  setTimeout(()=>{ el.style.opacity='0'; el.style.transform='translateY(10px)'; el.style.transition='.3s'; },2400);
+  setTimeout(()=> el.remove(), 2800);
+}
+function calcHours(start,end){
+  if(!start||!end) return 0;
+  const [sh,sm] = start.split(':').map(Number);
+  const [eh,em] = end.split(':').map(Number);
+  let m = (eh*60+em) - (sh*60+sm);
+  if(m < 0) m += 1440;
+  return round1(m/60);
+}
+function timeAgo(iso){
+  const d = (Date.now() - new Date(iso).getTime())/1000;
+  if(d < 60) return 'الآن';
+  if(d < 3600) return Math.floor(d/60) + ' د';
+  if(d < 86400) return Math.floor(d/3600) + ' س';
+  return Math.floor(d/86400) + ' ي';
+}
+function calcPerfScore(days=7){
+  const cutoff = new Date(); cutoff.setDate(cutoff.getDate()-(days-1));
+  const cutoffStr = cutoff.toISOString().slice(0,10);
+  const rs = visibleReports().filter(r=> r.date >= cutoffStr);
+  const reps = visibleReps();
+  if(!rs.length || !reps.length) return 0;
+  const totalOrders = sum(rs,'orders');
+  const totalHours = sum(rs,'hours');
+  const totalViol = sum(rs,'violations');
+  const totalAccepted = sum(rs,'accepted');
+  const avgOrders = totalOrders / reps.length;
+  const avgHours = totalHours / reps.length;
+  const acceptRate = totalViol > 0 ? (totalAccepted/totalViol) : 1;
+  return Math.round(
+    Math.min(avgOrders/25, 1) * 50 +
+    Math.min(avgHours/8, 1) * 30 +
+    acceptRate * 20
+  );
+}
+function perfLabel(score){
+  if(score >= 80) return { txt: t('perf_excellent') };
+  if(score >= 60) return { txt: t('perf_good') };
+  if(score >= 40) return { txt: t('perf_fair') };
+  return { txt: t('perf_poor') };
+}
+function sparkline(values, color){
+  if(!values.length) return '';
+  const W=160, H=38, P=4;
+  const max = Math.max(...values, 1), min = Math.min(...values, 0);
+  const range = (max - min) || 1;
+  const step = (W - P*2) / Math.max(values.length-1, 1);
+  const pts = values.map((v,i)=>{
+    const x = P + i*step;
+    const y = H - P - ((v-min)/range) * (H - P*2);
+    return [x,y];
+  });
+  const path = pts.map((p,i)=> (i?'L':'M') + p[0] + ' ' + p[1]).join(' ');
+  const areaPath = path + ` L ${pts[pts.length-1][0]} ${H-P} L ${pts[0][0]} ${H-P} Z`;
+  const id = 'sp' + Math.random().toString(36).slice(2,7);
+  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
+    <defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="${color}" stop-opacity=".35"/>
+      <stop offset="100%" stop-color="${color}" stop-opacity="0"/>
+    </linearGradient></defs>
+    <path d="${areaPath}" fill="url(#${id})"/>
+    <path d="${path}" fill="none" stroke="${color}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>`;
+}
+
+/* ==========================================================================
+   3) قاعدة البيانات
+   ========================================================================== */
+const DB_KEY = 'repPerfDB_v3';
+const SESSION_KEY = 'repPerfSession_v3';
+const CLOUD_CFG_KEY = 'repPerfCloud_v2';
+
+let db = null;
+let cloudCfg = { key:'', binId:'' };
+
+/* ★ التعديل 1: إضافة cloudMode إلى state */
+const state = { lang:'ar', section:'dashboard', daily:{d1:todayStr(), d2:''},
+                carsTab:'vehicles', user:null, cloudBusy:false, cloudMode:false,
+                viewModes:{ reps:'table', supervisors:'table', cars:'table', reports:'table' } };
+
+const DEFAULT_GRADES = { A:35, B:30, C:25, D:20, E:15, F:0 };
+
+function emptyDB(){
+  return {
+    supervisors:[], reps:[], cars:[], maintenance:[], usage:[], oil:[], reports:[],
+    notifications:[],
+    auth: { owner:{ email:'owner@rep.com', phone:'0500000000', password:hashPwd('owner123') } },
+    settings:{
+      color:'#6366f1', fontSize:15,
+      charts:{orders:true,hours:true,viol:true,trend:true,sup:true},
+      chartTypes:{ orders:'bar', hours:'bar', viol:'donut', trend:'line', sup:'bar' },
+      showCredentials:false,
+      whatsapp:{ number:'', message:'مرحباً، أرغب بالاستفسار عن أداء الفريق.' }
+    },
+    branding:{ title:'تحليل أداء السائقين', subtitle:'نظام المتابعة والتقارير', logo:null },
+    goals:{ monthlyOrders:0, monthlyHours:0, maxViolations:0, minAcceptRate:0, perRepDaily:0 },
+    grades: { ...DEFAULT_GRADES },
+    meta:{ createdAt:new Date().toISOString(), version:5 }
+  };
+}
+function loadDB(){
+  try{
+    const raw = localStorage.getItem(DB_KEY);
+    if(raw){
+      const p = JSON.parse(raw);
+      const merged = Object.assign(emptyDB(), p);
+      if(!merged.auth) merged.auth = emptyDB().auth;
+      if(!merged.notifications) merged.notifications = [];
+      if(!merged.branding) merged.branding = emptyDB().branding;
+      if(!merged.goals) merged.goals = emptyDB().goals;
+      if(!merged.grades) merged.grades = { ...DEFAULT_GRADES };
+      merged.settings = Object.assign(emptyDB().settings, merged.settings || {});
+      merged.settings.chartTypes = Object.assign(emptyDB().settings.chartTypes, merged.settings.chartTypes || {});
+      merged.settings.whatsapp = Object.assign(emptyDB().settings.whatsapp, merged.settings.whatsapp || {});
+      if(merged.auth?.owner?.password && !String(merged.auth.owner.password).startsWith('h')){
+        merged.auth.owner.password = hashPwd(merged.auth.owner.password);
+      }
+      merged.supervisors.forEach(s=>{
+        if(s.password && !String(s.password).startsWith('h')) s.password = hashPwd(s.password);
+      });
+      (merged.reports||[]).forEach(r=>{ if(!r.rating) r.rating = computeRatingFromGrades(r.orders, merged.grades); });
+      return merged;
+    }
+  }catch(e){ console.warn(e); }
+  return null;
+}
+function saveDB(){
+  try{ localStorage.setItem(DB_KEY, JSON.stringify(db)); }
+  catch(e){ toast('تعذّر الحفظ محلياً','err'); }
+}
+function loadCloudCfg(){
+  try{ const raw = localStorage.getItem(CLOUD_CFG_KEY); if(raw) return JSON.parse(raw); }catch(e){}
+  return { key:'', binId:'' };
+}
+function saveCloudCfg(){ localStorage.setItem(CLOUD_CFG_KEY, JSON.stringify(cloudCfg)); }
+
+function computeRatingFromGrades(orders, grades){
+  const g = grades || DEFAULT_GRADES;
+  const list = [['A',num(g.A)],['B',num(g.B)],['C',num(g.C)],['D',num(g.D)],['E',num(g.E)],['F',0]];
+  for(const [l,v] of list){ if(num(orders) >= v) return l; }
+  return 'F';
+}
+function calcRating(orders){
+  return computeRatingFromGrades(orders, db.grades);
+}
+
+function seedDB(){
+  const d = emptyDB();
+  const sup = (name,phone,code,email,password,perms)=>({
+    id:uid(), name, phone, code, email, password:hashPwd(password),
+    permissions:perms, createdAt:new Date().toISOString()
+  });
+  const s1 = sup('أحمد المالكي','0551000001','SUP-001','ahmed@rep.com','1234',['dashboard','daily','reps','analytics','goals']);
+  const s2 = sup('خالد العتيبي','0551000002','SUP-002','khaled@rep.com','1234',['dashboard','daily','reps','goals']);
+  const s3 = sup('سارة الحربي','0551000003','SUP-003','sara@rep.com','1234',['dashboard','analytics','goals']);
+  d.supervisors.push(s1,s2,s3);
+
+  const rep = (name,phone,code,app,supId,region)=>({
+    id:uid(), name, phone, code, app, supervisorId:supId, region, status:'active',
+    createdAt:new Date().toISOString()
+  });
+  const r1 = rep('محمد الشمري','0561110001','DR-1001','تطبيق هنقرستيشن',s1.id,'الرياض - شمال');
+  const r2 = rep('عبدالله القحطاني','0561110002','DR-1002','تطبيق جاهز',s1.id,'الرياض - شرق');
+  const r3 = rep('يوسف الدوسري','0561110003','DR-1003','تطبيق مرسول',s2.id,'جدة - وسط');
+  const r4 = rep('فهد الزهراني','0561110004','DR-1004','تطبيق كيتا',s2.id,'جدة - جنوب');
+  const r5 = rep('ناصر السبيعي','0561110005','DR-1005','تطبيق هنقرستيشن',s3.id,'الدمام');
+  d.reps.push(r1,r2,r3,r4,r5);
+
+  const car = (brand,model,plate,year,status)=>({
+    id:uid(), brand, model, plate, year, status, createdAt:new Date().toISOString()
+  });
+  const c1 = car('تويوتا','هايلكس','أ ب ج 1234',2022,'available');
+  const c2 = car('هيونداي','إلنترا','د هـ و 5678',2021,'in_use');
+  const c3 = car('نيسان','صني','ز ح ط 9012',2020,'maintenance');
+  const c4 = car('شيفروليه','ماليبو','ي ك ل 3456',2023,'available');
+  d.cars.push(c1,c2,c3,c4);
+
+  d.maintenance.push(
+    {id:uid(),carId:c3.id,type:'maint',date:todayStr(),cost:850,desc:'تغيير فحمات الفرامل',status:'in_progress'},
+    {id:uid(),carId:c1.id,type:'fault',date:todayStr(),cost:220,desc:'إصلاح مكيف',status:'done'}
+  );
+  d.usage.push(
+    {id:uid(),carId:c2.id,repId:r1.id,supervisorId:s1.id,startDate:todayStr(),endDate:'',startKm:45000,endKm:''},
+    {id:uid(),carId:c1.id,repId:r3.id,supervisorId:s2.id,startDate:todayStr(),endDate:'',startKm:31200,endKm:''}
+  );
+  d.oil.push(
+    {id:uid(),carId:c1.id,date:todayStr(),km:31000,nextKm:36000,nextDate:'',cost:180},
+    {id:uid(),carId:c2.id,date:todayStr(),km:44500,nextKm:49500,nextDate:'',cost:210}
+  );
+
+  for(let i=6;i>=0;i--){
+    const dt = new Date(); dt.setDate(dt.getDate()-i);
+    const ds = dt.toISOString().slice(0,10);
+    d.reps.forEach((r,idx)=>{
+      if(i===0 && idx>2) return;
+      const orders = 12 + ((idx*7 + i*5) % 26);
+      const start = ['08:00','09:00','10:00'][idx%3];
+      const end   = ['17:00','18:30','19:00'][idx%3];
+      const v = (idx+i) % 5;
+      const acc = Math.max(0, v-1);
+      d.reports.push({
+        id:uid(), repId:r.id, date:ds, orders,
+        startTime:start, endTime:end, hours:calcHours(start,end),
+        violations:v, accepted:acc, rejected:v-acc,
+        rating: computeRatingFromGrades(orders, d.grades),
+        notes:'', createdAt:new Date(dt.setHours(20,0,0,0)).toISOString()
+      });
+    });
+  }
+  d.goals = { monthlyOrders: 500, monthlyHours: 200, maxViolations: 20, minAcceptRate: 60, perRepDaily: 15 };
+  d.notifications.push({
+    id:uid(), title:'مرحباً بك', body:'تم تهيئة النظام ببيانات تجريبية.',
+    type:'info', date:new Date().toISOString(), read:false
+  });
+  return d;
+}
+
+/* ==========================================================================
+   4) المزامنة السحابية
+   ========================================================================== */
+const JSONBIN_BASE = 'https://api.jsonbin.io/v3';
+function setCloudStatus(mode){
+  const el = $('#cloudStatus'); const txt = $('#cloudText');
+  if(!el || !txt) return;
+  el.className = 'cloud-status ' + (mode==='on'?'on':mode==='syncing'?'syncing':'off');
+  txt.textContent = mode==='on' ? t('msg_cloud_ok')
+                  : mode==='syncing' ? t('msg_cloud_sync')
+                  : t('msg_cloud_off');
+}
+function isCloudReady(){ return cloudCfg.key && cloudCfg.binId; }
+
+async function pushToCloud(silent){
+  if(!isCloudReady()){ if(!silent) toast(t('msg_no_cloud'),'warn'); return false; }
+  if(state.cloudBusy) return false;
+  state.cloudBusy = true; setCloudStatus('syncing');
+  try{
+    const res = await fetch(`${JSONBIN_BASE}/b/${cloudCfg.binId}`, {
+      method:'PUT',
+      headers:{ 'Content-Type':'application/json','X-Master-Key': cloudCfg.key },
+      body: JSON.stringify({ data: db, updatedAt: new Date().toISOString(),
+        updatedBy: state.user ? state.user.name : 'system' })
+    });
+    if(!res.ok) throw new Error(await res.text());
+    setCloudStatus('on');
+    if(!silent){ toast(t('msg_synced'),'ok'); addNotif('مزامنة سحابية','تم رفع البيانات','ok'); }
+    return true;
+  }catch(e){
+    setCloudStatus('off');
+    if(!silent) toast(t('msg_cloud_fail') + ': ' + e.message, 'err');
+    return false;
+  } finally { state.cloudBusy = false; }
+}
+async function pullFromCloud(silent){
+  if(!isCloudReady()){ if(!silent) toast(t('msg_no_cloud'),'warn'); return false; }
+  if(state.cloudBusy) return false;
+  state.cloudBusy = true; setCloudStatus('syncing');
+  try{
+    const res = await fetch(`${JSONBIN_BASE}/b/${cloudCfg.binId}/latest`,
+      { headers:{ 'X-Master-Key': cloudCfg.key } });
+    if(!res.ok) throw new Error(await res.text());
+    const json = await res.json();
+    const rec = json.record || json;
+    const cloudData = rec.data || rec;
+    db = Object.assign(emptyDB(), cloudData);
+    if(!db.auth) db.auth = emptyDB().auth;
+    if(!db.notifications) db.notifications = [];
+    if(!db.branding) db.branding = emptyDB().branding;
+    if(!db.goals) db.goals = emptyDB().goals;
+    if(!db.grades) db.grades = { ...DEFAULT_GRADES };
+    db.settings = Object.assign(emptyDB().settings, db.settings || {});
+    db.settings.chartTypes = Object.assign(emptyDB().settings.chartTypes, db.settings.chartTypes || {});
+    db.settings.whatsapp = Object.assign(emptyDB().settings.whatsapp, db.settings.whatsapp || {});
+    db.supervisors.forEach(s=>{
+      if(s.password && !String(s.password).startsWith('h')) s.password = hashPwd(s.password);
+    });
+    if(db.auth?.owner?.password && !String(db.auth.owner.password).startsWith('h')){
+      db.auth.owner.password = hashPwd(db.auth.owner.password);
+    }
+    (db.reports||[]).forEach(r=>{ if(!r.rating) r.rating = computeRatingFromGrades(r.orders, db.grades); });
+    cleanupRelations(); saveDB(); setCloudStatus('on');
+    if(!silent){ render(); toast(t('msg_cloud_pull'),'ok');
+      addNotif('تحديث سحابي','تم جلب البيانات','ok'); }
+    return true;
+  }catch(e){
+    setCloudStatus('off');
+    if(!silent) toast(t('msg_cloud_fail') + ': ' + e.message, 'err');
+    return false;
+  } finally { state.cloudBusy = false; }
+}
+function buildShareLink(){
+  if(!isCloudReady()) return '';
+  const u = new URL(location.href);
+  u.hash=''; u.search='';
+  u.searchParams.set('bin', cloudCfg.binId);
+  u.searchParams.set('key', cloudCfg.key);
+  return u.toString();
+}
+async function copyShareLink(){
+  if(!isCloudReady()){ toast(t('msg_set_cloud'),'warn'); return; }
+  await pushToCloud(true);
+  const url = buildShareLink();
+  try{ await navigator.clipboard.writeText(url); toast(t('msg_link_ready'),'ok');
+    addNotif('رابط مشاركة','تم نسخ الرابط','ok'); }
+  catch(e){
+    const ta = document.createElement('textarea');
+    ta.value=url; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); ta.remove(); toast(t('msg_link_ready'),'ok');
+  }
+}
+
+/* ★ التعديل 2: عدم مسح الـ URL + تفعيل cloudMode */
+async function readFromURLParams(){
+  const p = new URLSearchParams(location.search);
+  const bin = p.get('bin'); const key = p.get('key');
+  if(bin && key){
+    cloudCfg.binId = bin; cloudCfg.key = key;
+    saveCloudCfg();
+    state.cloudMode = true;
+    // لا نحذف الرابط من الـ URL حتى يعمل التحديث (F5) على الأجهزة الأخرى بنفس الجلسة
+    return true;
+  }
+  return false;
+}
+function openWhatsApp(){
+  const w = db.settings.whatsapp || {};
+  if(!w.number){ toast(t('msg_no_wa'),'warn'); settingsModal(); return; }
+  const num = String(w.number).replace(/[^\d]/g,'');
+  const msg = encodeURIComponent(w.message || '');
+  window.open(`https://wa.me/${num}?text=${msg}`, '_blank');
+  toast(t('msg_wa_sent'),'ok');
+}
+
+/* ★ التعديل 3: شاشة التحميل السحابية */
+function showLoadingOverlay(title, sub){
+  const el = document.getElementById('loadingOverlay');
+  if(!el) return;
+  if(title) document.getElementById('loTitle').textContent = title;
+  if(sub) document.getElementById('loSub').textContent = sub;
+  el.classList.add('show');
+}
+function hideLoadingOverlay(){
+  const el = document.getElementById('loadingOverlay');
+  if(el) el.classList.remove('show');
+}
+
+/* ==========================================================================
+   5) الإشعارات
+   ========================================================================== */
+function addNotif(title, body, type='info'){
+  db.notifications = db.notifications || [];
+  db.notifications.unshift({id:uid(), title, body, type, date:new Date().toISOString(), read:false});
+  if(db.notifications.length > 60) db.notifications.length = 60;
+  saveDB(); updateNotifBadge(); renderNotifList();
+}
+function updateNotifBadge(){
+  const b = $('#notifBadge'); if(!b) return;
+  const unread = (db.notifications||[]).filter(n=>!n.read).length;
+  if(unread > 0){ b.textContent = unread > 99 ? '99+' : unread; b.style.display='grid'; }
+  else b.style.display = 'none';
+}
+function renderNotifList(){
+  const list = $('#notifList'); if(!list) return;
+  const items = db.notifications || [];
+  if(!items.length){ list.innerHTML = `<div class="empty">🔕 ${t('notif_empty')}</div>`; return; }
+  const icons = { info:'ℹ️', ok:'✅', warn:'⚠️', err:'⛔' };
+  list.innerHTML = items.map(n=>`
+    <div class="notif-item ${n.read?'':'unread'} ${n.type||'info'}">
+      <div class="ni">${icons[n.type]||'ℹ️'}</div>
+      <div style="flex:1;min-width:0">
+        <div class="nt">${esc(n.title)}</div>
+        <div class="nb">${esc(n.body)}</div>
+        <div class="nd">🕒 ${timeAgo(n.date)}</div>
+      </div>
+    </div>`).join('');
+}
+function openNotifPanel(){
+  const p = $('#notifPanel');
+  p.classList.toggle('open');
+  if(p.classList.contains('open')){
+    renderNotifList(); updateNotifBadge();
+    setTimeout(()=>{ (db.notifications||[]).forEach(n=> n.read = true); saveDB(); updateNotifBadge(); }, 900);
+  }
+}
+function closeNotifPanel(){ $('#notifPanel').classList.remove('open'); }
+
+/* ==========================================================================
+   6) الصلاحيات والدور
+   ========================================================================== */
+const NAV = [
+  {id:'dashboard',   icon:'🏠', key:'nav_dashboard'},
+  {id:'daily',       icon:'📅', key:'nav_daily'},
+  {id:'reps',        icon:'🚗', key:'nav_reps'},
+  {id:'supervisors', icon:'👔', key:'nav_supervisors'},
+  {id:'cars',        icon:'🚙', key:'nav_cars'},
+  {id:'analytics',   icon:'📈', key:'nav_analytics'},
+  {id:'goals',       icon:'🎯', key:'nav_goals'}
+];
+function allowedSections(){
+  if(!state.user) return [];
+  if(state.user.role === 'owner') return NAV.map(n=>n.id);
+  const sup = db.supervisors.find(s=>s.id === state.user.id);
+  return sup && sup.permissions ? sup.permissions : ['dashboard'];
+}
+function isOwner(){ return state.user && state.user.role === 'owner'; }
+function isSupervisor(){ return state.user && state.user.role === 'supervisor'; }
+function canModify(){ return isOwner(); }
+function canDelete(){ return isOwner(); }
+
+function visibleReps(){
+  if(!state.user) return [];
+  if(isOwner()) return db.reps;
+  return db.reps.filter(r=> r.supervisorId === state.user.id);
+}
+function visibleRepIds(){ return new Set(visibleReps().map(r=>r.id)); }
+function visibleReports(){
+  if(!state.user) return [];
+  if(isOwner()) return db.reports;
+  const ids = visibleRepIds();
+  return db.reports.filter(r=> ids.has(r.repId));
+}
+function isRepVisible(repId){
+  if(isOwner()) return true;
+  const r = db.reps.find(x=>x.id===repId);
+  return r && r.supervisorId === state.user.id;
+}
+
+/* ==========================================================================
+   7) المصادقة
+   ========================================================================== */
+function loadSession(){
+  try{
+    const raw = sessionStorage.getItem(SESSION_KEY);
+    if(!raw) return null;
+    const s = JSON.parse(raw);
+    if(s.role === 'owner'){ if(!db.auth?.owner) return null; return s; }
+    if(s.role === 'supervisor'){ if(!db.supervisors.find(x=>x.id === s.id)) return null; return s; }
+  }catch(e){}
+  return null;
+}
+function saveSession(u){
+  if(u) sessionStorage.setItem(SESSION_KEY, JSON.stringify(u));
+  else sessionStorage.removeItem(SESSION_KEY);
+}
+function tryLogin(identifier, password){
+  const id = String(identifier||'').trim().toLowerCase();
+  const rawPwd = String(password||'');
+  if(!id || !rawPwd) return null;
+  const pwd = hashPwd(rawPwd);
+  const owner = db.auth?.owner;
+  if(owner){
+    const ownerEmail = (owner.email||'').toLowerCase();
+    const ownerPhone = (owner.phone||'').replace(/\s+/g,'');
+    if((ownerEmail === id || ownerPhone === String(identifier).replace(/\s+/g,'')) && owner.password === pwd){
+      return { id:'owner', role:'owner', name: t('role_owner'), loginAt: new Date().toISOString() };
+    }
+  }
+  const sup = db.supervisors.find(s=>{
+    const sEmail = (s.email||'').toLowerCase();
+    const sPhone = (s.phone||'').replace(/\s+/g,'');
+    return (sEmail === id || sPhone === String(identifier).replace(/\s+/g,'')) && s.password === pwd;
+  });
+  if(sup) return { id:sup.id, role:'supervisor', name:sup.name, loginAt:new Date().toISOString() };
+  return null;
+}
+function doLogin(identifier, password){
+  const u = tryLogin(identifier, password);
+  if(!u) return false;
+  state.user = u; saveSession(u);
+  const allowed = allowedSections();
+  if(!allowed.includes(state.section)) state.section = allowed[0] || 'dashboard';
+  addNotif(t('welcome') + ' 👋', u.name + ' — ' + (u.role==='owner'?t('role_owner'):t('role_supervisor')), 'ok');
+  showApp();
+  toast(t('welcome') + ' ' + u.name, 'ok');
+  return true;
+}
+function doLogout(silent){
+  if(!silent && !confirm(t('msg_confirm_logout'))) return;
+  state.user = null; saveSession(null);
+  closeNotifPanel(); showLogin();
+  if(!silent) toast(t('btn_logout'), 'ok');
+}
+function applyBranding(){
+  const b = db.branding || {};
+  $('#brandTitle').textContent = b.title || 'تحليل أداء السائقين';
+  $('#brandSub').textContent = b.subtitle || 'نظام المتابعة والتقارير';
+  const sbLogo = $('#sidebarLogo');
+  if(sbLogo){
+    if(b.logo) sbLogo.innerHTML = `<img src="${b.logo}" alt="logo">`;
+    else sbLogo.innerHTML = '📊';
+  }
+  const lgLogo = $('#loginLogo');
+  if(lgLogo){
+    if(b.logo) lgLogo.innerHTML = `<img src="${b.logo}" alt="logo">`;
+    else lgLogo.innerHTML = '📊';
+  }
+  document.title = b.title || 'لوحة تحليل أداء السائقين';
+  $('#lgTitle').textContent = t('login_title');
+  $('#lgSub').textContent = b.title || t('login_sub');
+}
+function showLogin(){
+  $('#app').style.display = 'none';
+  $('#loginScreen').style.display = 'grid';
+  applyBranding();
+  $('#lgIdLbl').innerHTML = t('login_id') + ' <span class="req">*</span>';
+  $('#lgPwLbl').innerHTML = t('login_pwd') + ' <span class="req">*</span>';
+  $('#lgBtn').textContent = '🔓 ' + t('btn_login');
+  $('#lgErr').style.display = 'none';
+  $('#loginForm').reset();
+  setTimeout(()=> $('#lgId')?.focus(), 100);
+}
+function showApp(){
+  $('#loginScreen').style.display = 'none';
+  $('#app').style.display = 'flex';
+  setCloudStatus(isCloudReady() ? 'on' : 'off');
+  render();
+}
+
+/* ==========================================================================
+   8) التنقل والعرض
+   ========================================================================== */
+function renderNav(){
+  const allowed = allowedSections();
+  const items = NAV.filter(n=> allowed.includes(n.id));
+  const repsCount = visibleReps().length;
+  $('#nav').innerHTML = items.map(n=>{
+    const count = n.id==='reps' ? repsCount
+                : n.id==='supervisors' ? (isOwner()?db.supervisors.length:1)
+                : n.id==='cars' ? db.cars.length : '';
+    return `<button class="nav-item ${state.section===n.id?'active':''}" data-go="${n.id}">
+      <span class="ic">${n.icon}</span><span>${t(n.key)}</span>
+      ${count!==''?`<span class="badge">${count}</span>`:''}
+    </button>`;
+  }).join('');
+  $$('.nav-item').forEach(b=> b.onclick = ()=>{ state.section = b.dataset.go; closeSidebar(); render(); });
+
+  const u = state.user;
+  if(u){
+    const initial = (u.name||'?').trim().charAt(0);
+    $('#userBox').innerHTML = `
+      <div class="ub-avatar">${esc(initial)}</div>
+      <div class="ub-info">
+        <div class="ub-name">${esc(u.name)}</div>
+        <div class="ub-role">${u.role==='owner'?t('role_owner'):t('role_supervisor')}</div>
+      </div>
+      <button class="ub-out" id="ubLogout" title="${t('btn_logout')}">🚪</button>`;
+    $('#ubLogout').onclick = ()=> doLogout();
+  }
+  const owner = isOwner();
+  $('#btnPerm').style.display = owner ? '' : 'none';
+}
+
+function render(){
+  applyBranding();
+  $('#permLbl').textContent = t('btn_permissions');
+  $('#setLbl').textContent = t('btn_settings');
+  $('#pwdLbl').textContent = t('pwd_section').replace('🔑 ','');
+  document.documentElement.dir = state.lang==='ar' ? 'rtl' : 'ltr';
+  document.documentElement.lang = state.lang;
+  renderNav();
+  const allowed = allowedSections();
+  if(!allowed.includes(state.section)) state.section = allowed[0] || 'dashboard';
+  const nav = NAV.find(n=>n.id===state.section);
+  $('#pageTitle').textContent = t(nav.key);
+  const view = $('#view');
+  view.innerHTML = ({
+    dashboard: viewDashboard, daily: viewDaily, reps: viewReps,
+    supervisors: viewSupervisors, cars: viewCars, analytics: viewAnalytics, goals: viewGoals
+  })[state.section]();
+  ({ dashboard: afterDashboard, daily: afterDaily, reps: afterReps,
+     supervisors: afterSupervisors, cars: afterCars, analytics: afterAnalytics,
+     goals: afterGoals })[state.section]();
+  applySettings();
+  updateNotifBadge();
+  setCloudStatus(isCloudReady() ? 'on' : 'off');
+}
+function applySettings(){
+  const s = db.settings;
+  document.documentElement.style.setProperty('--primary', s.color);
+  document.documentElement.style.setProperty('--primary-soft', hexToRgba(s.color,.08));
+  document.documentElement.style.setProperty('--primary-dark', shade(s.color,-18));
+  document.documentElement.style.setProperty('--primary-2', shade(s.color, 25));
+  document.documentElement.style.setProperty('--grad-brand',
+    `linear-gradient(135deg,${s.color} 0%,${shade(s.color,22)} 55%,#06b6d4 100%)`);
+  document.documentElement.style.setProperty('--grad-hero',
+    `linear-gradient(135deg,#0f172a 0%,#1e1b4b 45%,${shade(s.color,-25)} 100%)`);
+  document.documentElement.style.setProperty('--fs', s.fontSize + 'px');
+}
+function hexToRgba(hex,a){
+  const h = hex.replace('#','');
+  const n = parseInt(h.length===3 ? h.split('').map(c=>c+c).join('') : h, 16);
+  return `rgba(${(n>>16)&255},${(n>>8)&255},${n&255},${a})`;
+}
+function shade(hex,p){
+  const h = hex.replace('#','');
+  const n = parseInt(h.length===3 ? h.split('').map(c=>c+c).join('') : h,16);
+  let r=(n>>16)&255, g=(n>>8)&255, b=n&255;
+  r = Math.max(0,Math.min(255, Math.round(r + 255*p/100)));
+  g = Math.max(0,Math.min(255, Math.round(g + 255*p/100)));
+  b = Math.max(0,Math.min(255, Math.round(b + 255*p/100)));
+  return '#' + [r,g,b].map(x=>x.toString(16).padStart(2,'0')).join('');
+}
+
+/* ==========================================================================
+   9) العلاقات
+   ========================================================================== */
+const getRep = id => db.reps.find(r=>r.id===id);
+const getSup = id => db.supervisors.find(s=>s.id===id);
+const getCar = id => db.cars.find(c=>c.id===id);
+const repName = id => getRep(id)?.name || '—';
+const supName = id => getSup(id)?.name || '—';
+const carName = id => { const c = getCar(id); return c ? `${c.brand} ${c.model} - ${c.plate}` : '—'; };
+const supOfRep = id => { const r = getRep(id); return r ? supName(r.supervisorId) : '—'; };
+function cleanupRelations(){
+  const repIds = new Set(db.reps.map(r=>r.id));
+  const supIds = new Set(db.supervisors.map(s=>s.id));
+  const carIds = new Set(db.cars.map(c=>c.id));
+  db.reports = db.reports.filter(x=>repIds.has(x.repId));
+  db.usage = db.usage.filter(x=>carIds.has(x.carId) && repIds.has(x.repId));
+  db.maintenance = db.maintenance.filter(x=>carIds.has(x.carId));
+  db.oil = db.oil.filter(x=>carIds.has(x.carId));
+  db.reps.forEach(r=>{ if(!supIds.has(r.supervisorId)) r.supervisorId=''; });
+}
+
+/* ==========================================================================
+   10) الرسوم البيانية
+   ========================================================================== */
+function chartBar(data, color, height=280){
+  if(!data.length) return `<div class="empty">${t('no_data')}</div>`;
+  const W=640, H=height, P={t:32,r:18,b:58,l:48};
+  const max = Math.max(...data.map(d=>num(d.value)),1);
+  const iw = W-P.l-P.r, ih = H-P.t-P.b, bw = iw/data.length;
+  const gid = 'bg'+Math.random().toString(36).slice(2,7);
+  let s = `<svg viewBox="0 0 ${W} ${H}" class="chart">
+    <defs><linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="${color}" stop-opacity="1"/>
+      <stop offset="100%" stop-color="${color}" stop-opacity=".55"/>
+    </linearGradient></defs>`;
+  for(let i=0;i<=4;i++){
+    const y = P.t + ih*i/4;
+    s += `<line x1="${P.l}" y1="${y}" x2="${W-P.r}" y2="${y}" stroke="rgba(15,23,42,.06)" stroke-dasharray="3 5"/>`;
+    s += `<text x="${P.l-8}" y="${y+4}" text-anchor="end" class="cax">${Math.round(max*(1-i/4))}</text>`;
+  }
+  data.forEach((d,i)=>{
+    const h = ih*(num(d.value)/max);
+    const x = P.l + i*bw + bw*0.2, w = bw*0.6, y = P.t + ih - h;
+    s += `<rect x="${x}" y="${y}" width="${w}" height="${Math.max(h,2)}" rx="8" fill="url(#${gid})">
+      <title>${esc(d.label)}: ${d.value}</title></rect>`;
+    s += `<text x="${x+w/2}" y="${H-P.b+20}" text-anchor="middle" class="cax">${esc(shortLabel(d.label))}</text>`;
+    s += `<text x="${x+w/2}" y="${y-8}" text-anchor="middle" class="cval">${d.value}</text>`;
+  });
+  return s + `</svg>`;
+}
+function chartLine(data, color){
+  if(!data.length) return `<div class="empty">${t('no_data')}</div>`;
+  const W=640,H=280,P={t:32,r:22,b:56,l:48};
+  const max = Math.max(...data.map(d=>num(d.value)),1);
+  const iw = W-P.l-P.r, ih = H-P.t-P.b;
+  const step = data.length>1 ? iw/(data.length-1) : 0;
+  const pts = data.map((d,i)=>[P.l+i*step, P.t+ih-ih*(num(d.value)/max)]);
+  const gid = 'lg'+Math.random().toString(36).slice(2,7);
+  let s = `<svg viewBox="0 0 ${W} ${H}" class="chart">
+    <defs><linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="${color}" stop-opacity=".35"/>
+      <stop offset="100%" stop-color="${color}" stop-opacity="0"/>
+    </linearGradient></defs>`;
+  for(let i=0;i<=4;i++){
+    const y = P.t + ih*i/4;
+    s += `<line x1="${P.l}" y1="${y}" x2="${W-P.r}" y2="${y}" stroke="rgba(15,23,42,.06)" stroke-dasharray="3 5"/>`;
+    s += `<text x="${P.l-8}" y="${y+4}" text-anchor="end" class="cax">${Math.round(max*(1-i/4))}</text>`;
+  }
+  const path = pts.map((p,i)=> (i?'L':'M') + p[0] + ' ' + p[1]).join(' ');
+  s += `<path d="${path} L ${pts[pts.length-1][0]} ${P.t+ih} L ${pts[0][0]} ${P.t+ih} Z" fill="url(#${gid})"/>`;
+  s += `<path d="${path}" fill="none" stroke="${color}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>`;
+  pts.forEach((p,i)=>{
+    s += `<circle cx="${p[0]}" cy="${p[1]}" r="5.5" fill="#fff" stroke="${color}" stroke-width="3">
+      <title>${esc(data[i].label)}: ${data[i].value}</title></circle>`;
+    s += `<text x="${p[0]}" y="${p[1]-13}" text-anchor="middle" class="cval">${data[i].value}</text>`;
+    s += `<text x="${p[0]}" y="${H-P.b+20}" text-anchor="middle" class="cax">${esc(shortLabel(data[i].label,9))}</text>`;
+  });
+  return s + `</svg>`;
+}
+function chartDonut(data, colors, hollow=true){
+  const total = data.reduce((a,b)=>a+num(b.value),0);
+  if(!total) return `<div class="empty">${t('no_data')}</div>`;
+  const R = hollow ? 70 : 72, C = 2*Math.PI*R;
+  let off=0, s = `<svg viewBox="0 0 200 200" class="chart" style="max-width:240px;margin:auto">`;
+  data.forEach((d,i)=>{
+    const len = C*(num(d.value)/total);
+    s += `<circle cx="100" cy="100" r="${R}" fill="none" stroke="${colors[i%colors.length]}"
+      stroke-width="${hollow?30:60}" stroke-dasharray="${len} ${C-len}"
+      stroke-dashoffset="${-off}" transform="rotate(-90 100 100)">
+      <title>${esc(d.label)}: ${d.value}</title></circle>`;
+    off += len;
+  });
+  if(hollow){
+    s += `<text x="100" y="97" text-anchor="middle" class="dnum">${total}</text>`;
+    s += `<text x="100" y="120" text-anchor="middle" class="dlbl">${t('total')}</text>`;
+  }
+  s += `</svg>`;
+  s += `<div class="legend">` + data.map((d,i)=>
+    `<span><i style="background:${colors[i%colors.length]}"></i>${esc(d.label)} — ${d.value}</span>`).join('') + `</div>`;
+  return s;
+}
+function chartBarGrouped(rows, colorA, colorB, labelA, labelB){
+  if(!rows.length) return `<div class="empty">${t('no_data')}</div>`;
+  const W=680, H=300, P={t:32,r:18,b:60,l:48};
+  const max = Math.max(...rows.flatMap(r=>[num(r.a),num(r.b)]),1);
+  const iw = W-P.l-P.r, ih = H-P.t-P.b, gw = iw/rows.length;
+  let s = `<svg viewBox="0 0 ${W} ${H}" class="chart">`;
+  for(let i=0;i<=4;i++){
+    const y = P.t + ih*i/4;
+    s += `<line x1="${P.l}" y1="${y}" x2="${W-P.r}" y2="${y}" stroke="rgba(15,23,42,.06)" stroke-dasharray="3 5"/>`;
+    s += `<text x="${P.l-8}" y="${y+4}" text-anchor="end" class="cax">${Math.round(max*(1-i/4))}</text>`;
+  }
+  rows.forEach((r,i)=>{
+    const bx = P.l + i*gw;
+    const w = gw*0.28, gap = gw*0.05;
+    [['a',colorA,bx+gw*0.15],['b',colorB,bx+gw*0.15+w+gap]].forEach(([k,c,x])=>{
+      const v = num(r[k]), h = ih*(v/max), y = P.t+ih-h;
+      s += `<rect x="${x}" y="${y}" width="${w}" height="${Math.max(h,2)}" rx="6" fill="${c}"><title>${esc(r.label)}: ${v}</title></rect>`;
+      s += `<text x="${x+w/2}" y="${y-6}" text-anchor="middle" class="cval">${v}</text>`;
+    });
+    s += `<text x="${bx+gw/2}" y="${H-P.b+20}" text-anchor="middle" class="cax">${esc(shortLabel(r.label))}</text>`;
+  });
+  s += `</svg>`;
+  s += `<div class="legend">
+    <span><i style="background:${colorA}"></i>${esc(labelA)}</span>
+    <span><i style="background:${colorB}"></i>${esc(labelB)}</span></div>`;
+  return s;
+}
+function renderChart(type, data, color, colors){
+  switch(type){
+    case 'line': return chartLine(data, color);
+    case 'donut': return chartDonut(data, colors || ['#6366f1','#8b5cf6','#06b6d4','#10b981'], true);
+    case 'pie': return chartDonut(data, colors || ['#6366f1','#8b5cf6','#06b6d4','#10b981'], false);
+    case 'bar':
+    default: return chartBar(data, color);
+  }
+}
+function chartTypeSelector(chartKey){
+  const cur = db.settings.chartTypes[chartKey] || 'bar';
+  const types = [['bar','📊',t('chart_bar')],['line','📈',t('chart_line')],
+                 ['donut','🍩',t('chart_donut')],['pie','🥧',t('chart_pie')]];
+  return `<div class="chart-type-selector" data-chart-sel="${chartKey}">
+    ${types.map(([id,ic,lb])=>`<button data-ct="${chartKey}:${id}" class="${cur===id?'active':''}" title="${lb}">${ic}</button>`).join('')}
+  </div>`;
+}
+function kpiCard(icon,label,value,color,delta,sparkData){
+  const deltaHTML = delta!=null ? `<span class="kpi-delta ${delta>=0?'up':'down'}">${delta>=0?'▲':'▼'} ${Math.abs(delta)}%</span>` : '';
+  const sparkHTML = sparkData && sparkData.length ? `<div class="kpi-spark">${sparkline(sparkData, color)}</div>` : '';
+  return `<div class="kpi" style="--k:${color}">
+    <div class="kpi-top">
+      <div class="kpi-icon">${icon}</div>
+      <div style="flex:1;min-width:0">
+        <div class="kpi-label">${esc(label)}</div>
+        <div class="kpi-value">${value}</div>
+      </div>
+    </div>${deltaHTML}${sparkHTML}</div>`;
+}
+function emptyRow(cols, msg){ return `<tr><td colspan="${cols}" class="empty">${esc(msg||t('no_data'))}</td></tr>`; }
+
+/* ==========================================================================
+   11) لوحة التحكم
+   ========================================================================== */
+function viewDashboard(){
+  const today = todayStr();
+  const allReports = visibleReports();
+  const allReps = visibleReps();
+  const tReports = allReports.filter(r=>r.date===today);
+  const yRep = new Date(); yRep.setDate(yRep.getDate()-1);
+  const yReports = allReports.filter(r=>r.date===yRep.toISOString().slice(0,10));
+  const ordersToday = sum(tReports,'orders');
+  const ordersYest  = sum(yReports,'orders');
+  const deltaOrders = ordersYest ? Math.round(((ordersToday-ordersYest)/ordersYest)*100) : null;
+  const hoursToday = round1(sum(tReports,'hours'));
+  const hoursYest = round1(sum(yReports,'hours'));
+  const deltaHours = hoursYest ? Math.round(((hoursToday-hoursYest)/hoursYest)*100) : null;
+  const violToday = sum(tReports,'violations');
+  const violYest = sum(yReports,'violations');
+  const deltaViol = violYest ? Math.round(((violToday-violYest)/violYest)*100) : null;
+
+  const last7Orders = [], last7Hours = [], last7Viol = [], last7Labels = [];
+  for(let i=6;i>=0;i--){
+    const d = new Date(); d.setDate(d.getDate()-i);
+    const ds = d.toISOString().slice(0,10);
+    const rs = allReports.filter(r=>r.date===ds);
+    last7Orders.push(sum(rs,'orders'));
+    last7Hours.push(round1(sum(rs,'hours')));
+    last7Viol.push(sum(rs,'violations'));
+    last7Labels.push({label:dayName(ds), value:sum(rs,'orders')});
+  }
+
+  const perfScore = calcPerfScore(7);
+  const perfLbl = perfLabel(perfScore);
+  const ringCircumference = 2 * Math.PI * 62;
+  const ringOffset = ringCircumference * (1 - perfScore/100);
+
+  const weeklyReports = allReports.filter(r=> r.date >= weekStart());
+  const avgOrders = allReps.length ? round1(sum(weeklyReports,'orders')/allReps.length) : 0;
+  const avgHours = allReps.length ? round1(sum(weeklyReports,'hours')/allReps.length) : 0;
+  const totalViol = sum(weeklyReports,'violations');
+  const totalAcc = sum(weeklyReports,'accepted');
+  const accRate = totalViol ? Math.round((totalAcc/totalViol)*100) : 100;
+
+  const gradeDist = {A:0,B:0,C:0,D:0,E:0,F:0};
+  weeklyReports.forEach(r=>{ if(gradeDist[r.rating]!==undefined) gradeDist[r.rating]++; });
+
+  const sups = isOwner() ? db.supervisors : db.supervisors.filter(s=>s.id===state.user.id);
+  const supPerf = sups.map(s=>{
+    const reps = db.reps.filter(r=>r.supervisorId===s.id);
+    const rs = weeklyReports.filter(x=> reps.some(r=>r.id===x.repId));
+    return { name:s.name, orders:sum(rs,'orders') };
+  }).sort((a,b)=>b.orders-a.orders);
+  const bestSup = supPerf[0];
+
+  const riskReps = allReps.map(r=>{
+    const rs = weeklyReports.filter(x=>x.repId===r.id);
+    return { name:r.name, orders:sum(rs,'orders'), viol:sum(rs,'violations') };
+  }).filter(r=> r.orders < avgOrders * 0.6 || r.viol > 3).slice(0,3);
+
+  const byRepToday = allReps.map(r=>({
+    label:r.name, value: sum(tReports.filter(x=>x.repId===r.id),'orders')
+  })).sort((a,b)=>b.value-a.value);
+  const violDist = [
+    {label:t('kpi_accepted'), value: sum(tReports,'accepted')},
+    {label:t('kpi_rejected'), value: sum(tReports,'rejected')}
+  ];
+  const ordersChartType = db.settings.chartTypes.orders || 'bar';
+
+  return `
+  <div class="perf-hero">
+    <div class="perf-ring">
+      <svg viewBox="0 0 160 160">
+        <defs><linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#8b5cf6"/><stop offset="50%" stop-color="#6366f1"/><stop offset="100%" stop-color="#06b6d4"/>
+        </linearGradient></defs>
+        <circle class="pr-bg" cx="80" cy="80" r="62"/>
+        <circle class="pr-fg" cx="80" cy="80" r="62" stroke-dasharray="${ringCircumference}" stroke-dashoffset="${ringOffset}"/>
+      </svg>
+      <div class="pr-center">
+        <div><div class="pr-num">${perfScore}</div><div class="pr-lbl">${esc(perfLbl.txt)}</div></div>
+      </div>
+    </div>
+    <div class="perf-hero-info">
+      <div class="ph-sub">📊 ${t('perf_score_sub')}${isSupervisor()?' · '+t('my_reps'):''}</div>
+      <div class="ph-title">${t('perf_score')}</div>
+      <div class="ph-desc">${t('perf_desc')}</div>
+      <div class="perf-hero-stats">
+        <div class="ph-stat"><div class="phs-v">${avgOrders}</div><div class="phs-l">${t('perf_avg_orders')}</div></div>
+        <div class="ph-stat"><div class="phs-v">${avgHours}h</div><div class="phs-l">${t('perf_avg_hours')}</div></div>
+        <div class="ph-stat"><div class="phs-v">${accRate}%</div><div class="phs-l">${t('perf_accept_rate')}</div></div>
+        <div class="ph-stat"><div class="phs-v">${allReps.length}</div><div class="phs-l">${t('perf_total_reps')}</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid g4">
+    ${kpiCard('📦', t('kpi_orders'), ordersToday, '#6366f1', deltaOrders, last7Orders)}
+    ${kpiCard('⏱️', t('kpi_hours'), hoursToday, '#10b981', deltaHours, last7Hours)}
+    ${kpiCard('⚠️', t('kpi_violations'), violToday, '#f59e0b', deltaViol, last7Viol)}
+    ${kpiCard('🚗', t('kpi_cars'), db.cars.length, '#06b6d4')}
+  </div>
+
+  <div class="card">
+    <div class="card-head">💡 ${t('perf_insights')}</div>
+    <div class="card-body grid g3" style="gap:14px">
+      <div class="insight-tile tone-blue">
+        <div class="it-label">👔 ${t('insight_best_sup')}</div>
+        <div class="it-value">${bestSup ? esc(bestSup.name) : '—'}</div>
+        <div class="it-sub">${bestSup ? bestSup.orders + ' ' + t('fld_orders') : ''}</div>
+      </div>
+      <div class="insight-tile tone-green">
+        <div class="it-label">📈 ${t('insight_growth')}</div>
+        <div class="it-value" style="color:${deltaOrders>=0?'#047857':'#b91c1c'}">
+          ${deltaOrders!=null ? (deltaOrders>=0?'+':'') + deltaOrders + '%' : '—'}</div>
+        <div class="it-sub">${ordersToday} / ${ordersYest} ${t('fld_orders')}</div>
+      </div>
+      <div class="insight-tile tone-amber">
+        <div class="it-label">⚠️ ${t('insight_risk')}</div>
+        <div class="it-value" style="font-size:15px;line-height:1.3">
+          ${riskReps.length ? riskReps.map(r=>esc(r.name)).join(' · ') : '— لا يوجد —'}</div>
+        <div class="it-sub">${riskReps.length} ${t('nav_reps')}</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">⭐ ${t('fld_rating')} — ${t('fld_all')} <span class="spacer"></span>
+      <span class="small muted">${weeklyReports.length} ${t('t_daily')}</span></div>
+    <div class="card-body">
+      <div class="grades-grid">
+        ${['A','B','C','D','E','F'].map(g=>`
+          <div class="grade-box" style="cursor:default">
+            <div class="gb-letter ${g}">${g}</div>
+            <div style="font-size:22px;font-weight:800">${gradeDist[g]}</div>
+            <div class="gb-lbl">${t('t_daily')}</div>
+          </div>`).join('')}
+      </div>
+    </div>
+  </div>
+
+  <div class="grid g2">
+    <div class="card"><div class="card-head">📦 ${t('t_orders_rep')}<span class="spacer"></span>
+      <span class="chip blue">${t('today')}</span></div>
+      <div class="card-body">${renderChart(ordersChartType, byRepToday, db.settings.color,
+        ['#6366f1','#8b5cf6','#06b6d4','#10b981','#f59e0b','#ef4444'])}</div></div>
+    <div class="card"><div class="card-head">⚠️ ${t('t_viol')}<span class="spacer"></span>
+      <span class="chip amber">${t('today')}</span></div>
+      <div class="card-body">${chartDonut(violDist, ['#10b981','#ef4444'])}</div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">📈 ${t('perf_weekly')} <span class="spacer"></span>
+      <span class="chip violet">${t('fld_orders')}</span></div>
+    <div class="card-body">${chartLine(last7Labels, db.settings.color)}</div>
+  </div>`;
+}
+function afterDashboard(){}
+
+/* ==========================================================================
+   12) التقارير اليومية
+   ========================================================================== */
+function viewDaily(){
+  const d1 = state.daily.d1 || todayStr();
+  const d2 = state.daily.d2 || '';
+  const allReports = visibleReports();
+  const list1 = allReports.filter(r=>r.date===d1);
+  const list2 = d2 ? allReports.filter(r=>r.date===d2) : [];
+  const A = agg(list1), B = agg(list2);
+  const reps = visibleReps();
+  const compareRows = reps.map(r=>({
+    label: r.name,
+    a: sum(list1.filter(x=>x.repId===r.id),'orders'),
+    b: d2 ? sum(list2.filter(x=>x.repId===r.id),'orders') : 0
+  })).filter(x=>x.a || x.b);
+
+  const mode = state.viewModes.reports || 'table';
+  const rows = [...list1, ...list2].sort((a,b)=> a.date.localeCompare(b.date) || repName(a.repId).localeCompare(repName(b.repId)));
+
+  const canEdit = canModify();
+  const actionsCell = (r)=>{
+    if(!canEdit) return '<span class="small muted">—</span>';
+    return `<div class="tbl-actions">
+      <button class="btn btn-ghost btn-sm" data-edit-report="${r.id}">✏️</button>
+      <button class="btn btn-ghost btn-sm" data-del-report="${r.id}">🗑️</button>
+    </div>`;
+  };
+  const actionsCards = (r)=>{
+    if(!canEdit) return '';
+    return `<div class="ic-actions">
+      <button class="btn btn-ghost btn-sm" data-edit-report="${r.id}">✏️</button>
+      <button class="btn btn-ghost btn-sm" data-del-report="${r.id}">🗑️</button>
+    </div>`;
+  };
+  const ratingChip = (r)=>{ const l = r.rating || calcRating(r.orders); return `<span class="chip grade ${l}">${l}</span>`; };
+
+  const tableHTML = `
+    <div class="tbl-wrap" style="border:0"><table><thead><tr>
+      <th>${t('fld_rep')}</th><th>${t('fld_supervisor')}</th><th>${t('fld_date')}</th>
+      <th>${t('fld_orders')}</th><th>${t('fld_start')}</th><th>${t('fld_end')}</th>
+      <th>${t('fld_hours')}</th><th>${t('fld_rating')}</th>
+      <th>${t('fld_violations')}</th>
+      <th>${t('fld_accepted')}</th><th>${t('fld_rejected')}</th>
+      ${canEdit?`<th>${t('fld_created')}</th><th></th>`:''}
+    </tr></thead><tbody>
+      ${rows.length ? rows.map(r=>`<tr>
+        <td><b>${esc(repName(r.repId))}</b></td>
+        <td class="muted">${esc(supOfRep(r.repId))}</td>
+        <td>${esc(r.date)}<div class="small muted">${dayName(r.date)}</div></td>
+        <td><b>${r.orders}</b></td>
+        <td class="small">${esc(r.startTime)}</td>
+        <td class="small">${esc(r.endTime)}</td>
+        <td><span class="chip blue">${r.hours}</span></td>
+        <td>${ratingChip(r)}</td>
+        <td>${r.violations?`<span class="chip amber">${r.violations}</span>`:'<span class="chip gray">0</span>'}</td>
+        <td><span class="chip green">${r.accepted}</span></td>
+        <td><span class="chip red">${r.rejected}</span></td>
+        ${canEdit?`<td class="small muted">${esc((r.createdAt||'').slice(11,16))}</td><td>${actionsCell(r)}</td>`:''}
+      </tr>`).join('') : emptyRow(canEdit?13:11)}
+    </tbody></table></div>`;
+
+  const cardsHTML = `
+    <div class="cards-grid">
+      ${rows.length ? rows.map(r=>`
+        <div class="item-card">
+          <div class="ic-header">
+            <div class="ic-avatar">${esc((repName(r.repId)||'?').charAt(0))}</div>
+            <div style="flex:1;min-width:0">
+              <div class="ic-name">${esc(repName(r.repId))}</div>
+              <div class="ic-sub">${esc(supOfRep(r.repId))} · ${dayName(r.date)}</div>
+            </div>
+            ${ratingChip(r)}
+          </div>
+          <div class="ic-rows">
+            <div><span class="k">${t('fld_date')}</span><span class="v">${esc(r.date)}</span></div>
+            <div><span class="k">${t('fld_orders')}</span><span class="v">${r.orders}</span></div>
+            <div><span class="k">${t('fld_hours')}</span><span class="v">${esc(r.startTime)} — ${esc(r.endTime)} (${r.hours}h)</span></div>
+            <div><span class="k">${t('fld_violations')}</span><span class="v">${r.violations}</span></div>
+            <div><span class="k">${t('fld_accepted')}</span><span class="v"><span class="chip green">${r.accepted}</span></span></div>
+            <div><span class="k">${t('fld_rejected')}</span><span class="v"><span class="chip red">${r.rejected}</span></span></div>
+          </div>
+          ${actionsCards(r)}
+        </div>`).join('') : `<div class="empty" style="grid-column:1/-1">${t('no_data')}</div>`}
+    </div>`;
+
+  const addBtn = isOwner() || isSupervisor() ? `<button class="btn btn-primary btn-sm" id="addReport">➕ ${t('btn_add')}</button>` : '';
+
+  return `
+  <div class="card">
+    <div class="card-head">📅 ${t('t_daily')} ${isSupervisor()?`<span class="chip violet">${t('my_reps')}</span>`:''} <span class="spacer"></span>
+      <div class="view-toggle">
+        <button data-view="reports:table" class="${mode==='table'?'active':''}">📋 ${t('view_table')}</button>
+        <button data-view="reports:cards" class="${mode==='cards'?'active':''}">🎴 ${t('view_cards')}</button>
+      </div>
+      ${addBtn}
+    </div>
+    <div class="card-body">
+      <div class="form-grid">
+        <div class="field"><label>${t('date1')}</label><input type="date" id="d1" value="${d1}"></div>
+        <div class="field"><label>${t('date2')}</label><input type="date" id="d2" value="${d2}"></div>
+      </div>
+      <div class="row" style="margin-top:14px">
+        <button class="btn btn-primary btn-sm" id="applyDates">${t('btn_view')}</button>
+        ${d2?`<button class="btn btn-sm" id="clearD2">✖ ${t('btn_cancel')}</button>`:''}
+        <span class="spacer"></span>
+        <span class="chip blue">${list1.length}</span>
+        ${d2?`<span class="chip violet">${list2.length}</span>`:''}
+      </div>
+    </div>
+  </div>
+  <div class="grid g4">
+    ${kpiCard('📦', t('kpi_orders'), A.orders + (d2?` / ${B.orders}`:''), '#6366f1',
+      d2 && B.orders ? Math.round(((A.orders-B.orders)/B.orders)*100) : null)}
+    ${kpiCard('⏱️', t('kpi_hours'), A.hours + (d2?` / ${B.hours}`:''), '#10b981',
+      d2 && B.hours ? Math.round(((A.hours-B.hours)/B.hours)*100) : null)}
+    ${kpiCard('⚠️', t('kpi_violations'), A.violations + (d2?` / ${B.violations}`:''), '#f59e0b',
+      d2 && B.violations ? Math.round(((A.violations-B.violations)/B.violations)*100) : null)}
+    ${kpiCard('📊', t('kpi_avg'), (list1.length?round1(A.orders/list1.length):0) +
+      (d2?` / ${list2.length?round1(B.orders/list2.length):0}`:''), '#8b5cf6')}
+  </div>
+  <div class="grid g2">
+    <div class="card"><div class="card-head">📦 ${d2 ? t('t_compare') : t('t_orders_rep')}</div>
+      <div class="card-body">${
+        d2 ? chartBarGrouped(compareRows, '#94a3b8', db.settings.color, d1, d2)
+           : renderChart(db.settings.chartTypes.orders || 'bar',
+               reps.map(r=>({label:r.name, value:sum(list1.filter(x=>x.repId===r.id),'orders')})),
+               db.settings.color,
+               ['#6366f1','#8b5cf6','#06b6d4','#10b981','#f59e0b','#ef4444'])
+      }</div></div>
+    <div class="card"><div class="card-head">⭐ ${t('fld_rating')} — ${t('t_daily')}</div>
+      <div class="card-body">${
+        (()=>{
+          const dist = {A:0,B:0,C:0,D:0,E:0,F:0};
+          [...list1, ...list2].forEach(r=>{ const l = r.rating || calcRating(r.orders); if(dist[l]!==undefined) dist[l]++; });
+          return chartDonut(
+            ['A','B','C','D','E','F'].map(l=>({label:l, value:dist[l]})),
+            ['#10b981','#3b82f6','#8b5cf6','#f59e0b','#f97316','#ef4444'], true);
+        })()
+      }</div></div>
+  </div>
+  <div class="card">
+    <div class="card-head">📋 ${t('t_daily')} — ${d1} ${d2?' | '+d2:''}</div>
+    ${mode==='table' ? tableHTML : `<div class="card-body">${cardsHTML}</div>`}
+  </div>`;
+}
+function agg(list){
+  return {
+    count:list.length, orders: sum(list,'orders'), hours: round1(sum(list,'hours')),
+    violations: sum(list,'violations'), accepted: sum(list,'accepted'), rejected: sum(list,'rejected')
+  };
+}
+function afterDaily(){
+  $('#d1')?.addEventListener('change', e=>{ state.daily.d1 = e.target.value; render(); });
+  $('#d2')?.addEventListener('change', e=>{ state.daily.d2 = e.target.value; render(); });
+  $('#applyDates')?.addEventListener('click', ()=>{
+    state.daily.d1 = $('#d1').value || todayStr();
+    state.daily.d2 = $('#d2').value || '';
+    render(); toast(t('msg_updated'),'ok');
+  });
+  $('#clearD2')?.addEventListener('click', ()=>{ state.daily.d2=''; render(); });
+  $('#addReport')?.addEventListener('click', ()=> reportModal());
+  bindReportActions();
+  bindViewToggles();
+  bindChartTypeButtons();
+}
+function bindViewToggles(){
+  $$('[data-view]').forEach(b=> b.onclick = ()=>{
+    const [k,v] = b.dataset.view.split(':');
+    state.viewModes[k] = v; render();
+  });
+}
+function bindChartTypeButtons(){
+  $$('[data-ct]').forEach(b=> b.onclick = ()=>{
+    const [k,v] = b.dataset.ct.split(':');
+    db.settings.chartTypes[k] = v;
+    saveDB(); render();
+  });
+}
+function bindReportActions(){
+  if(!canModify()) return;
+  $$('[data-edit-report]').forEach(b=> b.onclick = ()=> reportModal(b.dataset.editReport));
+  $$('[data-del-report]').forEach(b=> b.onclick = ()=>{
+    if(!confirm(t('msg_confirm_del'))) return;
+    const rec = db.reports.find(x=>x.id===b.dataset.delReport);
+    db.reports = db.reports.filter(x=>x.id!==b.dataset.delReport);
+    saveDB(); render(); toast(t('msg_deleted'),'ok');
+    if(rec) addNotif('حذف تقرير', `${repName(rec.repId)} — ${rec.date}`, 'err');
+    if(isCloudReady()) pushToCloud(true);
+  });
+}
+function reportModal(id){
+  const rec = id ? db.reports.find(r=>r.id===id) : null;
+  const reps = visibleReps();
+  if(!reps.length){ toast(isSupervisor()?'لا يوجد سائقون مسندون إليك':'أضف سائقاً أولاً','warn'); return; }
+
+  const body = `
+    <form id="rForm" class="form-grid" novalidate>
+      <div class="field"><label>${t('fld_rep')} <span class="req">*</span></label>
+        <select name="repId" required><option value="">${t('fld_none')}</option>
+          ${reps.map(r=>`<option value="${r.id}" ${rec&&rec.repId===r.id?'selected':''}>${esc(r.name)} — ${esc(supName(r.supervisorId))}</option>`).join('')}</select></div>
+      <div class="field"><label>${t('fld_date')} <span class="req">*</span></label>
+        <input type="date" name="date" required value="${rec?rec.date:(state.daily.d1||todayStr())}"></div>
+      <div class="field"><label>${t('fld_orders')} <span class="req">*</span></label>
+        <input type="number" name="orders" min="0" step="1" required value="${rec?rec.orders:''}" placeholder="0"></div>
+      <div class="field"><label>${t('fld_start')} <span class="req">*</span></label>
+        <input type="time" name="startTime" required value="${rec?rec.startTime:'09:00'}"></div>
+      <div class="field"><label>${t('fld_end')} <span class="req">*</span></label>
+        <input type="time" name="endTime" required value="${rec?rec.endTime:'17:00'}"></div>
+      <div class="field"><label>${t('fld_hours')}</label>
+        <input type="text" id="hrsOut" readonly value="${rec?rec.hours:'8'}" style="background:#f8fafc;font-weight:800"></div>
+      <div class="field"><label>${t('fld_rating')}</label>
+        <div id="ratingOut" style="display:flex;align-items:center;gap:8px;padding:6px 0">
+          <span class="chip grade ${rec?rec.rating||calcRating(rec.orders):calcRating(0)}" id="ratingChip">${rec?rec.rating||calcRating(rec.orders):calcRating(0)}</span>
+          <span class="small muted" id="ratingHint"></span>
+        </div></div>
+      <div class="field"><label>${t('fld_violations')} <span class="req">*</span></label>
+        <input type="number" name="violations" min="0" step="1" required value="${rec?rec.violations:0}"></div>
+      <div class="field"><label>${t('fld_accepted')} <span class="req">*</span></label>
+        <input type="number" name="accepted" min="0" step="1" required value="${rec?rec.accepted:0}"></div>
+      <div class="field"><label>${t('fld_rejected')} <span class="req">*</span></label>
+        <input type="number" name="rejected" min="0" step="1" required value="${rec?rec.rejected:0}"></div>
+      <div class="field" style="grid-column:1/-1"><label>${t('fld_notes')}</label>
+        <textarea name="notes" rows="2">${esc(rec?.notes||'')}</textarea></div>
+      <div id="rErr" class="err" style="grid-column:1/-1;display:none"></div>
+    </form>`;
+  openModal({
+    title: rec ? `${t('btn_edit')} — ${t('t_daily')}` : `${t('btn_add')} — ${t('t_daily')}`,
+    body,
+    onMount(root){
+      const form = $('#rForm', root);
+      const ordersInp = form.orders;
+      const upd = ()=>{
+        $('#hrsOut', root).value = calcHours(form.startTime.value, form.endTime.value);
+        const l = calcRating(num(ordersInp.value));
+        const chip = $('#ratingChip', root);
+        if(chip){ chip.className = 'chip grade ' + l; chip.textContent = l; }
+      };
+      form.startTime.addEventListener('input', upd);
+      form.endTime.addEventListener('input', upd);
+      ordersInp.addEventListener('input', upd);
+      upd();
+    },
+    onSubmit(root){
+      const form = $('#rForm', root), err = $('#rErr', root);
+      const data = Object.fromEntries(new FormData(form));
+      const req = ['repId','date','orders','startTime','endTime','violations','accepted','rejected'];
+      if(req.some(k=> data[k]==='' || data[k]==null)){
+        err.textContent = t('msg_required'); err.style.display='block'; return false;
+      }
+      if(isSupervisor() && !isRepVisible(data.repId)){
+        err.textContent = t('msg_no_perm'); err.style.display='block'; return false;
+      }
+      const v = num(data.violations), a = num(data.accepted), rj = num(data.rejected);
+      if(a + rj > v){ err.textContent = t('msg_viol'); err.style.display='block'; return false; }
+      const hours = calcHours(data.startTime, data.endTime);
+      const rating = calcRating(num(data.orders));
+      if(rec){
+        if(!canModify()){ err.textContent = t('msg_no_perm'); err.style.display='block'; return false; }
+        Object.assign(rec, {
+          repId:data.repId, date:data.date, orders:num(data.orders),
+          startTime:data.startTime, endTime:data.endTime, hours,
+          violations:v, accepted:a, rejected:rj, rating, notes:data.notes||''
+        });
+        addNotif('تعديل تقرير', `${repName(data.repId)} — ${data.date}`, 'warn');
+        toast(t('msg_updated'),'ok');
+      } else {
+        db.reports.push({
+          id:uid(), repId:data.repId, date:data.date, orders:num(data.orders),
+          startTime:data.startTime, endTime:data.endTime, hours,
+          violations:v, accepted:a, rejected:rj, rating, notes:data.notes||'',
+          createdAt:new Date().toISOString()
+        });
+        addNotif('تقرير جديد', `${repName(data.repId)} — ${data.orders} طلب (${rating})`, 'ok');
+        toast(t('msg_saved'),'ok');
+      }
+      saveDB(); render();
+      if(isCloudReady()) pushToCloud(true);
+      return true;
+    }
+  });
+}
+
+/* ==========================================================================
+   13) قسم السائقين
+   ========================================================================== */
+function viewReps(){
+  const q = (state.repQuery||'').trim().toLowerCase();
+  const base = visibleReps();
+  const rows = base.filter(r=> !q ||
+      [r.name,r.phone,r.code,r.region,r.app].join(' ').toLowerCase().includes(q));
+  const mode = state.viewModes.reps || 'table';
+  const canEdit = canModify();
+  const actionsCell = (r)=>{
+    if(!canEdit) return '<span class="small muted">—</span>';
+    return `<div class="tbl-actions">
+      <button class="btn btn-ghost btn-sm" data-edit-rep="${r.id}">✏️</button>
+      <button class="btn btn-ghost btn-sm" data-del-rep="${r.id}">🗑️</button>
+    </div>`;
+  };
+
+  const tableHTML = `
+    <div class="tbl-wrap" style="border:0"><table><thead><tr>
+      <th>${t('fld_name')}</th><th>${t('fld_code')}</th><th>${t('fld_phone')}</th>
+      <th>${t('fld_app')}</th><th>${t('fld_supervisor')}</th><th>${t('fld_region')}</th>
+      <th>${t('fld_orders')}</th><th>${t('fld_hours')}</th>${canEdit?`<th></th>`:''}
+    </tr></thead><tbody>
+      ${rows.length ? rows.map(r=>{
+        const rs = db.reports.filter(x=>x.repId===r.id);
+        return `<tr>
+          <td><b>${esc(r.name)}</b></td>
+          <td><span class="chip gray">${esc(r.code)}</span></td>
+          <td class="small" dir="ltr">${esc(r.phone)}</td>
+          <td class="small">${esc(r.app)}</td>
+          <td>${r.supervisorId?`<span class="chip violet">${esc(supName(r.supervisorId))}</span>`:'<span class="chip red">—</span>'}</td>
+          <td class="small">${esc(r.region)}</td>
+          <td><b>${sum(rs,'orders')}</b></td>
+          <td>${round1(sum(rs,'hours'))}</td>
+          ${canEdit?`<td>${actionsCell(r)}</td>`:''}
+        </tr>`;
+      }).join('') : emptyRow(canEdit?9:8)}
+    </tbody></table></div>`;
+
+  const cardsHTML = `
+    <div class="cards-grid">
+      ${rows.length ? rows.map(r=>{
+        const rs = db.reports.filter(x=>x.repId===r.id);
+        return `<div class="item-card">
+          <div class="ic-header">
+            <div class="ic-avatar">${esc((r.name||'?').charAt(0))}</div>
+            <div style="flex:1;min-width:0">
+              <div class="ic-name">${esc(r.name)}</div>
+              <div class="ic-sub" dir="ltr">${esc(r.phone)}</div>
+            </div>
+          </div>
+          <div class="ic-rows">
+            <div><span class="k">${t('fld_code')}</span><span class="v">${esc(r.code)}</span></div>
+            <div><span class="k">${t('fld_app')}</span><span class="v">${esc(r.app)}</span></div>
+            <div><span class="k">${t('fld_supervisor')}</span><span class="v">${esc(supName(r.supervisorId))}</span></div>
+            <div><span class="k">${t('fld_region')}</span><span class="v">${esc(r.region)}</span></div>
+            <div><span class="k">${t('fld_orders')}</span><span class="v">${sum(rs,'orders')}</span></div>
+            <div><span class="k">${t('fld_hours')}</span><span class="v">${round1(sum(rs,'hours'))}</span></div>
+          </div>
+          ${canEdit?`<div class="ic-actions">
+            <button class="btn btn-ghost btn-sm" data-edit-rep="${r.id}">✏️</button>
+            <button class="btn btn-ghost btn-sm" data-del-rep="${r.id}">🗑️</button>
+          </div>`:''}
+        </div>`;
+      }).join('') : `<div class="empty" style="grid-column:1/-1">${t('no_data')}</div>`}
+    </div>`;
+
+  const addBtn = canEdit ? `<button class="btn btn-primary btn-sm" id="addRep">➕ ${t('btn_add')}</button>` : '';
+
+  return `
+  <div class="card">
+    <div class="card-head">🚗 ${t('t_reps')} ${isSupervisor()?`<span class="chip violet">${t('my_reps')}</span>`:''} <span class="spacer"></span>
+      <input id="repSearch" placeholder="🔍 ${t('btn_search')}" value="${esc(state.repQuery||'')}"
+             style="max-width:220px;padding:8px 12px">
+      <div class="view-toggle">
+        <button data-view="reps:table" class="${mode==='table'?'active':''}">📋 ${t('view_table')}</button>
+        <button data-view="reps:cards" class="${mode==='cards'?'active':''}">🎴 ${t('view_cards')}</button>
+      </div>
+      ${addBtn}</div>
+    ${mode==='table' ? tableHTML : `<div class="card-body">${cardsHTML}</div>`}
+  </div>`;
+}
+function afterReps(){
+  $('#addRep') && ($('#addRep').onclick = ()=> repModal());
+  $('#repSearch') && ($('#repSearch').oninput = e=>{ state.repQuery = e.target.value; render();
+    const el = $('#repSearch'); if(el){ el.focus(); el.setSelectionRange(el.value.length,el.value.length);} });
+  bindViewToggles();
+  if(!canModify()) return;
+  $$('[data-edit-rep]').forEach(b=> b.onclick = ()=> repModal(b.dataset.editRep));
+  $$('[data-del-rep]').forEach(b=> b.onclick = ()=>{
+    if(!confirm(t('msg_confirm_del'))) return;
+    const id = b.dataset.delRep, nm = repName(id);
+    db.reps = db.reps.filter(r=>r.id!==id);
+    cleanupRelations(); saveDB(); render();
+    addNotif('حذف سائق', nm, 'err');
+    toast(t('msg_deleted'),'ok');
+    if(isCloudReady()) pushToCloud(true);
+  });
+}
+function repModal(id){
+  if(!canModify()){ toast(t('msg_no_perm'),'warn'); return; }
+  const rec = id ? getRep(id) : null;
+  const body = `<form id="repForm" class="form-grid" novalidate>
+    <div class="field"><label>${t('fld_name')} <span class="req">*</span></label>
+      <input name="name" required value="${esc(rec?.name||'')}"></div>
+    <div class="field"><label>${t('fld_phone')} <span class="req">*</span></label>
+      <input name="phone" required dir="ltr" value="${esc(rec?.phone||'')}" placeholder="05XXXXXXXX"></div>
+    <div class="field"><label>${t('fld_code')} <span class="req">*</span></label>
+      <input name="code" required dir="ltr" value="${esc(rec?.code||'DR-'+String(1000+db.reps.length+1))}"></div>
+    <div class="field"><label>${t('fld_app')} <span class="req">*</span></label>
+      <input name="app" required value="${esc(rec?.app||'')}"></div>
+    <div class="field"><label>${t('fld_supervisor')} <span class="req">*</span></label>
+      <select name="supervisorId" required><option value="">${t('fld_none')}</option>
+        ${db.supervisors.map(s=>`<option value="${s.id}" ${rec&&rec.supervisorId===s.id?'selected':''}>${esc(s.name)}</option>`).join('')}</select></div>
+    <div class="field"><label>${t('fld_region')} <span class="req">*</span></label>
+      <input name="region" required value="${esc(rec?.region||'')}"></div>
+    <div id="repErr" class="err" style="grid-column:1/-1;display:none"></div>
+  </form>`;
+  openModal({
+    title: rec ? `${t('btn_edit')} — ${t('nav_reps')}` : `${t('btn_add')} — ${t('nav_reps')}`,
+    body,
+    onSubmit(root){
+      const form = $('#repForm', root), err = $('#repErr', root);
+      const d = Object.fromEntries(new FormData(form));
+      if(['name','phone','code','app','supervisorId','region'].some(k=>!d[k])){
+        err.textContent = t('msg_required'); err.style.display='block'; return false;
+      }
+      if(rec){ Object.assign(rec, d); addNotif('تعديل سائق', d.name, 'warn'); toast(t('msg_updated'),'ok'); }
+      else { db.reps.push({id:uid(), ...d, status:'active', createdAt:new Date().toISOString()});
+        addNotif('سائق جديد', d.name, 'ok'); toast(t('msg_saved'),'ok'); }
+      saveDB(); render();
+      if(isCloudReady()) pushToCloud(true);
+      return true;
+    }
+  });
+}
+
+/* ==========================================================================
+   14) قسم المشرفين
+   ========================================================================== */
+function viewSupervisors(){
+  const showCreds = db.settings.showCredentials && isOwner();
+  const mode = state.viewModes.supervisors || 'table';
+  const sups = isOwner() ? db.supervisors : db.supervisors.filter(s=>s.id===state.user.id);
+
+  const credCell = (s)=>{
+    if(!isOwner()) return '<span class="small muted">—</span>';
+    if(!showCreds) return `<span class="chip gray">${t('hidden_creds')}</span>`;
+    return `<div style="display:flex;flex-direction:column;gap:2px;font-size:11.5px" dir="ltr">
+      <span>${esc(s.email||'—')}</span>
+      <span class="muted">${esc(s.phone||'')}</span>
+    </div>`;
+  };
+
+  const toggleHTML = isOwner() ? `
+    <button class="btn btn-sm" id="toggleCreds">
+      ${showCreds?'🙈 '+t('credentials_hide'):'👁️ '+t('credentials_show')}
+    </button>` : '';
+
+  const actionsCell = (s)=>{
+    if(!isOwner()) return '<span class="small muted">—</span>';
+    return `<div class="tbl-actions">
+      <button class="btn btn-ghost btn-sm" data-assign="${s.id}" title="إسناد السائقين">🔗</button>
+      <button class="btn btn-ghost btn-sm" data-edit-sup="${s.id}">✏️</button>
+      <button class="btn btn-ghost btn-sm" data-del-sup="${s.id}">🗑️</button>
+    </div>`;
+  };
+
+  const tableHTML = `
+    <div class="tbl-wrap" style="border:0"><table><thead><tr>
+      <th>${t('fld_name')}</th><th>${t('fld_code')}</th>
+      ${isOwner()?`<th>${t('fld_email')}</th>`:''}
+      <th>${t('nav_reps')}</th><th>${t('fld_orders')}</th><th>${t('fld_hours')}</th>
+      <th>${t('fld_sections')}</th><th></th>
+    </tr></thead><tbody>
+      ${sups.length ? sups.map(s=>{
+        const reps = db.reps.filter(r=>r.supervisorId===s.id);
+        const rs = db.reports.filter(x=> reps.some(r=>r.id===x.repId));
+        return `<tr>
+          <td><b>${esc(s.name)}</b></td>
+          <td><span class="chip gray">${esc(s.code)}</span></td>
+          ${isOwner()?`<td>${credCell(s)}</td>`:''}
+          <td><span class="chip blue">${reps.length}</span></td>
+          <td><b>${sum(rs,'orders')}</b></td>
+          <td>${round1(sum(rs,'hours'))}</td>
+          <td>${(s.permissions||[]).map(p=>`<span class="chip violet" style="margin:2px">${esc(navLabel(p))}</span>`).join('') || '<span class="chip red">—</span>'}</td>
+          <td>${actionsCell(s)}</td>
+        </tr>`;
+      }).join('') : emptyRow(isOwner()?8:7)}
+    </tbody></table></div>`;
+
+  const cardsHTML = `
+    <div class="cards-grid">
+      ${sups.length ? sups.map(s=>{
+        const reps = db.reps.filter(r=>r.supervisorId===s.id);
+        const rs = db.reports.filter(x=> reps.some(r=>r.id===x.repId));
+        return `<div class="item-card">
+          <div class="ic-header">
+            <div class="ic-avatar">${esc((s.name||'?').charAt(0))}</div>
+            <div style="flex:1;min-width:0">
+              <div class="ic-name">${esc(s.name)}</div>
+              <div class="ic-sub">${esc(s.code)}</div>
+            </div>
+          </div>
+          <div class="ic-rows">
+            ${isOwner()?`<div><span class="k">${t('fld_email')}</span><span class="v" style="font-size:11px">${credCell(s)}</span></div>`:''}
+            <div><span class="k">${t('nav_reps')}</span><span class="v">${reps.length}</span></div>
+            <div><span class="k">${t('fld_orders')}</span><span class="v">${sum(rs,'orders')}</span></div>
+            <div><span class="k">${t('fld_hours')}</span><span class="v">${round1(sum(rs,'hours'))}</span></div>
+            <div><span class="k">${t('fld_sections')}</span><span class="v" style="font-size:11px">${(s.permissions||[]).length}</span></div>
+          </div>
+          ${isOwner()?`<div class="ic-actions">
+            <button class="btn btn-ghost btn-sm" data-assign="${s.id}" title="إسناد السائقين">🔗</button>
+            <button class="btn btn-ghost btn-sm" data-edit-sup="${s.id}">✏️</button>
+            <button class="btn btn-ghost btn-sm" data-del-sup="${s.id}">🗑️</button>
+          </div>`:''}
+        </div>`;
+      }).join('') : `<div class="empty" style="grid-column:1/-1">${t('no_data')}</div>`}
+    </div>`;
+
+  const assignBox = isOwner() ? `
+  <div class="card">
+    <div class="card-head">🔗 ${t('nav_reps')} ← ${t('fld_supervisor')}</div>
+    <div class="card-body grid g3">
+      ${db.reps.map(r=>`
+        <div class="card" style="box-shadow:none;padding:12px;display:flex;gap:10px;align-items:center;background:var(--bg-2)">
+          <div style="flex:1;min-width:0">
+            <div style="font-weight:700">${esc(r.name)}</div>
+            <div class="small muted">${esc(r.region)}</div>
+          </div>
+          <select data-quick-sup="${r.id}" style="max-width:150px">
+            <option value="">${t('fld_none')}</option>
+            ${db.supervisors.map(s=>`<option value="${s.id}" ${r.supervisorId===s.id?'selected':''}>${esc(s.name)}</option>`).join('')}
+          </select>
+        </div>`).join('') || `<div class="empty">${t('no_data')}</div>`}
+    </div>
+  </div>` : '';
+
+  return `
+  <div class="card">
+    <div class="card-head">👔 ${t('t_sups')} <span class="spacer"></span>
+      ${toggleHTML}
+      <div class="view-toggle">
+        <button data-view="supervisors:table" class="${mode==='table'?'active':''}">📋 ${t('view_table')}</button>
+        <button data-view="supervisors:cards" class="${mode==='cards'?'active':''}">🎴 ${t('view_cards')}</button>
+      </div>
+      ${isOwner()?`<button class="btn btn-sm" id="permBtn2">🛡️ ${t('fld_permissions')}</button>`:''}
+      ${isOwner()?`<button class="btn btn-primary btn-sm" id="addSup">➕ ${t('btn_add')}</button>`:''}
+    </div>
+    ${mode==='table' ? tableHTML : `<div class="card-body">${cardsHTML}</div>`}
+  </div>
+  ${assignBox}`;
+}
+function navLabel(id){ const n = NAV.find(x=>x.id===id); return n ? t(n.key) : id; }
+function afterSupervisors(){
+  bindViewToggles();
+  $('#toggleCreds') && ($('#toggleCreds').onclick = ()=>{
+    db.settings.showCredentials = !db.settings.showCredentials;
+    saveDB(); render();
+    toast(db.settings.showCredentials?'بيانات الدخول ظاهرة':'تم إخفاء بيانات الدخول','ok');
+  });
+  $('#addSup') && ($('#addSup').onclick = ()=> supModal());
+  $('#permBtn2') && ($('#permBtn2').onclick = ()=> permModal());
+  if(!isOwner()) return;
+  $$('[data-edit-sup]').forEach(b=> b.onclick = ()=> supModal(b.dataset.editSup));
+  $$('[data-del-sup]').forEach(b=> b.onclick = ()=>{
+    if(!confirm(t('msg_confirm_del'))) return;
+    const s = getSup(b.dataset.delSup);
+    db.supervisors = db.supervisors.filter(x=>x.id!==b.dataset.delSup);
+    cleanupRelations(); saveDB(); render();
+    addNotif('حذف مشرف', s?.name||'', 'err');
+    toast(t('msg_deleted'),'ok');
+    if(isCloudReady()) pushToCloud(true);
+  });
+  $$('[data-assign]').forEach(b=> b.onclick = ()=> assignModal(b.dataset.assign));
+  $$('[data-quick-sup]').forEach(sel=> sel.onchange = ()=>{
+    const r = getRep(sel.dataset.quickSup);
+    if(r){
+      r.supervisorId = sel.value; saveDB();
+      addNotif('تغيير مشرف', `${r.name} → ${r.supervisorId?supName(r.supervisorId):'بدون'}`, 'info');
+      toast(t('msg_updated'),'ok'); render();
+      if(isCloudReady()) pushToCloud(true);
+    }
+  });
+}
+function supModal(id){
+  if(!isOwner()){ toast(t('msg_no_perm'),'warn'); return; }
+  const rec = id ? getSup(id) : null;
+  const body = `<form id="supForm" class="form-grid" novalidate>
+    <div class="field"><label>${t('fld_name')} <span class="req">*</span></label>
+      <input name="name" required value="${esc(rec?.name||'')}"></div>
+    <div class="field"><label>${t('fld_phone')} <span class="req">*</span></label>
+      <input name="phone" required dir="ltr" value="${esc(rec?.phone||'')}"></div>
+    <div class="field"><label>${t('fld_code')} <span class="req">*</span></label>
+      <input name="code" required dir="ltr" value="${esc(rec?.code||'SUP-'+String(db.supervisors.length+1).padStart(3,'0'))}"></div>
+    <div class="field"><label>${t('fld_email')} <span class="req">*</span></label>
+      <input type="email" name="email" required dir="ltr" value="${esc(rec?.email||'')}" placeholder="supervisor@rep.com">
+      <span class="hint">يُستخدم لتسجيل الدخول</span></div>
+    <div class="field"><label>${t('fld_password')} ${rec?'':'<span class="req">*</span>'}</label>
+      <input type="text" name="password" ${rec?'':'required'} value="" placeholder="${rec?'اتركها فارغة للإبقاء':'••••••'}"></div>
+    <div class="field" style="grid-column:1/-1"><label>${t('fld_permissions')}</label>
+      <div class="checkbox-list">
+        ${NAV.map(n=>`<label class="perm-check">
+          <input type="checkbox" name="perm_${n.id}" ${(!rec || (rec.permissions||[]).includes(n.id))?'checked':''}>
+          ${n.icon} ${t(n.key)}
+        </label>`).join('')}
+      </div></div>
+    <div id="supErr" class="err" style="grid-column:1/-1;display:none"></div>
+  </form>`;
+  openModal({
+    title: rec ? `${t('btn_edit')} — ${t('nav_supervisors')}` : `${t('btn_add')} — ${t('nav_supervisors')}`,
+    body,
+    onSubmit(root){
+      const form = $('#supForm', root), err = $('#supErr', root);
+      const d = Object.fromEntries(new FormData(form));
+      if(!d.name || !d.phone || !d.code || !d.email){
+        err.textContent = t('msg_required'); err.style.display='block'; return false;
+      }
+      const perms = NAV.filter(n=> d['perm_'+n.id]).map(n=>n.id);
+      if(rec){
+        const patch = {name:d.name, phone:d.phone, code:d.code, email:d.email, permissions:perms};
+        if(d.password) patch.password = hashPwd(d.password);
+        Object.assign(rec, patch);
+        addNotif('تعديل مشرف', d.name, 'warn'); toast(t('msg_updated'),'ok');
+      } else {
+        if(!d.password){ err.textContent = t('msg_required'); err.style.display='block'; return false; }
+        db.supervisors.push({id:uid(), name:d.name, phone:d.phone, code:d.code, email:d.email,
+          password:hashPwd(d.password), permissions:perms, createdAt:new Date().toISOString()});
+        addNotif('مشرف جديد', d.name, 'ok'); toast(t('msg_saved'),'ok');
+      }
+      saveDB(); render();
+      if(isCloudReady()) pushToCloud(true);
+      return true;
+    }
+  });
+}
+function assignModal(supId){
+  if(!isOwner()){ toast(t('msg_no_perm'),'warn'); return; }
+  const sup = getSup(supId);
+  if(!sup) return;
+  const body = `
+    <div class="small muted" style="margin-bottom:12px">اختر السائقين التابعين للمشرف: <b>${esc(sup.name)}</b></div>
+    <div class="checkbox-list" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr));max-height:340px">
+      ${db.reps.map(r=>`<label class="perm-check">
+        <input type="checkbox" data-asg="${r.id}" ${r.supervisorId===supId?'checked':''}>
+        ${esc(r.name)} <span class="muted small">(${esc(r.region)})</span>
+      </label>`).join('') || `<div class="empty">${t('no_data')}</div>`}
+    </div>`;
+  openModal({
+    title:`🔗 ${t('nav_reps')} ← ${esc(sup.name)}`,
+    body, submitText:t('btn_save'),
+    onSubmit(root){
+      let changed = 0;
+      $$('[data-asg]', root).forEach(cb=>{
+        const r = getRep(cb.dataset.asg);
+        if(!r) return;
+        if(cb.checked && r.supervisorId !== supId){ r.supervisorId = supId; changed++; }
+        else if(!cb.checked && r.supervisorId===supId){ r.supervisorId = ''; changed++; }
+      });
+      saveDB(); render();
+      if(changed) addNotif('إسناد سائقين', `${changed} سائق → ${sup.name}`, 'info');
+      toast(t('msg_updated'),'ok');
+      if(isCloudReady() && changed) pushToCloud(true);
+      return true;
+    }
+  });
+}
+
+/* ==========================================================================
+   15) قسم السيارات
+   ========================================================================== */
+function viewCars(){
+  const tab = state.carsTab;
+  const canEdit = canModify();
+  const tabsHTML = `<div class="tabs">
+    ${[['vehicles','🚗',t('t_cars')],['maintenance','🔧',t('t_maint')],
+       ['usage','🧭',t('t_usage')],['oil','🛢️',t('t_oil')]]
+      .map(([id,ic,lb])=>`<button class="tab ${tab===id?'active':''}" data-tab="${id}">${ic} ${lb}</button>`).join('')}
+  </div>`;
+  let content = '';
+  if(tab==='vehicles'){
+    const mode = state.viewModes.cars || 'table';
+    const tableHTML = `<div class="tbl-wrap" style="border:0"><table><thead><tr>
+      <th>${t('fld_brand')}</th><th>${t('fld_model')}</th><th>${t('fld_plate')}</th>
+      <th>${t('fld_year')}</th><th>${t('fld_status')}</th><th>${t('fld_rep')}</th>
+      <th>${t('t_oil')}</th>${canEdit?`<th></th>`:''}
+    </tr></thead><tbody>
+      ${db.cars.length ? db.cars.map(c=>{
+        const u = db.usage.find(x=>x.carId===c.id && !x.endDate);
+        const oil = db.oil.filter(o=>o.carId===c.id).sort((a,b)=> b.km-a.km)[0];
+        return `<tr>
+          <td><b>${esc(c.brand)}</b></td><td>${esc(c.model)}</td>
+          <td><span class="chip gray" dir="ltr">${esc(c.plate)}</span></td>
+          <td>${esc(c.year)}</td><td>${statusChip(c.status)}</td>
+          <td>${u?`<span class="chip blue">${esc(repName(u.repId))}</span>`:'<span class="muted small">—</span>'}</td>
+          <td>${oil?`<span class="chip amber">${oil.km} / ${oil.nextKm||'—'}</span>`:'<span class="muted small">—</span>'}</td>
+          ${canEdit?`<td><div class="tbl-actions">
+            <button class="btn btn-ghost btn-sm" data-edit-car="${c.id}">✏️</button>
+            <button class="btn btn-ghost btn-sm" data-del-car="${c.id}">🗑️</button>
+          </div></td>`:''}
+        </tr>`;
+      }).join('') : emptyRow(canEdit?8:7)}
+    </tbody></table></div>`;
+    const cardsHTML = `<div class="cards-grid">
+      ${db.cars.length ? db.cars.map(c=>{
+        const u = db.usage.find(x=>x.carId===c.id && !x.endDate);
+        return `<div class="item-card">
+          <div class="ic-header">
+            <div class="ic-avatar">🚗</div>
+            <div style="flex:1;min-width:0">
+              <div class="ic-name">${esc(c.brand)} ${esc(c.model)}</div>
+              <div class="ic-sub">${esc(c.year)}</div>
+            </div>
+          </div>
+          <div class="ic-rows">
+            <div><span class="k">${t('fld_plate')}</span><span class="v" dir="ltr">${esc(c.plate)}</span></div>
+            <div><span class="k">${t('fld_status')}</span><span class="v">${statusChip(c.status)}</span></div>
+            <div><span class="k">${t('fld_rep')}</span><span class="v">${u?esc(repName(u.repId)):'—'}</span></div>
+          </div>
+          ${canEdit?`<div class="ic-actions">
+            <button class="btn btn-ghost btn-sm" data-edit-car="${c.id}">✏️</button>
+            <button class="btn btn-ghost btn-sm" data-del-car="${c.id}">🗑️</button>
+          </div>`:''}
+        </div>`;
+      }).join('') : `<div class="empty" style="grid-column:1/-1">${t('no_data')}</div>`}
+    </div>`;
+    content = `<div class="card">
+      <div class="card-head">🚗 ${t('t_cars')} <span class="spacer"></span>
+        <div class="view-toggle">
+          <button data-view="cars:table" class="${mode==='table'?'active':''}">📋 ${t('view_table')}</button>
+          <button data-view="cars:cards" class="${mode==='cards'?'active':''}">🎴 ${t('view_cards')}</button>
+        </div>
+        ${canEdit?`<button class="btn btn-primary btn-sm" id="addCar">➕ ${t('btn_add')}</button>`:''}</div>
+      ${mode==='table' ? tableHTML : `<div class="card-body">${cardsHTML}</div>`}
+    </div>`;
+  } else if(tab==='maintenance'){
+    content = `<div class="card">
+      <div class="card-head">🔧 ${t('t_maint')} <span class="spacer"></span>
+        ${canEdit?`<button class="btn btn-primary btn-sm" id="addMaint">➕ ${t('btn_add')}</button>`:''}</div>
+      <div class="tbl-wrap" style="border:0"><table><thead><tr>
+        <th>${t('fld_car')}</th><th>${t('fld_type')}</th><th>${t('fld_date')}</th>
+        <th>${t('fld_cost')}</th><th>${t('fld_desc')}</th><th>${t('fld_status')}</th>${canEdit?`<th></th>`:''}
+      </tr></thead><tbody>
+        ${db.maintenance.length ? db.maintenance.map(m=>`<tr>
+          <td><b>${esc(carName(m.carId))}</b></td>
+          <td><span class="chip ${m.type==='fault'?'red':'amber'}">${m.type==='fault'?t('mt_fault'):t('mt_maint')}</span></td>
+          <td>${esc(m.date)}</td><td>${esc(m.cost)} ر.س</td>
+          <td class="small">${esc(m.desc)}</td>
+          <td>${m.status==='done'?'<span class="chip green">✔ منتهية</span>':'<span class="chip amber">⏳ جارية</span>'}</td>
+          ${canEdit?`<td><div class="tbl-actions">
+            <button class="btn btn-ghost btn-sm" data-edit-maint="${m.id}">✏️</button>
+            <button class="btn btn-ghost btn-sm" data-del-maint="${m.id}">🗑️</button>
+          </div></td>`:''}
+        </tr>`).join('') : emptyRow(canEdit?7:6)}
+      </tbody></table></div>
+    </div>`;
+  } else if(tab==='usage'){
+    content = `<div class="card">
+      <div class="card-head">🧭 ${t('t_usage')} <span class="spacer"></span>
+        ${canEdit?`<button class="btn btn-primary btn-sm" id="addUsage">➕ ${t('btn_add')}</button>`:''}</div>
+      <div class="tbl-wrap" style="border:0"><table><thead><tr>
+        <th>${t('fld_car')}</th><th>${t('fld_rep')}</th><th>${t('fld_supervisor')}</th>
+        <th>${t('fld_start_date')}</th><th>${t('fld_end_date')}</th>
+        <th>${t('fld_start_km')}</th><th>${t('fld_end_km')}</th><th>${t('fld_km')}</th>${canEdit?`<th></th>`:''}
+      </tr></thead><tbody>
+        ${db.usage.length ? db.usage.map(u=>{
+          const dist = (u.endKm && u.startKm) ? (num(u.endKm)-num(u.startKm)) : '';
+          return `<tr>
+            <td><b>${esc(carName(u.carId))}</b></td>
+            <td>${esc(repName(u.repId))}</td>
+            <td class="muted small">${esc(supName(u.supervisorId))}</td>
+            <td>${esc(u.startDate)}</td>
+            <td>${u.endDate?esc(u.endDate):'<span class="chip green">جاري</span>'}</td>
+            <td>${esc(u.startKm)}</td><td>${esc(u.endKm||'—')}</td>
+            <td>${dist!==''?`<span class="chip blue">${dist}</span>`:'—'}</td>
+            ${canEdit?`<td><div class="tbl-actions">
+              <button class="btn btn-ghost btn-sm" data-edit-usage="${u.id}">✏️</button>
+              <button class="btn btn-ghost btn-sm" data-del-usage="${u.id}">🗑️</button>
+            </div></td>`:''}
+          </tr>`;
+        }).join('') : emptyRow(canEdit?9:8)}
+      </tbody></table></div>
+    </div>`;
+  } else {
+    content = `<div class="card">
+      <div class="card-head">🛢️ ${t('t_oil')} <span class="spacer"></span>
+        ${canEdit?`<button class="btn btn-primary btn-sm" id="addOil">➕ ${t('btn_add')}</button>`:''}</div>
+      <div class="tbl-wrap" style="border:0"><table><thead><tr>
+        <th>${t('fld_car')}</th><th>${t('fld_date')}</th><th>${t('fld_km')}</th>
+        <th>${t('fld_next_km')}</th><th>${t('fld_next_date')}</th><th>${t('fld_cost')}</th>
+        <th>${t('fld_status')}</th>${canEdit?`<th></th>`:''}
+      </tr></thead><tbody>
+        ${db.oil.length ? db.oil.map(o=>{
+          const cur = currentKm(o.carId);
+          const remain = o.nextKm ? num(o.nextKm) - cur : null;
+          const st = remain===null ? '<span class="chip gray">—</span>'
+                   : remain<=0 ? '<span class="chip red">تغيير فوري</span>'
+                   : remain<=500 ? '<span class="chip amber">قريباً</span>'
+                   : '<span class="chip green">جيد</span>';
+          return `<tr>
+            <td><b>${esc(carName(o.carId))}</b></td>
+            <td>${esc(o.date)}</td><td>${esc(o.km)}</td>
+            <td>${esc(o.nextKm||'—')}</td><td>${esc(o.nextDate||'—')}</td>
+            <td>${esc(o.cost||0)} ر.س</td>
+            <td>${st}${remain!==null?`<div class="small muted">متبقي ${remain} كم</div>`:''}</td>
+            ${canEdit?`<td><div class="tbl-actions">
+              <button class="btn btn-ghost btn-sm" data-edit-oil="${o.id}">✏️</button>
+              <button class="btn btn-ghost btn-sm" data-del-oil="${o.id}">🗑️</button>
+            </div></td>`:''}
+          </tr>`;
+        }).join('') : emptyRow(canEdit?8:7)}
+      </tbody></table></div>
+    </div>`;
+  }
+  return tabsHTML + content;
+}
+function statusChip(s){
+  const map = { available:['green','st_available'], in_use:['blue','st_active'],
+                maintenance:['amber','st_maintenance'], broken:['red','st_broken'] };
+  const [c,k] = map[s] || ['gray','st_inactive'];
+  return `<span class="chip ${c}">${t(k)}</span>`;
+}
+function currentKm(carId){
+  const us = db.usage.filter(u=>u.carId===carId);
+  if(!us.length) return 0;
+  const last = us.sort((a,b)=> (b.startDate||'').localeCompare(a.startDate||''))[0];
+  return num(last.endKm || last.startKm);
+}
+function afterCars(){
+  $$('[data-tab]').forEach(b=> b.onclick = ()=>{ state.carsTab = b.dataset.tab; render(); });
+  bindViewToggles();
+  if(!canModify()) return;
+  $('#addCar')?.addEventListener('click', ()=> carModal());
+  $('#addMaint')?.addEventListener('click', ()=> maintModal());
+  $('#addUsage')?.addEventListener('click', ()=> usageModal());
+  $('#addOil')?.addEventListener('click', ()=> oilModal());
+  $$('[data-edit-car]').forEach(b=> b.onclick = ()=> carModal(b.dataset.editCar));
+  $$('[data-del-car]').forEach(b=> b.onclick = ()=>{
+    if(!confirm(t('msg_confirm_del'))) return;
+    const c = getCar(b.dataset.delCar);
+    db.cars = db.cars.filter(x=>x.id!==b.dataset.delCar);
+    cleanupRelations(); saveDB(); render();
+    addNotif('حذف مركبة', c ? `${c.brand} ${c.model}` : '', 'err');
+    toast(t('msg_deleted'),'ok');
+    if(isCloudReady()) pushToCloud(true);
+  });
+  $$('[data-edit-maint]').forEach(b=> b.onclick = ()=> maintModal(b.dataset.editMaint));
+  $$('[data-del-maint]').forEach(b=> b.onclick = ()=>{
+    if(!confirm(t('msg_confirm_del'))) return;
+    db.maintenance = db.maintenance.filter(x=>x.id!==b.dataset.delMaint);
+    saveDB(); render(); toast(t('msg_deleted'),'ok');
+    if(isCloudReady()) pushToCloud(true);
+  });
+  $$('[data-edit-usage]').forEach(b=> b.onclick = ()=> usageModal(b.dataset.editUsage));
+  $$('[data-del-usage]').forEach(b=> b.onclick = ()=>{
+    if(!confirm(t('msg_confirm_del'))) return;
+    db.usage = db.usage.filter(x=>x.id!==b.dataset.delUsage);
+    saveDB(); render(); toast(t('msg_deleted'),'ok');
+    if(isCloudReady()) pushToCloud(true);
+  });
+  $$('[data-edit-oil]').forEach(b=> b.onclick = ()=> oilModal(b.dataset.editOil));
+  $$('[data-del-oil]').forEach(b=> b.onclick = ()=>{
+    if(!confirm(t('msg_confirm_del'))) return;
+    db.oil = db.oil.filter(x=>x.id!==b.dataset.delOil);
+    saveDB(); render(); toast(t('msg_deleted'),'ok');
+    if(isCloudReady()) pushToCloud(true);
+  });
+}
+function carModal(id){
+  if(!canModify()){ toast(t('msg_no_perm'),'warn'); return; }
+  const rec = id ? getCar(id) : null;
+  const body = `<form id="carForm" class="form-grid" novalidate>
+    <div class="field"><label>${t('fld_brand')} <span class="req">*</span></label>
+      <input name="brand" required value="${esc(rec?.brand||'')}" list="brandList" placeholder="تويوتا">
+      <datalist id="brandList">
+        ${['تويوتا','هيونداي','نيسان','شيفروليه','فورد','كيا','ميتسوبيشي','هوندا','لكزس','مرسيدس','بي إم دبليو','إيسوزو']
+          .map(b=>`<option value="${b}">`).join('')}
+      </datalist></div>
+    <div class="field"><label>${t('fld_model')} <span class="req">*</span></label>
+      <input name="model" required value="${esc(rec?.model||'')}"></div>
+    <div class="field"><label>${t('fld_plate')} <span class="req">*</span></label>
+      <input name="plate" required value="${esc(rec?.plate||'')}"></div>
+    <div class="field"><label>${t('fld_year')} <span class="req">*</span></label>
+      <input type="number" name="year" required min="1990" max="2100" value="${esc(rec?.year||new Date().getFullYear())}"></div>
+    <div class="field"><label>${t('fld_status')} <span class="req">*</span></label>
+      <select name="status" required>
+        ${[['available','st_available'],['in_use','st_active'],['maintenance','st_maintenance'],['broken','st_broken']]
+          .map(([v,k])=>`<option value="${v}" ${rec&&rec.status===v?'selected':''}>${t(k)}</option>`).join('')}
+      </select></div>
+    <div id="carErr" class="err" style="grid-column:1/-1;display:none"></div>
+  </form>`;
+  openModal({
+    title: rec ? `${t('btn_edit')} — ${t('nav_cars')}` : `${t('btn_add')} — ${t('nav_cars')}`,
+    body,
+    onSubmit(root){
+      const d = Object.fromEntries(new FormData($('#carForm', root)));
+      const err = $('#carErr', root);
+      if(['brand','model','plate','year','status'].some(k=>!d[k])){ err.textContent=t('msg_required'); err.style.display='block'; return false; }
+      if(rec){ Object.assign(rec, d); addNotif('تعديل مركبة', `${d.brand} ${d.model}`, 'warn'); toast(t('msg_updated'),'ok'); }
+      else { db.cars.push({id:uid(), ...d, createdAt:new Date().toISOString()});
+        addNotif('مركبة جديدة', `${d.brand} ${d.model}`, 'ok'); toast(t('msg_saved'),'ok'); }
+      saveDB(); render();
+      if(isCloudReady()) pushToCloud(true);
+      return true;
+    }
+  });
+}
+function maintModal(id){
+  if(!canModify()){ toast(t('msg_no_perm'),'warn'); return; }
+  const rec = id ? db.maintenance.find(x=>x.id===id) : null;
+  if(!db.cars.length){ toast('أضف مركبة أولاً','warn'); return; }
+  const body = `<form id="mForm" class="form-grid" novalidate>
+    <div class="field"><label>${t('fld_car')} <span class="req">*</span></label>
+      <select name="carId" required>${db.cars.map(c=>`<option value="${c.id}" ${rec&&rec.carId===c.id?'selected':''}>${esc(c.brand)} ${esc(c.model)} — ${esc(c.plate)}</option>`).join('')}</select></div>
+    <div class="field"><label>${t('fld_type')} <span class="req">*</span></label>
+      <select name="type" required>
+        <option value="maint" ${rec&&rec.type==='maint'?'selected':''}>${t('mt_maint')}</option>
+        <option value="fault" ${rec&&rec.type==='fault'?'selected':''}>${t('mt_fault')}</option>
+      </select></div>
+    <div class="field"><label>${t('fld_date')} <span class="req">*</span></label>
+      <input type="date" name="date" required value="${rec?rec.date:todayStr()}"></div>
+    <div class="field"><label>${t('fld_cost')} <span class="req">*</span></label>
+      <input type="number" name="cost" min="0" step="0.01" required value="${rec?rec.cost:''}"></div>
+    <div class="field"><label>${t('fld_status')} <span class="req">*</span></label>
+      <select name="status" required>
+        <option value="in_progress" ${rec&&rec.status==='in_progress'?'selected':''}>⏳ جارية</option>
+        <option value="done" ${rec&&rec.status==='done'?'selected':''}>✔ منتهية</option>
+      </select></div>
+    <div class="field" style="grid-column:1/-1"><label>${t('fld_desc')} <span class="req">*</span></label>
+      <textarea name="desc" rows="2" required>${esc(rec?.desc||'')}</textarea></div>
+    <div id="mErr" class="err" style="grid-column:1/-1;display:none"></div>
+  </form>`;
+  openModal({
+    title: rec ? t('btn_edit') : `${t('btn_add')} — ${t('t_maint')}`,
+    body,
+    onSubmit(root){
+      const d = Object.fromEntries(new FormData($('#mForm', root)));
+      const err = $('#mErr', root);
+      if(['carId','type','date','cost','desc','status'].some(k=>!d[k])){ err.textContent=t('msg_required'); err.style.display='block'; return false; }
+      if(rec){ Object.assign(rec, d); toast(t('msg_updated'),'ok'); }
+      else { db.maintenance.push({id:uid(), ...d}); toast(t('msg_saved'),'ok'); }
+      saveDB(); render();
+      if(isCloudReady()) pushToCloud(true);
+      return true;
+    }
+  });
+}
+function usageModal(id){
+  if(!canModify()){ toast(t('msg_no_perm'),'warn'); return; }
+  const rec = id ? db.usage.find(x=>x.id===id) : null;
+  if(!db.cars.length || !db.reps.length){ toast('أضف مركبة وسائقاً أولاً','warn'); return; }
+  const body = `<form id="uForm" class="form-grid" novalidate>
+    <div class="field"><label>${t('fld_car')} <span class="req">*</span></label>
+      <select name="carId" required>${db.cars.map(c=>`<option value="${c.id}" ${rec&&rec.carId===c.id?'selected':''}>${esc(c.brand)} ${esc(c.model)} — ${esc(c.plate)}</option>`).join('')}</select></div>
+    <div class="field"><label>${t('fld_rep')} <span class="req">*</span></label>
+      <select name="repId" required><option value="">${t('fld_none')}</option>
+        ${db.reps.map(r=>`<option value="${r.id}" ${rec&&rec.repId===r.id?'selected':''}>${esc(r.name)}</option>`).join('')}</select></div>
+    <div class="field"><label>${t('fld_supervisor')} <span class="req">*</span></label>
+      <select name="supervisorId" required><option value="">${t('fld_none')}</option>
+        ${db.supervisors.map(s=>`<option value="${s.id}" ${rec&&rec.supervisorId===s.id?'selected':''}>${esc(s.name)}</option>`).join('')}</select></div>
+    <div class="field"><label>${t('fld_start_date')} <span class="req">*</span></label>
+      <input type="date" name="startDate" required value="${rec?rec.startDate:todayStr()}"></div>
+    <div class="field"><label>${t('fld_end_date')}</label>
+      <input type="date" name="endDate" value="${rec?.endDate||''}"></div>
+    <div class="field"><label>${t('fld_start_km')} <span class="req">*</span></label>
+      <input type="number" name="startKm" min="0" required value="${rec?rec.startKm:''}"></div>
+    <div class="field"><label>${t('fld_end_km')}</label>
+      <input type="number" name="endKm" min="0" value="${rec?.endKm||''}"></div>
+    <div id="uErr" class="err" style="grid-column:1/-1;display:none"></div>
+  </form>`;
+  openModal({
+    title: rec ? t('btn_edit') : `${t('btn_add')} — ${t('t_usage')}`,
+    body,
+    onSubmit(root){
+      const d = Object.fromEntries(new FormData($('#uForm', root)));
+      const err = $('#uErr', root);
+      if(['carId','repId','supervisorId','startDate','startKm'].some(k=>!d[k])){ err.textContent=t('msg_required'); err.style.display='block'; return false; }
+      if(rec){ Object.assign(rec, d); toast(t('msg_updated'),'ok'); }
+      else { db.usage.push({id:uid(), ...d}); toast(t('msg_saved'),'ok'); }
+      saveDB(); render();
+      if(isCloudReady()) pushToCloud(true);
+      return true;
+    }
+  });
+}
+function oilModal(id){
+  if(!canModify()){ toast(t('msg_no_perm'),'warn'); return; }
+  const rec = id ? db.oil.find(x=>x.id===id) : null;
+  if(!db.cars.length){ toast('أضف مركبة أولاً','warn'); return; }
+  const body = `<form id="oForm" class="form-grid" novalidate>
+    <div class="field"><label>${t('fld_car')} <span class="req">*</span></label>
+      <select name="carId" required>${db.cars.map(c=>`<option value="${c.id}" ${rec&&rec.carId===c.id?'selected':''}>${esc(c.brand)} ${esc(c.model)} — ${esc(c.plate)}</option>`).join('')}</select></div>
+    <div class="field"><label>${t('fld_date')} <span class="req">*</span></label>
+      <input type="date" name="date" required value="${rec?rec.date:todayStr()}"></div>
+    <div class="field"><label>${t('fld_km')} <span class="req">*</span></label>
+      <input type="number" name="km" min="0" required value="${rec?rec.km:''}"></div>
+    <div class="field"><label>${t('fld_next_km')}</label>
+      <input type="number" name="nextKm" min="0" value="${rec?.nextKm||''}"></div>
+    <div class="field"><label>${t('fld_next_date')}</label>
+      <input type="date" name="nextDate" value="${rec?.nextDate||''}"></div>
+    <div class="field"><label>${t('fld_cost')}</label>
+      <input type="number" name="cost" min="0" step="0.01" value="${rec?.cost||''}"></div>
+    <div id="oErr" class="err" style="grid-column:1/-1;display:none"></div>
+  </form>`;
+  openModal({
+    title: rec ? t('btn_edit') : `${t('btn_add')} — ${t('t_oil')}`,
+    body,
+    onSubmit(root){
+      const d = Object.fromEntries(new FormData($('#oForm', root)));
+      const err = $('#oErr', root);
+      if(['carId','date','km'].some(k=>!d[k])){ err.textContent=t('msg_required'); err.style.display='block'; return false; }
+      if(rec){ Object.assign(rec, d); toast(t('msg_updated'),'ok'); }
+      else { db.oil.push({id:uid(), ...d}); toast(t('msg_saved'),'ok'); }
+      saveDB(); render();
+      if(isCloudReady()) pushToCloud(true);
+      return true;
+    }
+  });
+}
+
+/* ==========================================================================
+   16) قسم التحليلات
+   ========================================================================== */
+function viewAnalytics(){
+  const c = db.settings.charts;
+  const ct = db.settings.chartTypes;
+  const palette = ['#6366f1','#8b5cf6','#06b6d4','#10b981','#f59e0b','#ef4444','#ec4899','#8b5cf6'];
+  const reports = visibleReports();
+  const reps = visibleReps();
+  const sups = isOwner() ? db.supervisors : db.supervisors.filter(s=>s.id===state.user.id);
+
+  const byRepOrders = reps.map(r=>({
+    label:r.name, value: sum(reports.filter(x=>x.repId===r.id),'orders')
+  })).sort((a,b)=>b.value-a.value);
+  const byRepHours = reps.map(r=>({
+    label:r.name, value: round1(sum(reports.filter(x=>x.repId===r.id),'hours'))
+  })).sort((a,b)=>b.value-a.value);
+  const viol = [
+    {label:t('kpi_accepted'), value: sum(reports,'accepted')},
+    {label:t('kpi_rejected'), value: sum(reports,'rejected')}
+  ];
+  const last7 = [...Array(7)].map((_,i)=>{
+    const d = new Date(); d.setDate(d.getDate()-(6-i));
+    const ds = d.toISOString().slice(0,10);
+    return { label: dayName(ds), value: sum(reports.filter(r=>r.date===ds),'orders') };
+  });
+  const gradeDist = {A:0,B:0,C:0,D:0,E:0,F:0};
+  reports.forEach(r=>{ const l = r.rating || calcRating(r.orders); if(gradeDist[l]!==undefined) gradeDist[l]++; });
+  const bySup = sups.map(s=>{
+    const sreps = db.reps.filter(r=>r.supervisorId===s.id);
+    const rs = reports.filter(x=> sreps.some(r=>r.id===x.repId));
+    return { label:s.name, value: sum(rs,'orders') };
+  }).sort((a,b)=>b.value-a.value);
+  const totalOrders = sum(reports,'orders');
+  const totalHours  = round1(sum(reports,'hours'));
+  const bestRep = byRepOrders[0];
+
+  return `
+  <div class="toolbar" id="toolbar">
+    <button class="tool-btn" data-act="lang"><span class="ti">🌐</span><span class="tt">${t('btn_language')}</span></button>
+    <button class="tool-btn" data-act="sync"><span class="ti">🔄</span><span class="tt">${t('btn_sync')}</span></button>
+    <button class="tool-btn" data-act="share"><span class="ti">🔗</span><span class="tt">${t('btn_share_link')}</span></button>
+    ${canModify()?`<button class="tool-btn" data-act="import"><span class="ti">📥</span><span class="tt">${t('btn_import')}</span></button>`:''}
+    <button class="tool-btn" data-act="export"><span class="ti">📤</span><span class="tt">${t('btn_export')}</span></button>
+    ${canModify()?`<button class="tool-btn danger" data-act="reset"><span class="ti">♻️</span><span class="tt">${t('btn_reset')}</span></button>`:''}
+    <button class="tool-btn" data-act="refresh"><span class="ti">⚡</span><span class="tt">${t('btn_refresh')}</span></button>
+    <button class="tool-btn" data-act="settings"><span class="ti">⚙️</span><span class="tt">${t('btn_settings')}</span></button>
+  </div>
+  <div class="grid g4">
+    ${kpiCard('📦', t('kpi_orders'), totalOrders, '#6366f1')}
+    ${kpiCard('⏱️', t('kpi_hours'), totalHours, '#10b981')}
+    ${kpiCard('⚠️', t('kpi_violations'), sum(reports,'violations'), '#f59e0b')}
+    ${kpiCard('🏆', t('top_rep'), bestRep ? esc(bestRep.label) : '—', '#8b5cf6')}
+  </div>
+  <div class="card">
+    <div class="card-head">🎛️ ${t('settings_charts')}</div>
+    <div class="card-body"><div class="row">
+      ${[['orders','📦',t('t_orders_rep')],['hours','⏱️',t('t_hours_rep')],
+         ['viol','⚠️',t('t_viol')],['trend','📈',t('t_trend')],['sup','👔',t('t_sup_perf')]]
+        .map(([k,ic,lb])=>`<label class="perm-check">
+          <input type="checkbox" data-chart="${k}" ${c[k]?'checked':''}> ${ic} ${lb}
+        </label>`).join('')}
+    </div></div>
+  </div>
+  <div class="card">
+    <div class="card-head">⭐ ${t('fld_rating')} — ${t('fld_all')}</div>
+    <div class="card-body">
+      <div class="grades-grid">
+        ${['A','B','C','D','E','F'].map(g=>`
+          <div class="grade-box" style="cursor:default">
+            <div class="gb-letter ${g}">${g}</div>
+            <div style="font-size:22px;font-weight:800">${gradeDist[g]}</div>
+            <div class="gb-lbl">≥ ${num((db.grades||DEFAULT_GRADES)[g])} ${t('fld_orders')}</div>
+          </div>`).join('')}
+      </div>
+    </div>
+  </div>
+  ${c.orders ? `<div class="card">
+      <div class="card-head">📦 ${t('t_orders_rep')}<span class="spacer"></span>
+        ${chartTypeSelector('orders')}</div>
+      <div class="card-body">${renderChart(ct.orders || 'bar', byRepOrders, db.settings.color, palette)}</div></div>` : ''}
+  <div class="grid g2">
+    ${c.hours ? `<div class="card">
+        <div class="card-head">⏱️ ${t('t_hours_rep')}<span class="spacer"></span>
+          ${chartTypeSelector('hours')}</div>
+        <div class="card-body">${renderChart(ct.hours || 'bar', byRepHours, '#10b981', palette)}</div></div>` : ''}
+    ${c.viol ? `<div class="card">
+        <div class="card-head">⚠️ ${t('t_viol')}<span class="spacer"></span>
+          ${chartTypeSelector('viol')}</div>
+        <div class="card-body">${renderChart(ct.viol || 'donut', viol, '#ef4444', ['#10b981','#ef4444'])}</div></div>` : ''}
+  </div>
+  ${c.trend ? `<div class="card">
+      <div class="card-head">📈 ${t('t_trend')}<span class="spacer"></span>
+        ${chartTypeSelector('trend')}</div>
+      <div class="card-body">${renderChart(ct.trend || 'line', last7, db.settings.color, palette)}</div></div>` : ''}
+  ${c.sup ? `<div class="card">
+      <div class="card-head">👔 ${t('t_sup_perf')}<span class="spacer"></span>
+        ${chartTypeSelector('sup')}</div>
+      <div class="card-body">${renderChart(ct.sup || 'bar', bySup, '#8b5cf6', palette)}</div></div>` : ''}
+  <div class="card">
+    <div class="card-head">📊 ${t('t_reps')} — ${t('fld_all')}</div>
+    <div class="tbl-wrap" style="border:0"><table><thead><tr>
+      <th>${t('fld_name')}</th><th>${t('fld_supervisor')}</th>
+      <th>${t('fld_orders')}</th><th>${t('fld_hours')}</th>
+      <th>${t('kpi_avg')}</th><th>${t('fld_violations')}</th>
+      <th>${t('kpi_accepted')}</th><th>${t('kpi_rejected')}</th>
+    </tr></thead><tbody>
+      ${reps.length ? reps.map(r=>{
+        const rs = reports.filter(x=>x.repId===r.id);
+        const avg = rs.length ? round1(sum(rs,'orders')/rs.length) : 0;
+        return `<tr>
+          <td><b>${esc(r.name)}</b></td>
+          <td class="muted small">${esc(supName(r.supervisorId))}</td>
+          <td><b>${sum(rs,'orders')}</b></td>
+          <td>${round1(sum(rs,'hours'))}</td>
+          <td><span class="chip blue">${avg}</span></td>
+          <td><span class="chip amber">${sum(rs,'violations')}</span></td>
+          <td><span class="chip green">${sum(rs,'accepted')}</span></td>
+          <td><span class="chip red">${sum(rs,'rejected')}</span></td>
+        </tr>`;
+      }).join('') : emptyRow(8)}
+    </tbody></table></div>
+  </div>`;
+}
+function afterAnalytics(){
+  const tb = $('#toolbar');
+  if(tb){
+    let idleTimer;
+    const resetIdle = ()=>{ tb.classList.remove('idle'); clearTimeout(idleTimer);
+      idleTimer = setTimeout(()=> tb.classList.add('idle'), 3500); };
+    resetIdle();
+    ['mousemove','mouseenter','click','focusin','touchstart'].forEach(ev=>
+      tb.addEventListener(ev, resetIdle, {passive:true}));
+  }
+  bindChartTypeButtons();
+  $$('[data-chart]').forEach(cb=> cb.onchange = ()=>{
+    db.settings.charts[cb.dataset.chart] = cb.checked;
+    saveDB(); render();
+  });
+  $$('[data-act]').forEach(b=> b.onclick = ()=> toolAction(b.dataset.act));
+}
+
+/* ==========================================================================
+   17) قسم الأهداف
+   ========================================================================== */
+function computeGoalActuals(period){
+  const start = period==='today' ? todayStr()
+              : period==='week' ? weekStart()
+              : monthStart();
+  const reports = visibleReports();
+  const reps = visibleReps();
+  const rs = reports.filter(r=> r.date >= start);
+  const daysCount = Math.max(1, Math.ceil((Date.now()-new Date(start).getTime())/864e5));
+  return {
+    orders: sum(rs,'orders'),
+    hours: round1(sum(rs,'hours')),
+    violations: sum(rs,'violations'),
+    acceptRate: sum(rs,'violations') ? Math.round((sum(rs,'accepted')/sum(rs,'violations'))*100) : 100,
+    perRepDaily: reps.length ? round1(sum(rs,'orders') / reps.length / daysCount) : 0,
+    reps: reps.length,
+    reportsCount: rs.length
+  };
+}
+function goalCard({icon,label,target,actual,unit='',inverse=false}){
+  if(!target){ return `<div class="goal-card" style="opacity:.7">
+    <div class="goal-title">${icon} ${label}</div>
+    <div class="small muted">${t('goals_no_goal')}</div>
+  </div>`; }
+  const pct = target ? Math.round((actual/target)*100) : 0;
+  const exceed = inverse ? (actual <= target) : (actual >= target);
+  const status = exceed ? t('goals_exceeded') : (pct >= 70 ? t('goals_on_track') : t('goals_behind'));
+  const remaining = Math.max(0, target - actual);
+  return `<div class="goal-card">
+    <div class="goal-title">${icon} ${label}</div>
+    <div class="goal-values">
+      <div><div class="gv-l">${t('goals_actual')}</div><div class="gv-v">${actual}${unit}</div></div>
+      <div style="text-align:center"><div class="gv-l">${t('goals_target')}</div><div class="gv-v">${target}${unit}</div></div>
+      <div style="text-align:end"><div class="gv-l">${t('goals_remaining')}</div><div class="gv-v">${inverse? Math.max(0,actual-target) : remaining}${unit}</div></div>
+    </div>
+    <div class="goal-bar ${exceed?'exceed':''}"><i style="width:${Math.min(100, pct)}%"></i></div>
+    <div class="goal-pct" style="color:${exceed?'#047857':pct>=70?'#1d4ed8':'#b45309'}">${pct}% · ${status}</div>
+  </div>`;
+}
+function viewGoals(){
+  const g = db.goals || emptyDB().goals;
+  const currentPeriod = state.goalPeriod || 'month';
+  const actuals = computeGoalActuals(currentPeriod);
+  const periods = [['month', t('goals_period_month')],['week', t('goals_period_week')],['today', t('goals_period_today')]];
+
+  let goalScore = 0, goalsCount = 0;
+  const evaluate = (target, actual, inverse=false)=>{
+    if(!target) return;
+    goalsCount++;
+    const pct = inverse ? Math.min(100, (target/Math.max(actual,1))*100) : Math.min(100, (actual/target)*100);
+    goalScore += pct;
+  };
+  evaluate(g.monthlyOrders, actuals.orders);
+  evaluate(g.monthlyHours, actuals.hours);
+  evaluate(g.maxViolations, actuals.violations, true);
+  evaluate(g.minAcceptRate, actuals.acceptRate);
+  evaluate(g.perRepDaily, actuals.perRepDaily);
+  const overallGoalScore = goalsCount ? Math.round(goalScore/goalsCount) : 0;
+
+  const sups = isOwner() ? db.supervisors : db.supervisors.filter(s=>s.id===state.user.id);
+  const supGoals = sups.map(s=>{
+    const reps = db.reps.filter(r=>r.supervisorId===s.id);
+    const start = currentPeriod==='today' ? todayStr()
+                : currentPeriod==='week' ? weekStart() : monthStart();
+    const rs = visibleReports().filter(x=> x.date >= start && reps.some(r=>r.id===x.repId));
+    const orders = sum(rs,'orders');
+    const target = g.monthlyOrders && db.reps.length ? Math.round(g.monthlyOrders * (reps.length/db.reps.length)) : 0;
+    return { name:s.name, orders, target, pct: target ? Math.round((orders/target)*100) : 0 };
+  }).filter(x=>x.target).sort((a,b)=>b.pct-a.pct);
+
+  return `
+  <div class="grid g4">
+    ${kpiCard('🎯', t('goals_overall'), overallGoalScore + '%', '#6366f1')}
+    ${kpiCard('📦', t('goals_actual')+' '+t('kpi_orders'), actuals.orders, '#10b981')}
+    ${kpiCard('⏱️', t('goals_actual')+' '+t('kpi_hours'), actuals.hours + 'h', '#06b6d4')}
+    ${kpiCard('⚠️', t('goals_actual')+' '+t('kpi_violations'), actuals.violations, '#f59e0b')}
+  </div>
+  <div class="card">
+    <div class="card-head">🎯 ${t('goals_title')} <span class="spacer"></span>
+      ${periods.map(([id,lb])=>`<button class="btn btn-sm ${currentPeriod===id?'btn-primary':''}" data-period="${id}">${lb}</button>`).join('')}
+      ${isOwner()?`<button class="btn btn-sm btn-primary" id="editGoals">✏️ ${t('goals_save')}</button>`:''}
+    </div>
+    <div class="card-body">
+      <div class="small muted" style="margin-bottom:14px">${t('goals_desc')}</div>
+      <div class="grid g3">
+        ${goalCard({icon:'📦', label:t('goals_monthly_orders'), target:g.monthlyOrders, actual:actuals.orders})}
+        ${goalCard({icon:'⏱️', label:t('goals_monthly_hours'), target:g.monthlyHours, actual:actuals.hours, unit:'h'})}
+        ${goalCard({icon:'⚠️', label:t('goals_max_violations'), target:g.maxViolations, actual:actuals.violations, inverse:true})}
+        ${goalCard({icon:'✅', label:t('goals_min_accept_rate'), target:g.minAcceptRate, actual:actuals.acceptRate, unit:'%'})}
+        ${goalCard({icon:'🚗', label:t('goals_per_rep_daily'), target:g.perRepDaily, actual:actuals.perRepDaily})}
+      </div>
+    </div>
+  </div>
+  ${supGoals.length ? `<div class="card">
+    <div class="card-head">👔 ${t('t_sup_perf')} — ${t('goals_title')}</div>
+    <div class="card-body">
+      ${supGoals.map(s=>`
+        <div style="margin-bottom:14px">
+          <div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:13px">
+            <b>${esc(s.name)}</b>
+            <span class="muted">${s.orders} / ${s.target} · ${s.pct}%</span>
+          </div>
+          <div class="goal-bar ${s.pct>=100?'exceed':''}"><i style="width:${Math.min(100,s.pct)}%"></i></div>
+        </div>`).join('')}
+    </div>
+  </div>` : ''}
+  <div class="card">
+    <div class="card-head">📊 ${t('goals_title')} — ${t('fld_all')}</div>
+    <div class="card-body">
+      <div class="grid g3">
+        <div class="insight-tile tone-blue">
+          <div class="it-label">📅 ${t('goals_period')}</div>
+          <div class="it-value">${currentPeriod==='today'?t('goals_period_today'):currentPeriod==='week'?t('goals_period_week'):t('goals_period_month')}</div>
+          <div class="it-sub">${actuals.reportsCount} ${t('t_daily')}</div>
+        </div>
+        <div class="insight-tile tone-green">
+          <div class="it-label">🚗 ${t('nav_reps')}</div>
+          <div class="it-value">${actuals.reps}</div>
+          <div class="it-sub">${t('perf_total_reps')}</div>
+        </div>
+        <div class="insight-tile tone-blue">
+          <div class="it-label">📈 ${t('perf_accept_rate')}</div>
+          <div class="it-value">${actuals.acceptRate}%</div>
+          <div class="it-sub">${g.minAcceptRate ? t('goals_target')+': '+g.minAcceptRate+'%' : '—'}</div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+function afterGoals(){
+  $$('[data-period]').forEach(b=> b.onclick = ()=>{
+    state.goalPeriod = b.dataset.period; render();
+  });
+  $('#editGoals')?.addEventListener('click', ()=> goalsModal());
+}
+function goalsModal(){
+  if(!isOwner()){ toast(t('msg_no_perm'),'warn'); return; }
+  const g = db.goals || emptyDB().goals;
+  const body = `<form id="gForm" class="form-grid" novalidate>
+    <div class="field"><label>${t('goals_monthly_orders')}</label>
+      <input type="number" name="monthlyOrders" min="0" value="${g.monthlyOrders||''}"></div>
+    <div class="field"><label>${t('goals_monthly_hours')}</label>
+      <input type="number" name="monthlyHours" min="0" value="${g.monthlyHours||''}"></div>
+    <div class="field"><label>${t('goals_max_violations')}</label>
+      <input type="number" name="maxViolations" min="0" value="${g.maxViolations||''}"></div>
+    <div class="field"><label>${t('goals_min_accept_rate')}</label>
+      <input type="number" name="minAcceptRate" min="0" max="100" value="${g.minAcceptRate||''}"></div>
+    <div class="field"><label>${t('goals_per_rep_daily')}</label>
+      <input type="number" name="perRepDaily" min="0" value="${g.perRepDaily||''}"></div>
+    <div id="gErr" class="err" style="grid-column:1/-1;display:none"></div>
+  </form>`;
+  openModal({
+    title:`🎯 ${t('goals_title')}`,
+    body,
+    onSubmit(root){
+      const d = Object.fromEntries(new FormData($('#gForm', root)));
+      db.goals = {
+        monthlyOrders: num(d.monthlyOrders),
+        monthlyHours: num(d.monthlyHours),
+        maxViolations: num(d.maxViolations),
+        minAcceptRate: num(d.minAcceptRate),
+        perRepDaily: num(d.perRepDaily)
+      };
+      saveDB(); render();
+      addNotif('تحديث الأهداف', 'تم حفظ أهداف الأداء الجديدة', 'info');
+      toast(t('msg_goal_saved'),'ok');
+      if(isCloudReady()) pushToCloud(true);
+      return true;
+    }
+  });
+}
+
+/* ==========================================================================
+   18) أدوات عامة
+   ========================================================================== */
+function toolAction(act){
+  switch(act){
+    case 'lang':
+      state.lang = state.lang==='ar' ? 'en' : 'ar';
+      render(); toast(state.lang==='ar'?'تم التبديل إلى العربية':'Switched to English','ok');
+      break;
+    case 'sync':
+      if(!isCloudReady()){ settingsModal(); return; }
+      pushToCloud().then(ok => { if(ok) render(); }); break;
+    case 'share': copyShareLink(); break;
+    case 'export': exportJSON(); break;
+    case 'import': 
+      if(!canModify()){ toast(t('msg_no_perm'),'warn'); return; }
+      openImportDialog(); break;
+    case 'reset':
+      if(!canModify()){ toast(t('msg_no_perm'),'warn'); return; }
+      if(confirm(t('msg_confirm_reset'))){
+        db = seedDB(); saveDB(); state.section='dashboard'; render();
+        toast(t('msg_reset'),'ok');
+        if(isCloudReady()) pushToCloud(true);
+      } break;
+    case 'refresh':
+      if(isCloudReady()){ pullFromCloud().then(ok => { if(ok) render(); }); }
+      else { db = loadDB() || db; applySettings(); render(); toast(t('msg_updated'),'ok'); }
+      break;
+    case 'settings': settingsModal(); break;
+  }
+}
+function exportJSON(){
+  const blob = new Blob([JSON.stringify(db,null,2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `drivers-performance-${todayStr()}.json`;
+  a.click(); URL.revokeObjectURL(a.href);
+  addNotif('تصدير','تم تصدير نسخة من البيانات','ok');
+  toast(t('btn_export')+' ✓','ok');
+}
+function openImportDialog(){
+  if(!canModify()){ toast(t('msg_no_perm'),'warn'); return; }
+  const inp = document.createElement('input');
+  inp.type = 'file'; inp.accept = '.json,application/json';
+  inp.onchange = ()=>{
+    const f = inp.files[0]; if(!f) return;
+    const rd = new FileReader();
+    rd.onload = ()=>{
+      try{
+        const data = JSON.parse(rd.result);
+        db = Object.assign(emptyDB(), data);
+        if(!db.auth) db.auth = emptyDB().auth;
+        if(!db.notifications) db.notifications = [];
+        if(!db.branding) db.branding = emptyDB().branding;
+        if(!db.goals) db.goals = emptyDB().goals;
+        if(!db.grades) db.grades = { ...DEFAULT_GRADES };
+        (db.reports||[]).forEach(r=>{ if(!r.rating) r.rating = computeRatingFromGrades(r.orders, db.grades); });
+        cleanupRelations(); saveDB(); render();
+        addNotif('استيراد','تم استيراد البيانات','ok');
+        toast(t('msg_imported'),'ok');
+        if(isCloudReady()) pushToCloud(true);
+      }catch(err){ toast(t('msg_import_err'),'err'); }
+    };
+    rd.readAsText(f);
+  };
+  inp.click();
+}
+
+/* ==========================================================================
+   19) نافذة الصلاحيات
+   ========================================================================== */
+function permModal(){
+  if(!isOwner()){ toast(t('msg_no_perm'),'warn'); return; }
+  const body = `
+    <div class="small muted" style="margin-bottom:12px">
+      يمنح المالك الصلاحيات لكل مشرف لتحديد الأقسام المسموح بها.
+    </div>
+    <div class="perm-list">
+      ${db.supervisors.length ? db.supervisors.map(s=>`
+        <div class="perm-row">
+          <div class="pn">${esc(s.name)}</div>
+          <div class="pc">
+            ${NAV.map(n=>`<label class="perm-check">
+              <input type="checkbox" data-perm="${s.id}" data-sec="${n.id}"
+                ${(s.permissions||[]).includes(n.id)?'checked':''}>
+              ${n.icon} ${t(n.key)}
+            </label>`).join('')}
+          </div>
+        </div>`).join('') : `<div class="empty">${t('no_data')}</div>`}
+    </div>`;
+  openModal({
+    title:`🛡️ ${t('btn_permissions')}`,
+    body, submitText:t('btn_save'),
+    onSubmit(root){
+      db.supervisors.forEach(s=>{
+        s.permissions = NAV.filter(n=>{
+          const cb = root.querySelector(`[data-perm="${s.id}"][data-sec="${n.id}"]`);
+          return cb && cb.checked;
+        }).map(n=>n.id);
+      });
+      saveDB(); render();
+      addNotif('تحديث الصلاحيات','تم تحديث صلاحيات المشرفين','info');
+      toast(t('msg_updated'),'ok');
+      if(isCloudReady()) pushToCloud(true);
+      return true;
+    }
+  });
+}
+
+/* ==========================================================================
+   20) نافذة تغيير كلمة المرور
+   ========================================================================== */
+function pwdModal(){
+  if(!state.user) return;
+  const isOwnerUser = isOwner();
+  const body = `
+    <form id="pwdForm" class="form-grid" novalidate>
+      <div class="field" style="grid-column:1/-1"><label>${t('pwd_current')} <span class="req">*</span></label>
+        <input type="password" name="currentPwd" required autocomplete="current-password"></div>
+      <div class="field"><label>${t('pwd_new')} <span class="req">*</span></label>
+        <input type="password" name="newPwd" required autocomplete="new-password"></div>
+      <div class="field"><label>${t('pwd_confirm')} <span class="req">*</span></label>
+        <input type="password" name="confirmPwd" required autocomplete="new-password"></div>
+      ${isOwnerUser?`<div class="small muted" style="grid-column:1/-1;padding:10px;border-radius:10px;background:var(--primary-soft);border:1px solid var(--border)">${t('pwd_owner_note')}</div>`:''}
+      <div id="pErr" class="err" style="grid-column:1/-1;display:none"></div>
+    </form>`;
+  openModal({
+    title:`🔑 ${t('pwd_section')}`,
+    body,
+    submitText:t('pwd_save'),
+    onSubmit(root){
+      const d = Object.fromEntries(new FormData($('#pwdForm', root)));
+      const err = $('#pErr', root);
+      if(!d.currentPwd || !d.newPwd || !d.confirmPwd){
+        err.textContent = t('msg_required'); err.style.display='block'; return false;
+      }
+      const curHash = hashPwd(d.currentPwd);
+      let stored = null;
+      if(isOwnerUser) stored = db.auth?.owner?.password;
+      else {
+        const sup = db.supervisors.find(s=>s.id===state.user.id);
+        stored = sup?.password;
+      }
+      if(stored !== curHash){ err.textContent = t('msg_pwd_wrong'); err.style.display='block'; return false; }
+      if(d.newPwd.length < 4){ err.textContent = t('msg_pwd_short'); err.style.display='block'; return false; }
+      if(d.newPwd !== d.confirmPwd){ err.textContent = t('msg_pwd_mismatch'); err.style.display='block'; return false; }
+      const newHash = hashPwd(d.newPwd);
+      if(isOwnerUser){
+        db.auth.owner.password = newHash;
+      } else {
+        const sup = db.supervisors.find(s=>s.id===state.user.id);
+        if(sup) sup.password = newHash;
+      }
+      saveDB();
+      addNotif('تغيير كلمة المرور', state.user.name + ' — تم التحديث', 'ok');
+      toast(t('msg_pwd_changed'),'ok');
+      if(isCloudReady()) pushToCloud(true);
+      return true;
+    }
+  });
+}
+
+/* ==========================================================================
+   21) نافذة الإعدادات
+   ========================================================================== */
+function settingsModal(){
+  const colors = ['#6366f1','#8b5cf6','#06b6d4','#10b981','#f59e0b','#ef4444','#ec4899','#0f172a','#4f46e5'];
+  const owner = db.auth?.owner || {};
+  const shareUrl = buildShareLink();
+  const b = db.branding || {};
+  const w = db.settings.whatsapp || {};
+  const grades = db.grades || { ...DEFAULT_GRADES };
+
+  const body = `
+    <div class="field" style="margin-bottom:18px">
+      <label>🎨 ${t('settings_theme')}</label>
+      <div class="swatches" id="swatches">
+        ${colors.map(c=>`<div class="swatch ${db.settings.color===c?'sel':''}"
+            data-color="${c}" style="background:${c}"></div>`).join('')}
+        <input type="color" id="customColor" value="${db.settings.color}"
+               style="width:46px;height:36px;padding:2px;cursor:pointer;border-radius:11px;border:1px solid var(--border)">
+      </div>
+    </div>
+    <div class="field" style="margin-bottom:18px">
+      <label>🔠 ${t('settings_font')} — <span id="fsVal">${db.settings.fontSize}</span>px</label>
+      <input type="range" id="fsRange" min="12" max="20" step="1" value="${db.settings.fontSize}">
+    </div>
+
+    ${isOwner() ? `
+    <hr style="border:0;border-top:1px dashed var(--border);margin:20px 0">
+    <div class="field" style="margin-bottom:14px">
+      <label style="font-size:14px;color:var(--text)">${t('grades_section')}</label>
+      <div class="small muted" style="margin-bottom:8px">${t('grades_desc')}</div>
+      <div class="grades-grid" id="gradesGrid">
+        ${['A','B','C','D','E','F'].map(g=>`
+          <div class="grade-box">
+            <div class="gb-letter ${g}">${g}</div>
+            <input type="number" min="0" step="1" data-grade="${g}" value="${num(grades[g])}" ${g==='F'?'readonly style="opacity:.6"':''}>
+            <div class="gb-lbl">${t('grades_hint')}</div>
+          </div>`).join('')}
+      </div>
+      <button class="btn btn-sm btn-primary" id="saveGrades" type="button" style="margin-top:12px">⭐ ${t('grades_save')}</button>
+    </div>` : ''}
+
+    <hr style="border:0;border-top:1px dashed var(--border);margin:20px 0">
+    <div class="field" style="margin-bottom:14px">
+      <label style="font-size:14px;color:var(--text)">${t('branding_section')}</label>
+      <div class="form-grid" style="margin-top:8px">
+        <div class="field"><label>${t('brand_app_name')}</label>
+          <input id="brandTitleInp" value="${esc(b.title||'')}" placeholder="تحليل أداء السائقين"></div>
+        <div class="field"><label>${t('brand_app_sub')}</label>
+          <input id="brandSubInp" value="${esc(b.subtitle||'')}" placeholder="نظام المتابعة والتقارير"></div>
+      </div>
+      <div class="field" style="margin-top:12px">
+        <label>${t('brand_logo')}</label>
+        <div class="logo-upload">
+          <div class="logo-preview" id="logoPrev">${b.logo?`<img src="${b.logo}">`:'📊'}</div>
+          <div style="flex:1">
+            <input type="file" id="logoFile" accept="image/png,image/jpeg,image/svg+xml,image/webp" hidden>
+            <button class="btn btn-sm" id="pickLogo" type="button">📁 اختر صورة</button>
+            <button class="btn btn-sm" id="removeLogo" type="button">🗑️ ${t('brand_logo_remove')}</button>
+            <div class="hint" style="margin-top:6px">${t('brand_logo_hint')}</div>
+          </div>
+        </div>
+      </div>
+      <button class="btn btn-sm btn-primary" id="saveBrand" type="button" style="margin-top:10px">${t('brand_save')}</button>
+    </div>
+
+    <hr style="border:0;border-top:1px dashed var(--border);margin:20px 0">
+    <div class="field" style="margin-bottom:14px">
+      <label style="font-size:14px;color:var(--text)">${t('whatsapp_section')}</label>
+      <div class="form-grid" style="margin-top:8px">
+        <div class="field"><label>${t('whatsapp_number')}</label>
+          <input id="waNumber" dir="ltr" value="${esc(w.number||'')}" placeholder="966501234567">
+          <span class="hint">${t('whatsapp_hint')}</span></div>
+        <div class="field"><label>${t('whatsapp_message')}</label>
+          <input id="waMessage" value="${esc(w.message||'')}" placeholder="مرحباً..."></div>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <button class="btn btn-sm btn-primary" id="saveWa" type="button">💾 ${t('cloud_save')}</button>
+        <button class="btn btn-sm" id="openWa" type="button">💬 ${t('whatsapp_open')}</button>
+      </div>
+    </div>
+
+    <hr style="border:0;border-top:1px dashed var(--border);margin:20px 0">
+    <div class="field" style="margin-bottom:14px">
+      <label style="font-size:14px;color:var(--text)">${t('cloud_section')}</label>
+      <div class="small muted" style="margin-bottom:8px">${t('cloud_desc')}</div>
+      <div class="form-grid">
+        <div class="field"><label>${t('cloud_key')}</label>
+          <input type="password" id="jbKey" dir="ltr" value="${esc(cloudCfg.key||'')}" placeholder="$2b$10$••••••"></div>
+        <div class="field"><label>${t('cloud_bin')}</label>
+          <input id="jbBin" dir="ltr" value="${esc(cloudCfg.binId||'')}" placeholder="64a598039d312622a37ab8a2"></div>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <button class="btn btn-sm" id="saveJb" type="button">💾 ${t('cloud_save')}</button>
+        <button class="btn btn-sm btn-primary" id="syncNow" type="button">🔄 ${t('cloud_sync_now')}</button>
+        <button class="btn btn-sm" id="pullNow" type="button">⬇️ ${t('cloud_pull_now')}</button>
+        <button class="btn btn-sm" id="testJb" type="button">🧪 ${t('cloud_test')}</button>
+      </div>
+    </div>
+
+    <div class="field" style="margin-bottom:16px">
+      <label>🔗 ${t('settings_share')}</label>
+      <div class="share-box">
+        <input id="shareUrl" readonly value="${esc(shareUrl)}" placeholder="${t('msg_set_cloud')}">
+        <button class="btn btn-sm btn-primary" id="copyLink" type="button">📋 ${t('btn_copy')}</button>
+      </div>
+      <div class="hint" style="margin-top:6px">💡 لفتح التطبيق على أجهزة أخرى، ضع الملف على استضافة (GitHub Pages / Netlify) ثم انسخ الرابط.</div>
+    </div>
+
+    ${isOwner() ? `
+    <hr style="border:0;border-top:1px dashed var(--border);margin:20px 0">
+    <div class="field" style="margin-bottom:12px">
+      <label>👑 ${t('settings_owner')}</label>
+      <div class="form-grid">
+        <div class="field"><label>${t('fld_email')}</label>
+          <input type="email" id="ownerEmail" dir="ltr" value="${esc(owner.email||'')}"></div>
+        <div class="field"><label>${t('fld_phone')}</label>
+          <input id="ownerPhone" dir="ltr" value="${esc(owner.phone||'')}"></div>
+      </div>
+      <button class="btn btn-sm btn-primary" id="saveOwner" type="button" style="margin-top:12px">${t('settings_save_owner')}</button>
+      <div class="small muted" style="margin-top:6px">${t('pwd_owner_note')}</div>
+    </div>` : ''}
+
+    <hr style="border:0;border-top:1px solid var(--border);margin:20px 0">
+    <div class="row" style="justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+      <div>
+        <div style="font-weight:800">${esc(state.user?.name||'')}</div>
+        <div class="small muted">${state.user?.role==='owner'?t('role_owner'):t('role_supervisor')}</div>
+      </div>
+      <div class="row" style="gap:8px">
+        <button class="btn" id="changePwdBtn" type="button">🔑 ${t('pwd_save')}</button>
+        <button class="btn btn-danger" id="logoutBtn" type="button">🚪 ${t('btn_logout')}</button>
+      </div>
+    </div>`;
+
+  openModal({
+    title:`⚙️ ${t('btn_settings')}`,
+    body,
+    submitText: t('btn_close'),
+    onSubmit(){ saveDB(); render(); toast(t('msg_saved'),'ok'); return true; },
+    onMount(root){
+      $$('.swatch', root).forEach(sw=> sw.onclick = ()=>{
+        db.settings.color = sw.dataset.color;
+        $$('.swatch', root).forEach(x=>x.classList.remove('sel'));
+        sw.classList.add('sel'); applySettings();
+      });
+      $('#customColor', root).oninput = e=>{ db.settings.color = e.target.value; applySettings(); };
+      $('#fsRange', root).oninput = e=>{
+        db.settings.fontSize = +e.target.value;
+        $('#fsVal', root).textContent = e.target.value;
+        applySettings();
+      };
+      $('#saveGrades', root)?.addEventListener('click', ()=>{
+        const g = {};
+        $$('[data-grade]', root).forEach(inp=>{ g[inp.dataset.grade] = num(inp.value); });
+        g.F = 0;
+        db.grades = g;
+        db.reports.forEach(r=>{ r.rating = computeRatingFromGrades(r.orders, db.grades); });
+        saveDB(); render();
+        toast(t('msg_saved_grade'),'ok');
+        if(isCloudReady()) pushToCloud(true);
+      });
+      $('#saveBrand', root).onclick = ()=>{
+        db.branding.title = $('#brandTitleInp', root).value.trim() || 'تحليل أداء السائقين';
+        db.branding.subtitle = $('#brandSubInp', root).value.trim() || 'نظام المتابعة والتقارير';
+        saveDB(); applyBranding();
+        toast(t('msg_saved'),'ok');
+        if(isCloudReady()) pushToCloud(true);
+      };
+      $('#pickLogo', root).onclick = ()=> $('#logoFile', root).click();
+      $('#logoFile', root).onchange = e=>{
+        const f = e.target.files[0]; if(!f) return;
+        if(f.size > 500*1024){ toast('حجم الصورة يجب أن يكون أقل من 500KB','warn'); return; }
+        const rd = new FileReader();
+        rd.onload = ()=>{
+          db.branding.logo = rd.result;
+          const prev = $('#logoPrev', root);
+          if(prev) prev.innerHTML = `<img src="${rd.result}">`;
+          saveDB(); applyBranding();
+          toast('تم اختيار الشعار، اضغط حفظ الهوية','ok');
+        };
+        rd.readAsDataURL(f);
+      };
+      $('#removeLogo', root).onclick = ()=>{
+        db.branding.logo = null;
+        const prev = $('#logoPrev', root);
+        if(prev) prev.innerHTML = '📊';
+        saveDB(); applyBranding(); toast('تم إزالة الشعار','ok');
+      };
+      $('#saveWa', root).onclick = ()=>{
+        db.settings.whatsapp.number = $('#waNumber', root).value.trim();
+        db.settings.whatsapp.message = $('#waMessage', root).value.trim();
+        saveDB(); toast(t('msg_saved'),'ok');
+        if(isCloudReady()) pushToCloud(true);
+      };
+      $('#openWa', root).onclick = ()=> openWhatsApp();
+      $('#saveJb', root).onclick = ()=>{
+        cloudCfg.key = $('#jbKey', root).value.trim();
+        cloudCfg.binId = $('#jbBin', root).value.trim();
+        saveCloudCfg();
+        setCloudStatus(isCloudReady() ? 'on' : 'off');
+        toast(t('msg_saved'),'ok');
+        const su = $('#shareUrl', root);
+        if(su) su.value = buildShareLink() || '';
+      };
+      $('#testJb', root).onclick = async ()=>{
+        cloudCfg.key = $('#jbKey', root).value.trim();
+        cloudCfg.binId = $('#jbBin', root).value.trim();
+        saveCloudCfg();
+        if(!isCloudReady()){ toast(t('msg_set_cloud'),'warn'); return; }
+        setCloudStatus('syncing');
+        try{
+          const res = await fetch(`${JSONBIN_BASE}/b/${cloudCfg.binId}/latest`,
+            { headers:{ 'X-Master-Key': cloudCfg.key } });
+          if(!res.ok) throw new Error(await res.text());
+          setCloudStatus('on'); toast('الاتصال ناجح ✓','ok');
+        }catch(e){ setCloudStatus('off'); toast('فشل: ' + e.message,'err'); }
+      };
+      $('#syncNow', root).onclick = async ()=>{
+        cloudCfg.key = $('#jbKey', root).value.trim();
+        cloudCfg.binId = $('#jbBin', root).value.trim();
+        saveCloudCfg();
+        await pushToCloud();
+        const su = $('#shareUrl', root);
+        if(su) su.value = buildShareLink() || '';
+      };
+      $('#pullNow', root).onclick = async ()=>{
+        cloudCfg.key = $('#jbKey', root).value.trim();
+        cloudCfg.binId = $('#jbBin', root).value.trim();
+        saveCloudCfg();
+        await pullFromCloud();
+      };
+      $('#copyLink', root).onclick = async ()=>{
+        if(!isCloudReady()){ toast(t('msg_set_cloud'),'warn'); return; }
+        await pushToCloud(true);
+        const url = buildShareLink();
+        const el = $('#shareUrl', root);
+        el.value = url;
+        try{ await navigator.clipboard.writeText(url); }
+        catch(e){ el.select(); document.execCommand('copy'); }
+        toast(t('msg_link_ready'),'ok');
+      };
+      $('#saveOwner', root)?.addEventListener('click', ()=>{
+        const e = $('#ownerEmail', root).value.trim();
+        const p = $('#ownerPhone', root).value.trim();
+        if(!e || !p){ toast(t('msg_required'),'warn'); return; }
+        db.auth.owner.email = e;
+        db.auth.owner.phone = p;
+        saveDB();
+        addNotif('تحديث بيانات المالك','تم حفظ بيانات الدخول','info');
+        toast(t('msg_saved'),'ok');
+        if(isCloudReady()) pushToCloud(true);
+      });
+      $('#changePwdBtn', root)?.addEventListener('click', ()=>{
+        $('#modalRoot').innerHTML = '';
+        pwdModal();
+      });
+      $('#logoutBtn', root)?.addEventListener('click', ()=>{
+        $('#modalRoot').innerHTML = '';
+        doLogout();
+      });
+    }
+  });
+}
+
+/* ==========================================================================
+   22) نظام النوافذ
+   ========================================================================== */
+function openModal({title, body, onSubmit, onMount, submitText}){
+  const root = $('#modalRoot');
+  root.innerHTML = `
+    <div class="overlay" id="ovl">
+      <div class="modal" role="dialog" aria-modal="true">
+        <div class="modal-head">
+          <h3>${title}</h3>
+          <button class="icon-btn" id="mClose">✕</button>
+        </div>
+        <div class="modal-body">${body}</div>
+        <div class="modal-foot">
+          <button class="btn" id="mCancel">${t('btn_cancel')}</button>
+          <button class="btn btn-primary" id="mSave">${submitText || t('btn_save')}</button>
+        </div>
+      </div>
+    </div>`;
+  const close = ()=> root.innerHTML = '';
+  $('#mClose').onclick = close;
+  $('#mCancel').onclick = close;
+  $('#ovl').onclick = e=>{ if(e.target.id==='ovl') close(); };
+  $('#mSave').onclick = ()=>{
+    const form = root.querySelector('form');
+    if(form && !form.checkValidity()){
+      form.querySelectorAll(':invalid')[0]?.focus();
+      const err = root.querySelector('.err');
+      if(err){ err.textContent = t('msg_required'); err.style.display='block'; }
+      return;
+    }
+    if(onSubmit && onSubmit(root) === false) return;
+    close();
+  };
+  document.addEventListener('keydown', function esc2(e){
+    if(e.key==='Escape'){ close(); document.removeEventListener('keydown', esc2); }
+  });
+  if(onMount) onMount(root);
+  root.querySelector('input,select,textarea')?.focus();
+}
+
+/* ==========================================================================
+   23) التهيئة والتشغيل
+   ========================================================================== */
+function closeSidebar(){ $('#sidebar').classList.remove('open'); }
+
+/* ★ التعديل 4: init جديد يدعم وضع السحابة */
+async function init(){
+  cloudCfg = loadCloudCfg();
+  const fromURL = await readFromURLParams();
+
+  // ★ 1) إذا فُتح الرابط المشترك → اجلب البيانات من السحابة أولاً
+  if(fromURL && isCloudReady()){
+    showLoadingOverlay('جاري تحميل البيانات من السحابة…','يرجى الانتظار لحظات');
+    try{
+      await pullFromCloud(true);
+    }catch(e){
+      console.warn('cloud pull failed', e);
+    }
+    hideLoadingOverlay();
+    // في وضع الرابط المشترك، لو فشل الجلب نبدأ بقاعدة فارغة (لكن لا نكتب فوق السحابة)
+    if(!db){ db = emptyDB(); saveDB(); }
+  } else {
+    // ★ 2) الفتح العادي من نفس الجهاز
+    db = loadDB();
+    if(!db){ db = seedDB(); saveDB(); }
+  }
+
+  $('#menuBtn').onclick = ()=> $('#sidebar').classList.toggle('open');
+  $('#langBtn').onclick = ()=> toolAction('lang');
+  $('#topSet').onclick  = ()=> settingsModal();
+  $('#btnSet').onclick  = ()=> settingsModal();
+  $('#btnPerm').onclick = ()=> permModal();
+  $('#btnPwd').onclick  = ()=> pwdModal();
+
+  $('#syncBtn').onclick   = ()=>{
+    if(!isCloudReady()){ settingsModal(); return; }
+    pushToCloud().then(ok => { if(ok) render(); });
+  };
+  $('#shareBtn').onclick  = ()=> copyShareLink();
+  $('#importBtn').onclick = ()=> toolAction('import');
+  $('#exportBtn').onclick = ()=> toolAction('export');
+  $('#resetBtn').onclick  = ()=> toolAction('reset');
+  $('#waBtn').onclick     = ()=> openWhatsApp();
+
+  $('#notifBtn').onclick = (e)=>{ e.stopPropagation(); openNotifPanel(); };
+  $('#closeNotif').onclick = (e)=>{ e.stopPropagation(); closeNotifPanel(); };
+  $('#markAllRead').onclick = ()=>{
+    (db.notifications||[]).forEach(n=> n.read = true);
+    saveDB(); renderNotifList(); updateNotifBadge();
+    toast('تم تحديد الكل كمقروء','ok');
+  };
+  document.addEventListener('click', e=>{
+    const p = $('#notifPanel');
+    if(p.classList.contains('open') && !p.contains(e.target) && !$('#notifBtn').contains(e.target)){
+      closeNotifPanel();
+    }
+  });
+
+  $('#loginForm').addEventListener('submit', e=>{
+    e.preventDefault();
+    const id = $('#lgId').value.trim();
+    const pw = $('#lgPw').value;
+    if(!id || !pw){ $('#lgErr').textContent = t('msg_required'); $('#lgErr').style.display='block'; return; }
+    if(!doLogin(id, pw)){
+      $('#lgErr').textContent = t('msg_login_err'); $('#lgErr').style.display='block';
+      toast(t('msg_login_err'),'err');
+    }
+  });
+
+  const sess = loadSession();
+  if(sess){
+    state.user = sess; showApp();
+    // في وضع الرابط المشترك لا نرفع تلقائياً (تجنب الكتابة فوق تغييرات الآخرين)
+    if(isCloudReady() && !state.cloudMode) pushToCloud(true);
+  } else {
+    showLogin();
+  }
+
+  // ★ 3) المزامنة الذكية: رفع دوري + سحب تلقائي في وضع الرابط المشترك
+  setInterval(async ()=>{
+    if(!isCloudReady() || !state.user || state.cloudBusy) return;
+    if(state.cloudMode){
+      // وضع الرابط المشترك: اسحب للتزامن مع الأجهزة الأخرى
+      const before = JSON.stringify(db);
+      const ok = await pullFromCloud(true);
+      if(ok && JSON.stringify(db) !== before){
+        render();
+      }
+    } else {
+      // وضع المالك على جهازه: ارفع التغييرات
+      await pushToCloud(true);
+    }
+  }, 45000);
+
+  // ★ 4) استمع لتغيّر الرابط (مثل ما لو تم تحديث الرابط على نفس الصفحة)
+  window.addEventListener('beforeunload', ()=>{
+    // حفظ احتياطي عند مغادرة الصفحة (فقط للمالك، ليس في وضع الرابط)
+    if(!state.cloudMode) saveDB();
+  });
+}
+window.addEventListener('load', init);
+</script>
+</body>
+</html>
