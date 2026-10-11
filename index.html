@@ -1028,6 +1028,10 @@ const I18N = {
     grades_desc:'حدد الحد الأدنى لعدد الطلبات لكل فئة. يتم احتساب التقييم تلقائياً عند إضافة تقرير.',
     grades_save:'حفظ قيم التقييم',
     grades_hint:'الحد الأدنى من الطلبات اليومية للحصول على هذه الفئة',
+    daily_targets_section:'🎯 أهداف التقييم اليومي',
+    daily_targets_desc:'حدد عدد الطلبات اليومية المطلوب لكل فئة. يُستخدم هذا الهدف في مؤشر الأداء العام ولوحة السائقين.',
+    daily_targets_save:'حفظ الأهداف اليومية',
+    daily_target:'هدف يومي',
     pwd_section:'🔑 تغيير كلمة المرور',
     pwd_current:'كلمة المرور الحالية',
     pwd_new:'كلمة المرور الجديدة',
@@ -1035,7 +1039,17 @@ const I18N = {
     pwd_save:'تغيير كلمة المرور',
     pwd_owner_note:'لتغيير كلمة مرور المشرفين، استخدم قسم الإعدادات في نموذج المشرف.',
     my_reps:'سائقيني',
-    reports_of_my_reps:'تقارير سائقيّ'
+    reports_of_my_reps:'تقارير سائقيّ',
+    sync_mode:'نمط المزامنة',
+    sync_auto:'تلقائية (كل 45 ثانية)',
+    sync_manual:'يدوية',
+    sync_hint:'في الوضع اليدوي، يمكنك المزامنة من زر 🔄 في الشريط العلوي فقط.',
+    daily_rating_card:'التقييم اليومي للسائقين',
+    dash_date_picker:'🗓️ اختر التاريخ لقراءة البيانات',
+    dash_quick:'⚡ إجراء سريع',
+    dash_yesterday:'أمس',
+    dash_week_ago:'قبل أسبوع',
+    dash_data_from:'البيانات من'
   },
   en:{
     app_title:'Drivers Performance', app_sub:'Tracking & Reporting System',
@@ -1147,6 +1161,10 @@ const I18N = {
     grades_desc:'Set minimum orders per grade. Rating is auto-computed when adding a report.',
     grades_save:'Save Grades',
     grades_hint:'Minimum daily orders to earn this grade',
+    daily_targets_section:'🎯 Daily Rating Targets',
+    daily_targets_desc:'Set minimum daily orders per grade. Used in overall performance score.',
+    daily_targets_save:'Save Daily Targets',
+    daily_target:'Daily Target',
     pwd_section:'🔑 Change Password',
     pwd_current:'Current Password',
     pwd_new:'New Password',
@@ -1154,13 +1172,30 @@ const I18N = {
     pwd_save:'Change Password',
     pwd_owner_note:'To change supervisor passwords, use the supervisor edit form.',
     my_reps:'My Drivers',
-    reports_of_my_reps:"My drivers' reports"
+    reports_of_my_reps:"My drivers' reports",
+    sync_mode:'Sync Mode',
+    sync_auto:'Automatic (every 45s)',
+    sync_manual:'Manual',
+    sync_hint:'In manual mode, you can only sync from the 🔄 button in the top bar.',
+    daily_rating_card:'Daily Driver Rating',
+    dash_date_picker:'🗓️ Pick date to read data',
+    dash_quick:'⚡ Quick action',
+    dash_yesterday:'Yesterday',
+    dash_week_ago:'A week ago',
+    dash_data_from:'Data from'
   }
 };
 const t = k => (I18N[state.lang] && I18N[state.lang][k]) || I18N.ar[k] || k;
 
 /* ==========================================================================
-   2) أدوات
+   2) ثوابت
+   ========================================================================== */
+const DELIVERY_APPS = ['كيتا','جاهز','ذا شيفز','هنقرستيشن','مرسول','نينجا','تويو'];
+const CAR_BRANDS = ['تويوتا','هيونداي','نيسان','شيفروليه','فورد','كيا','ميتسوبيشي','هوندا','لكزس','مرسيدس','بي إم دبليو','إيسوزو','سوزوكي'];
+const DEFAULT_GRADES = { A:35, B:30, C:25, D:20, E:15, F:0 };
+
+/* ==========================================================================
+   3) أدوات
    ========================================================================== */
 const $  = (s,r=document)=>r.querySelector(s);
 const $$ = (s,r=document)=>[...r.querySelectorAll(s)];
@@ -1207,24 +1242,65 @@ function timeAgo(iso){
   if(d < 86400) return Math.floor(d/3600) + ' س';
   return Math.floor(d/86400) + ' ي';
 }
-function calcPerfScore(days=7){
+
+/* ★ مؤشر الأداء العام - يدعم تاريخ محدد */
+function calcPerfScore(days=7, targetDate){
+  // ★ وضع التاريخ المحدد (يوم واحد)
+  if(targetDate){
+    const rs = visibleReports().filter(r=> r.date === targetDate);
+    const reps = visibleReps();
+    if(!reps.length) return 0;
+    if(!rs.length) return 0;
+
+    const totalOrders = sum(rs,'orders');
+    const totalHours  = sum(rs,'hours');
+    const totalViol   = sum(rs,'violations');
+    const totalAcc    = sum(rs,'accepted');
+
+    const avgOrders = totalOrders / reps.length;
+    const avgHours  = totalHours  / reps.length;
+    const acceptRate = totalViol > 0 ? (totalAcc/totalViol) : 1;
+
+    const dailyTarget = num(db.goals?.perRepDaily) || 25;
+    const hoursTarget = 8;
+
+    const ordersScore = Math.min(avgOrders / dailyTarget, 1.2) * 50;
+    const hoursScore  = Math.min(avgHours  / hoursTarget, 1.2) * 30;
+    const accScore    = acceptRate * 20;
+    const violPenalty = Math.min(totalViol / Math.max(reps.length*3,1), 1) * 10;
+
+    const raw = ordersScore + hoursScore + accScore - violPenalty;
+    return Math.max(0, Math.min(100, Math.round(raw)));
+  }
+
+  // الوضع الافتراضي: آخر (days) يوم
   const cutoff = new Date(); cutoff.setDate(cutoff.getDate()-(days-1));
   const cutoffStr = cutoff.toISOString().slice(0,10);
   const rs = visibleReports().filter(r=> r.date >= cutoffStr);
   const reps = visibleReps();
-  if(!rs.length || !reps.length) return 0;
+  if(!reps.length) return 0;
+  if(!rs.length) return 0;
+
   const totalOrders = sum(rs,'orders');
-  const totalHours = sum(rs,'hours');
-  const totalViol = sum(rs,'violations');
-  const totalAccepted = sum(rs,'accepted');
-  const avgOrders = totalOrders / reps.length;
-  const avgHours = totalHours / reps.length;
-  const acceptRate = totalViol > 0 ? (totalAccepted/totalViol) : 1;
-  return Math.round(
-    Math.min(avgOrders/25, 1) * 50 +
-    Math.min(avgHours/8, 1) * 30 +
-    acceptRate * 20
-  );
+  const totalHours  = sum(rs,'hours');
+  const totalViol   = sum(rs,'violations');
+  const totalAcc    = sum(rs,'accepted');
+
+  const daysCount = Math.max(1, Math.ceil((Date.now()-new Date(cutoffStr).getTime())/864e5));
+  const avgOrdersPerDay = (totalOrders / reps.length) / daysCount;
+  const avgHoursPerDay  = (totalHours  / reps.length) / daysCount;
+  const acceptRate = totalViol > 0 ? (totalAcc/totalViol) : 1;
+
+  const dailyTarget = num(db.goals?.perRepDaily) || 25;
+  const hoursTarget = 8;
+
+  const ordersScore = Math.min(avgOrdersPerDay / dailyTarget, 1.2) * 50;
+  const hoursScore  = Math.min(avgHoursPerDay  / hoursTarget, 1.2) * 30;
+  const accScore    = acceptRate * 20;
+  const violPenalty = Math.min(totalViol / Math.max(reps.length*3,1), 1) * 10;
+
+  const raw = ordersScore + hoursScore + accScore - violPenalty;
+  return Math.max(0, Math.min(100, Math.round(raw)));
 }
 function perfLabel(score){
   if(score >= 80) return { txt: t('perf_excellent') };
@@ -1257,7 +1333,7 @@ function sparkline(values, color){
 }
 
 /* ==========================================================================
-   3) قاعدة البيانات
+   4) قاعدة البيانات
    ========================================================================== */
 const DB_KEY = 'repPerfDB_v3';
 const SESSION_KEY = 'repPerfSession_v3';
@@ -1266,12 +1342,11 @@ const CLOUD_CFG_KEY = 'repPerfCloud_v2';
 let db = null;
 let cloudCfg = { key:'', binId:'' };
 
-/* ★ التعديل 1: إضافة cloudMode إلى state */
+/* ★ إضافة dashDate لاختيار تاريخ لوحة التحكم */
 const state = { lang:'ar', section:'dashboard', daily:{d1:todayStr(), d2:''},
+                dashDate: todayStr(),
                 carsTab:'vehicles', user:null, cloudBusy:false, cloudMode:false,
                 viewModes:{ reps:'table', supervisors:'table', cars:'table', reports:'table' } };
-
-const DEFAULT_GRADES = { A:35, B:30, C:25, D:20, E:15, F:0 };
 
 function emptyDB(){
   return {
@@ -1283,12 +1358,14 @@ function emptyDB(){
       charts:{orders:true,hours:true,viol:true,trend:true,sup:true},
       chartTypes:{ orders:'bar', hours:'bar', viol:'donut', trend:'line', sup:'bar' },
       showCredentials:false,
+      autoSync:true,
       whatsapp:{ number:'', message:'مرحباً، أرغب بالاستفسار عن أداء الفريق.' }
     },
     branding:{ title:'تحليل أداء السائقين', subtitle:'نظام المتابعة والتقارير', logo:null },
     goals:{ monthlyOrders:0, monthlyHours:0, maxViolations:0, minAcceptRate:0, perRepDaily:0 },
     grades: { ...DEFAULT_GRADES },
-    meta:{ createdAt:new Date().toISOString(), version:5 }
+    dailyRatingTargets: { ...DEFAULT_GRADES },
+    meta:{ createdAt:new Date().toISOString(), version:6 }
   };
 }
 function loadDB(){
@@ -1302,6 +1379,7 @@ function loadDB(){
       if(!merged.branding) merged.branding = emptyDB().branding;
       if(!merged.goals) merged.goals = emptyDB().goals;
       if(!merged.grades) merged.grades = { ...DEFAULT_GRADES };
+      if(!merged.dailyRatingTargets) merged.dailyRatingTargets = { ...merged.grades };
       merged.settings = Object.assign(emptyDB().settings, merged.settings || {});
       merged.settings.chartTypes = Object.assign(emptyDB().settings.chartTypes, merged.settings.chartTypes || {});
       merged.settings.whatsapp = Object.assign(emptyDB().settings.whatsapp, merged.settings.whatsapp || {});
@@ -1328,13 +1406,23 @@ function loadCloudCfg(){
 function saveCloudCfg(){ localStorage.setItem(CLOUD_CFG_KEY, JSON.stringify(cloudCfg)); }
 
 function computeRatingFromGrades(orders, grades){
-  const g = grades || DEFAULT_GRADES;
+  const g = grades || (db && db.grades) || DEFAULT_GRADES;
   const list = [['A',num(g.A)],['B',num(g.B)],['C',num(g.C)],['D',num(g.D)],['E',num(g.E)],['F',0]];
   for(const [l,v] of list){ if(num(orders) >= v) return l; }
   return 'F';
 }
 function calcRating(orders){
   return computeRatingFromGrades(orders, db.grades);
+}
+function validateRelations(){
+  const repIds = new Set(db.reps.map(r=>r.id));
+  const supIds = new Set(db.supervisors.map(s=>s.id));
+  const carIds = new Set(db.cars.map(c=>c.id));
+  db.reports = db.reports.filter(r=> repIds.has(r.repId));
+  db.reps.forEach(r=>{ if(r.supervisorId && !supIds.has(r.supervisorId)) r.supervisorId=''; });
+  db.usage = db.usage.filter(u=> carIds.has(u.carId) && repIds.has(u.repId));
+  db.maintenance = db.maintenance.filter(m=> carIds.has(m.carId));
+  db.oil = db.oil.filter(o=> carIds.has(o.carId));
 }
 
 function seedDB(){
@@ -1352,11 +1440,11 @@ function seedDB(){
     id:uid(), name, phone, code, app, supervisorId:supId, region, status:'active',
     createdAt:new Date().toISOString()
   });
-  const r1 = rep('محمد الشمري','0561110001','DR-1001','تطبيق هنقرستيشن',s1.id,'الرياض - شمال');
-  const r2 = rep('عبدالله القحطاني','0561110002','DR-1002','تطبيق جاهز',s1.id,'الرياض - شرق');
-  const r3 = rep('يوسف الدوسري','0561110003','DR-1003','تطبيق مرسول',s2.id,'جدة - وسط');
-  const r4 = rep('فهد الزهراني','0561110004','DR-1004','تطبيق كيتا',s2.id,'جدة - جنوب');
-  const r5 = rep('ناصر السبيعي','0561110005','DR-1005','تطبيق هنقرستيشن',s3.id,'الدمام');
+  const r1 = rep('محمد الشمري','0561110001','DR-1001','هنقرستيشن',s1.id,'الرياض - شمال');
+  const r2 = rep('عبدالله القحطاني','0561110002','DR-1002','جاهز',s1.id,'الرياض - شرق');
+  const r3 = rep('يوسف الدوسري','0561110003','DR-1003','مرسول',s2.id,'جدة - وسط');
+  const r4 = rep('فهد الزهراني','0561110004','DR-1004','كيتا',s2.id,'جدة - جنوب');
+  const r5 = rep('ناصر السبيعي','0561110005','DR-1005','هنقرستيشن',s3.id,'الدمام');
   d.reps.push(r1,r2,r3,r4,r5);
 
   const car = (brand,model,plate,year,status)=>({
@@ -1366,7 +1454,8 @@ function seedDB(){
   const c2 = car('هيونداي','إلنترا','د هـ و 5678',2021,'in_use');
   const c3 = car('نيسان','صني','ز ح ط 9012',2020,'maintenance');
   const c4 = car('شيفروليه','ماليبو','ي ك ل 3456',2023,'available');
-  d.cars.push(c1,c2,c3,c4);
+  const c5 = car('سوزوكي','سويفت','م ن ص 7890',2022,'available');
+  d.cars.push(c1,c2,c3,c4,c5);
 
   d.maintenance.push(
     {id:uid(),carId:c3.id,type:'maint',date:todayStr(),cost:850,desc:'تغيير فحمات الفرامل',status:'in_progress'},
@@ -1409,7 +1498,7 @@ function seedDB(){
 }
 
 /* ==========================================================================
-   4) المزامنة السحابية
+   5) المزامنة السحابية
    ========================================================================== */
 const JSONBIN_BASE = 'https://api.jsonbin.io/v3';
 function setCloudStatus(mode){
@@ -1460,6 +1549,7 @@ async function pullFromCloud(silent){
     if(!db.branding) db.branding = emptyDB().branding;
     if(!db.goals) db.goals = emptyDB().goals;
     if(!db.grades) db.grades = { ...DEFAULT_GRADES };
+    if(!db.dailyRatingTargets) db.dailyRatingTargets = { ...db.grades };
     db.settings = Object.assign(emptyDB().settings, db.settings || {});
     db.settings.chartTypes = Object.assign(emptyDB().settings.chartTypes, db.settings.chartTypes || {});
     db.settings.whatsapp = Object.assign(emptyDB().settings.whatsapp, db.settings.whatsapp || {});
@@ -1470,7 +1560,7 @@ async function pullFromCloud(silent){
       db.auth.owner.password = hashPwd(db.auth.owner.password);
     }
     (db.reports||[]).forEach(r=>{ if(!r.rating) r.rating = computeRatingFromGrades(r.orders, db.grades); });
-    cleanupRelations(); saveDB(); setCloudStatus('on');
+    validateRelations(); saveDB(); setCloudStatus('on');
     if(!silent){ render(); toast(t('msg_cloud_pull'),'ok');
       addNotif('تحديث سحابي','تم جلب البيانات','ok'); }
     return true;
@@ -1500,8 +1590,6 @@ async function copyShareLink(){
     document.execCommand('copy'); ta.remove(); toast(t('msg_link_ready'),'ok');
   }
 }
-
-/* ★ التعديل 2: عدم مسح الـ URL + تفعيل cloudMode */
 async function readFromURLParams(){
   const p = new URLSearchParams(location.search);
   const bin = p.get('bin'); const key = p.get('key');
@@ -1509,7 +1597,6 @@ async function readFromURLParams(){
     cloudCfg.binId = bin; cloudCfg.key = key;
     saveCloudCfg();
     state.cloudMode = true;
-    // لا نحذف الرابط من الـ URL حتى يعمل التحديث (F5) على الأجهزة الأخرى بنفس الجلسة
     return true;
   }
   return false;
@@ -1522,8 +1609,6 @@ function openWhatsApp(){
   window.open(`https://wa.me/${num}?text=${msg}`, '_blank');
   toast(t('msg_wa_sent'),'ok');
 }
-
-/* ★ التعديل 3: شاشة التحميل السحابية */
 function showLoadingOverlay(title, sub){
   const el = document.getElementById('loadingOverlay');
   if(!el) return;
@@ -1537,7 +1622,7 @@ function hideLoadingOverlay(){
 }
 
 /* ==========================================================================
-   5) الإشعارات
+   6) الإشعارات
    ========================================================================== */
 function addNotif(title, body, type='info'){
   db.notifications = db.notifications || [];
@@ -1577,7 +1662,7 @@ function openNotifPanel(){
 function closeNotifPanel(){ $('#notifPanel').classList.remove('open'); }
 
 /* ==========================================================================
-   6) الصلاحيات والدور
+   7) الصلاحيات والدور
    ========================================================================== */
 const NAV = [
   {id:'dashboard',   icon:'🏠', key:'nav_dashboard'},
@@ -1618,7 +1703,7 @@ function isRepVisible(repId){
 }
 
 /* ==========================================================================
-   7) المصادقة
+   8) المصادقة
    ========================================================================== */
 function loadSession(){
   try{
@@ -1709,7 +1794,7 @@ function showApp(){
 }
 
 /* ==========================================================================
-   8) التنقل والعرض
+   9) التنقل والعرض
    ========================================================================== */
 function renderNav(){
   const allowed = allowedSections();
@@ -1794,7 +1879,7 @@ function shade(hex,p){
 }
 
 /* ==========================================================================
-   9) العلاقات
+   10) العلاقات
    ========================================================================== */
 const getRep = id => db.reps.find(r=>r.id===id);
 const getSup = id => db.supervisors.find(s=>s.id===id);
@@ -1804,18 +1889,11 @@ const supName = id => getSup(id)?.name || '—';
 const carName = id => { const c = getCar(id); return c ? `${c.brand} ${c.model} - ${c.plate}` : '—'; };
 const supOfRep = id => { const r = getRep(id); return r ? supName(r.supervisorId) : '—'; };
 function cleanupRelations(){
-  const repIds = new Set(db.reps.map(r=>r.id));
-  const supIds = new Set(db.supervisors.map(s=>s.id));
-  const carIds = new Set(db.cars.map(c=>c.id));
-  db.reports = db.reports.filter(x=>repIds.has(x.repId));
-  db.usage = db.usage.filter(x=>carIds.has(x.carId) && repIds.has(x.repId));
-  db.maintenance = db.maintenance.filter(x=>carIds.has(x.carId));
-  db.oil = db.oil.filter(x=>carIds.has(x.carId));
-  db.reps.forEach(r=>{ if(!supIds.has(r.supervisorId)) r.supervisorId=''; });
+  validateRelations();
 }
 
 /* ==========================================================================
-   10) الرسوم البيانية
+   11) الرسوم البيانية
    ========================================================================== */
 function chartBar(data, color, height=280){
   if(!data.length) return `<div class="empty">${t('no_data')}</div>`;
@@ -1953,28 +2031,40 @@ function kpiCard(icon,label,value,color,delta,sparkData){
 function emptyRow(cols, msg){ return `<tr><td colspan="${cols}" class="empty">${esc(msg||t('no_data'))}</td></tr>`; }
 
 /* ==========================================================================
-   11) لوحة التحكم
+   12) لوحة التحكم — مربوطة بتاريخ محدد
    ========================================================================== */
 function viewDashboard(){
-  const today = todayStr();
+  // ★ التاريخ المحدد من المالك (افتراضي: اليوم)
+  const selDate = state.dashDate || todayStr();
+
   const allReports = visibleReports();
   const allReps = visibleReps();
-  const tReports = allReports.filter(r=>r.date===today);
-  const yRep = new Date(); yRep.setDate(yRep.getDate()-1);
-  const yReports = allReports.filter(r=>r.date===yRep.toISOString().slice(0,10));
-  const ordersToday = sum(tReports,'orders');
-  const ordersYest  = sum(yReports,'orders');
-  const deltaOrders = ordersYest ? Math.round(((ordersToday-ordersYest)/ordersYest)*100) : null;
-  const hoursToday = round1(sum(tReports,'hours'));
-  const hoursYest = round1(sum(yReports,'hours'));
-  const deltaHours = hoursYest ? Math.round(((hoursToday-hoursYest)/hoursYest)*100) : null;
-  const violToday = sum(tReports,'violations');
-  const violYest = sum(yReports,'violations');
-  const deltaViol = violYest ? Math.round(((violToday-violYest)/violYest)*100) : null;
 
+  // ★ كل البيانات من اليوم المحدد فقط
+  const dayReports = allReports.filter(r=>r.date===selDate);
+  const ordersDay = sum(dayReports,'orders');
+  const hoursDay  = round1(sum(dayReports,'hours'));
+  const violDay   = sum(dayReports,'violations');
+  const accDay    = sum(dayReports,'accepted');
+
+  // للمقارنة مع اليوم السابق لليوم المحدد
+  const prevD = new Date(selDate + 'T00:00:00');
+  prevD.setDate(prevD.getDate()-1);
+  const prevDateStr = prevD.toISOString().slice(0,10);
+  const prevReports = allReports.filter(r=>r.date===prevDateStr);
+  const ordersPrev = sum(prevReports,'orders');
+  const hoursPrev  = round1(sum(prevReports,'hours'));
+  const violPrev   = sum(prevReports,'violations');
+
+  const deltaOrders = ordersPrev ? Math.round(((ordersDay-ordersPrev)/ordersPrev)*100) : null;
+  const deltaHours  = hoursPrev ? Math.round(((hoursDay-hoursPrev)/hoursPrev)*100) : null;
+  const deltaViol   = violPrev ? Math.round(((violDay-violPrev)/violPrev)*100) : null;
+
+  // آخر 7 أيام منتهية بالتاريخ المحدد
   const last7Orders = [], last7Hours = [], last7Viol = [], last7Labels = [];
   for(let i=6;i>=0;i--){
-    const d = new Date(); d.setDate(d.getDate()-i);
+    const d = new Date(selDate + 'T00:00:00');
+    d.setDate(d.getDate()-i);
     const ds = d.toISOString().slice(0,10);
     const rs = allReports.filter(r=>r.date===ds);
     last7Orders.push(sum(rs,'orders'));
@@ -1983,44 +2073,83 @@ function viewDashboard(){
     last7Labels.push({label:dayName(ds), value:sum(rs,'orders')});
   }
 
-  const perfScore = calcPerfScore(7);
+  // ★ مؤشر الأداء العام مربوط بالتاريخ المحدد
+  const perfScore = calcPerfScore(7, selDate);
   const perfLbl = perfLabel(perfScore);
   const ringCircumference = 2 * Math.PI * 62;
   const ringOffset = ringCircumference * (1 - perfScore/100);
 
-  const weeklyReports = allReports.filter(r=> r.date >= weekStart());
-  const avgOrders = allReps.length ? round1(sum(weeklyReports,'orders')/allReps.length) : 0;
-  const avgHours = allReps.length ? round1(sum(weeklyReports,'hours')/allReps.length) : 0;
-  const totalViol = sum(weeklyReports,'violations');
-  const totalAcc = sum(weeklyReports,'accepted');
-  const accRate = totalViol ? Math.round((totalAcc/totalViol)*100) : 100;
+  // إحصاءات اليوم المحدد
+  const avgOrders = allReps.length ? round1(ordersDay/allReps.length) : 0;
+  const avgHours  = allReps.length ? round1(hoursDay /allReps.length) : 0;
+  const totalViol = violDay;
+  const accRate   = totalViol ? Math.round((accDay/totalViol)*100) : 100;
 
-  const gradeDist = {A:0,B:0,C:0,D:0,E:0,F:0};
-  weeklyReports.forEach(r=>{ if(gradeDist[r.rating]!==undefined) gradeDist[r.rating]++; });
-
+  // أداء المشرفين لليوم المحدد
   const sups = isOwner() ? db.supervisors : db.supervisors.filter(s=>s.id===state.user.id);
   const supPerf = sups.map(s=>{
     const reps = db.reps.filter(r=>r.supervisorId===s.id);
-    const rs = weeklyReports.filter(x=> reps.some(r=>r.id===x.repId));
+    const rs = dayReports.filter(x=> reps.some(r=>r.id===x.repId));
     return { name:s.name, orders:sum(rs,'orders') };
   }).sort((a,b)=>b.orders-a.orders);
   const bestSup = supPerf[0];
 
+  // السائقون المخاطرون في اليوم المحدد
   const riskReps = allReps.map(r=>{
-    const rs = weeklyReports.filter(x=>x.repId===r.id);
+    const rs = dayReports.filter(x=>x.repId===r.id);
     return { name:r.name, orders:sum(rs,'orders'), viol:sum(rs,'violations') };
-  }).filter(r=> r.orders < avgOrders * 0.6 || r.viol > 3).slice(0,3);
+  }).filter(r=> r.orders < avgOrders * 0.6 || r.viol > 1).slice(0,3);
 
-  const byRepToday = allReps.map(r=>({
-    label:r.name, value: sum(tReports.filter(x=>x.repId===r.id),'orders')
+  // ترتيب السائقين حسب الطلبات في اليوم المحدد
+  const byRepDay = allReps.map(r=>({
+    label:r.name, value: sum(dayReports.filter(x=>x.repId===r.id),'orders')
   })).sort((a,b)=>b.value-a.value);
+
   const violDist = [
-    {label:t('kpi_accepted'), value: sum(tReports,'accepted')},
-    {label:t('kpi_rejected'), value: sum(tReports,'rejected')}
+    {label:t('kpi_accepted'), value: accDay},
+    {label:t('kpi_rejected'), value: sum(dayReports,'rejected')}
   ];
   const ordersChartType = db.settings.chartTypes.orders || 'bar';
 
+  // ★ خيارات التاريخ (آخر 30 يوماً)
+  const dateOptions = [];
+  for(let i=0; i<30; i++){
+    const d = new Date(); d.setDate(d.getDate()-i);
+    const ds = d.toISOString().slice(0,10);
+    dateOptions.push({value:ds, label: `${ds} — ${dayName(ds)}`});
+  }
+  // التأكد من أن التاريخ المحدد ضمن الخيارات (إن كان أقدم من 30 يوماً نضيفه)
+  if(!dateOptions.some(o=>o.value===selDate)){
+    dateOptions.unshift({value:selDate, label:`${selDate} — ${dayName(selDate)}`});
+  }
+
+  const isToday = selDate === todayStr();
+
   return `
+  <div class="card">
+    <div class="card-head">📆 ${t('perf_score')} — ${t('fld_date')} <span class="spacer"></span>
+      <span class="chip ${isToday?'green':'blue'}">${isToday?t('today'):esc(dayName(selDate))}</span>
+    </div>
+    <div class="card-body">
+      <div class="form-grid">
+        <div class="field">
+          <label>${t('dash_date_picker')}</label>
+          <select id="dashDate">
+            ${dateOptions.map(o=>`<option value="${o.value}" ${o.value===selDate?'selected':''}>${esc(o.label)}</option>`).join('')}
+          </select>
+        </div>
+        <div class="field">
+          <label>${t('dash_quick')}</label>
+          <div class="row" style="gap:8px;padding-top:5px">
+            <button class="btn btn-sm" id="dashToday">${t('today')}</button>
+            <button class="btn btn-sm" id="dashYest">${t('dash_yesterday')}</button>
+            <button class="btn btn-sm" id="dashWeek">${t('dash_week_ago')}</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="perf-hero">
     <div class="perf-ring">
       <svg viewBox="0 0 160 160">
@@ -2035,7 +2164,7 @@ function viewDashboard(){
       </div>
     </div>
     <div class="perf-hero-info">
-      <div class="ph-sub">📊 ${t('perf_score_sub')}${isSupervisor()?' · '+t('my_reps'):''}</div>
+      <div class="ph-sub">📊 ${t('perf_score_sub')} — ${esc(selDate)}${isSupervisor()?' · '+t('my_reps'):''}</div>
       <div class="ph-title">${t('perf_score')}</div>
       <div class="ph-desc">${t('perf_desc')}</div>
       <div class="perf-hero-stats">
@@ -2048,14 +2177,14 @@ function viewDashboard(){
   </div>
 
   <div class="grid g4">
-    ${kpiCard('📦', t('kpi_orders'), ordersToday, '#6366f1', deltaOrders, last7Orders)}
-    ${kpiCard('⏱️', t('kpi_hours'), hoursToday, '#10b981', deltaHours, last7Hours)}
-    ${kpiCard('⚠️', t('kpi_violations'), violToday, '#f59e0b', deltaViol, last7Viol)}
+    ${kpiCard('📦', t('kpi_orders'), ordersDay, '#6366f1', deltaOrders, last7Orders)}
+    ${kpiCard('⏱️', t('kpi_hours'), hoursDay, '#10b981', deltaHours, last7Hours)}
+    ${kpiCard('⚠️', t('kpi_violations'), violDay, '#f59e0b', deltaViol, last7Viol)}
     ${kpiCard('🚗', t('kpi_cars'), db.cars.length, '#06b6d4')}
   </div>
 
   <div class="card">
-    <div class="card-head">💡 ${t('perf_insights')}</div>
+    <div class="card-head">💡 ${t('perf_insights')} — ${esc(selDate)}</div>
     <div class="card-body grid g3" style="gap:14px">
       <div class="insight-tile tone-blue">
         <div class="it-label">👔 ${t('insight_best_sup')}</div>
@@ -2063,10 +2192,10 @@ function viewDashboard(){
         <div class="it-sub">${bestSup ? bestSup.orders + ' ' + t('fld_orders') : ''}</div>
       </div>
       <div class="insight-tile tone-green">
-        <div class="it-label">📈 ${t('insight_growth')}</div>
+        <div class="it-label">📈 ${t('insight_growth')} (${esc(prevDateStr)})</div>
         <div class="it-value" style="color:${deltaOrders>=0?'#047857':'#b91c1c'}">
           ${deltaOrders!=null ? (deltaOrders>=0?'+':'') + deltaOrders + '%' : '—'}</div>
-        <div class="it-sub">${ordersToday} / ${ordersYest} ${t('fld_orders')}</div>
+        <div class="it-sub">${ordersDay} / ${ordersPrev} ${t('fld_orders')}</div>
       </div>
       <div class="insight-tile tone-amber">
         <div class="it-label">⚠️ ${t('insight_risk')}</div>
@@ -2078,40 +2207,78 @@ function viewDashboard(){
   </div>
 
   <div class="card">
-    <div class="card-head">⭐ ${t('fld_rating')} — ${t('fld_all')} <span class="spacer"></span>
-      <span class="small muted">${weeklyReports.length} ${t('t_daily')}</span></div>
+    <div class="card-head">⭐ ${t('daily_rating_card')} — ${esc(selDate)} <span class="spacer"></span>
+      <span class="small muted">${allReps.length} ${t('nav_reps')}</span></div>
     <div class="card-body">
-      <div class="grades-grid">
-        ${['A','B','C','D','E','F'].map(g=>`
-          <div class="grade-box" style="cursor:default">
-            <div class="gb-letter ${g}">${g}</div>
-            <div style="font-size:22px;font-weight:800">${gradeDist[g]}</div>
-            <div class="gb-lbl">${t('t_daily')}</div>
-          </div>`).join('')}
-      </div>
+      ${allReps.length ? `<div class="cards-grid">
+        ${allReps.slice(0,12).map(r=>{
+          const rReports = dayReports.filter(x=>x.repId===r.id);
+          const rOrders = sum(rReports,'orders');
+          const rRating = rReports.length ? (rReports.map(x=>x.rating||calcRating(x.orders)).sort()[0] || 'F') : 'F';
+          const avgPerDay = rReports.length ? round1(rOrders/rReports.length) : 0;
+          const dailyTarget = num((db.dailyRatingTargets||DEFAULT_GRADES)[rRating]) || num((db.grades||DEFAULT_GRADES)[rRating]) || 0;
+          return `<div class="item-card">
+            <div class="ic-header">
+              <div class="ic-avatar">${esc((r.name||'?').charAt(0))}</div>
+              <div style="flex:1;min-width:0">
+                <div class="ic-name">${esc(r.name)}</div>
+                <div class="ic-sub">${esc(r.region||'')}</div>
+              </div>
+              <span class="chip grade ${rRating}">${rRating}</span>
+            </div>
+            <div class="ic-rows">
+              <div><span class="k">${t('fld_orders')}</span><span class="v">${rOrders}</span></div>
+              <div><span class="k">${t('fld_hours')}</span><span class="v">${round1(sum(rReports,'hours'))}h</span></div>
+              <div><span class="k">${t('kpi_avg')}</span><span class="v">${avgPerDay} / ${dailyTarget}</span></div>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>` : `<div class="empty">${t('no_data')}</div>`}
     </div>
   </div>
 
   <div class="grid g2">
     <div class="card"><div class="card-head">📦 ${t('t_orders_rep')}<span class="spacer"></span>
-      <span class="chip blue">${t('today')}</span></div>
-      <div class="card-body">${renderChart(ordersChartType, byRepToday, db.settings.color,
+      <span class="chip blue">${esc(selDate)}</span></div>
+      <div class="card-body">${renderChart(ordersChartType, byRepDay, db.settings.color,
         ['#6366f1','#8b5cf6','#06b6d4','#10b981','#f59e0b','#ef4444'])}</div></div>
     <div class="card"><div class="card-head">⚠️ ${t('t_viol')}<span class="spacer"></span>
-      <span class="chip amber">${t('today')}</span></div>
+      <span class="chip amber">${esc(selDate)}</span></div>
       <div class="card-body">${chartDonut(violDist, ['#10b981','#ef4444'])}</div></div>
   </div>
 
   <div class="card">
-    <div class="card-head">📈 ${t('perf_weekly')} <span class="spacer"></span>
+    <div class="card-head">📈 ${t('perf_weekly')} — ${esc(selDate)} <span class="spacer"></span>
       <span class="chip violet">${t('fld_orders')}</span></div>
     <div class="card-body">${chartLine(last7Labels, db.settings.color)}</div>
   </div>`;
 }
-function afterDashboard(){}
+function afterDashboard(){
+  const sel = $('#dashDate');
+  if(sel){
+    sel.onchange = ()=>{
+      state.dashDate = sel.value;
+      render();
+    };
+  }
+  $('#dashToday')?.addEventListener('click', ()=>{
+    state.dashDate = todayStr();
+    render(); toast(t('today'),'ok');
+  });
+  $('#dashYest')?.addEventListener('click', ()=>{
+    const d = new Date(); d.setDate(d.getDate()-1);
+    state.dashDate = d.toISOString().slice(0,10);
+    render(); toast(t('dash_yesterday'),'ok');
+  });
+  $('#dashWeek')?.addEventListener('click', ()=>{
+    const d = new Date(); d.setDate(d.getDate()-7);
+    state.dashDate = d.toISOString().slice(0,10);
+    render(); toast(t('dash_week_ago'),'ok');
+  });
+}
 
 /* ==========================================================================
-   12) التقارير اليومية
+   13) التقارير اليومية
    ========================================================================== */
 function viewDaily(){
   const d1 = state.daily.d1 || todayStr();
@@ -2298,7 +2465,7 @@ function bindReportActions(){
     db.reports = db.reports.filter(x=>x.id!==b.dataset.delReport);
     saveDB(); render(); toast(t('msg_deleted'),'ok');
     if(rec) addNotif('حذف تقرير', `${repName(rec.repId)} — ${rec.date}`, 'err');
-    if(isCloudReady()) pushToCloud(true);
+    if(isCloudReady() && db.settings.autoSync !== false) pushToCloud(true);
   });
 }
 function reportModal(id){
@@ -2387,14 +2554,14 @@ function reportModal(id){
         toast(t('msg_saved'),'ok');
       }
       saveDB(); render();
-      if(isCloudReady()) pushToCloud(true);
+      if(isCloudReady() && db.settings.autoSync !== false) pushToCloud(true);
       return true;
     }
   });
 }
 
 /* ==========================================================================
-   13) قسم السائقين
+   14) قسم السائقين (بيانات أساسية فقط)
    ========================================================================== */
 function viewReps(){
   const q = (state.repQuery||'').trim().toLowerCase();
@@ -2415,29 +2582,23 @@ function viewReps(){
     <div class="tbl-wrap" style="border:0"><table><thead><tr>
       <th>${t('fld_name')}</th><th>${t('fld_code')}</th><th>${t('fld_phone')}</th>
       <th>${t('fld_app')}</th><th>${t('fld_supervisor')}</th><th>${t('fld_region')}</th>
-      <th>${t('fld_orders')}</th><th>${t('fld_hours')}</th>${canEdit?`<th></th>`:''}
+      ${canEdit?`<th></th>`:''}
     </tr></thead><tbody>
-      ${rows.length ? rows.map(r=>{
-        const rs = db.reports.filter(x=>x.repId===r.id);
-        return `<tr>
+      ${rows.length ? rows.map(r=>`<tr>
           <td><b>${esc(r.name)}</b></td>
           <td><span class="chip gray">${esc(r.code)}</span></td>
           <td class="small" dir="ltr">${esc(r.phone)}</td>
-          <td class="small">${esc(r.app)}</td>
-          <td>${r.supervisorId?`<span class="chip violet">${esc(supName(r.supervisorId))}</span>`:'<span class="chip red">—</span>'}</td>
+          <td><span class="chip violet">${esc(r.app)}</span></td>
+          <td>${r.supervisorId?`<span class="chip blue">${esc(supName(r.supervisorId))}</span>`:'<span class="chip red">—</span>'}</td>
           <td class="small">${esc(r.region)}</td>
-          <td><b>${sum(rs,'orders')}</b></td>
-          <td>${round1(sum(rs,'hours'))}</td>
           ${canEdit?`<td>${actionsCell(r)}</td>`:''}
-        </tr>`;
-      }).join('') : emptyRow(canEdit?9:8)}
+        </tr>`).join('') : emptyRow(canEdit?7:6)}
     </tbody></table></div>`;
 
   const cardsHTML = `
     <div class="cards-grid">
-      ${rows.length ? rows.map(r=>{
-        const rs = db.reports.filter(x=>x.repId===r.id);
-        return `<div class="item-card">
+      ${rows.length ? rows.map(r=>`
+        <div class="item-card">
           <div class="ic-header">
             <div class="ic-avatar">${esc((r.name||'?').charAt(0))}</div>
             <div style="flex:1;min-width:0">
@@ -2450,15 +2611,12 @@ function viewReps(){
             <div><span class="k">${t('fld_app')}</span><span class="v">${esc(r.app)}</span></div>
             <div><span class="k">${t('fld_supervisor')}</span><span class="v">${esc(supName(r.supervisorId))}</span></div>
             <div><span class="k">${t('fld_region')}</span><span class="v">${esc(r.region)}</span></div>
-            <div><span class="k">${t('fld_orders')}</span><span class="v">${sum(rs,'orders')}</span></div>
-            <div><span class="k">${t('fld_hours')}</span><span class="v">${round1(sum(rs,'hours'))}</span></div>
           </div>
           ${canEdit?`<div class="ic-actions">
             <button class="btn btn-ghost btn-sm" data-edit-rep="${r.id}">✏️</button>
             <button class="btn btn-ghost btn-sm" data-del-rep="${r.id}">🗑️</button>
           </div>`:''}
-        </div>`;
-      }).join('') : `<div class="empty" style="grid-column:1/-1">${t('no_data')}</div>`}
+        </div>`).join('') : `<div class="empty" style="grid-column:1/-1">${t('no_data')}</div>`}
     </div>`;
 
   const addBtn = canEdit ? `<button class="btn btn-primary btn-sm" id="addRep">➕ ${t('btn_add')}</button>` : '';
@@ -2490,7 +2648,7 @@ function afterReps(){
     cleanupRelations(); saveDB(); render();
     addNotif('حذف سائق', nm, 'err');
     toast(t('msg_deleted'),'ok');
-    if(isCloudReady()) pushToCloud(true);
+    if(isCloudReady() && db.settings.autoSync !== false) pushToCloud(true);
   });
 }
 function repModal(id){
@@ -2504,7 +2662,10 @@ function repModal(id){
     <div class="field"><label>${t('fld_code')} <span class="req">*</span></label>
       <input name="code" required dir="ltr" value="${esc(rec?.code||'DR-'+String(1000+db.reps.length+1))}"></div>
     <div class="field"><label>${t('fld_app')} <span class="req">*</span></label>
-      <input name="app" required value="${esc(rec?.app||'')}"></div>
+      <select name="app" required>
+        <option value="">${t('fld_none')}</option>
+        ${DELIVERY_APPS.map(a=>`<option value="${a}" ${rec&&rec.app===a?'selected':''}>${esc(a)}</option>`).join('')}
+      </select></div>
     <div class="field"><label>${t('fld_supervisor')} <span class="req">*</span></label>
       <select name="supervisorId" required><option value="">${t('fld_none')}</option>
         ${db.supervisors.map(s=>`<option value="${s.id}" ${rec&&rec.supervisorId===s.id?'selected':''}>${esc(s.name)}</option>`).join('')}</select></div>
@@ -2525,14 +2686,14 @@ function repModal(id){
       else { db.reps.push({id:uid(), ...d, status:'active', createdAt:new Date().toISOString()});
         addNotif('سائق جديد', d.name, 'ok'); toast(t('msg_saved'),'ok'); }
       saveDB(); render();
-      if(isCloudReady()) pushToCloud(true);
+      if(isCloudReady() && db.settings.autoSync !== false) pushToCloud(true);
       return true;
     }
   });
 }
 
 /* ==========================================================================
-   14) قسم المشرفين
+   15) قسم المشرفين
    ========================================================================== */
 function viewSupervisors(){
   const showCreds = db.settings.showCredentials && isOwner();
@@ -2666,7 +2827,7 @@ function afterSupervisors(){
     cleanupRelations(); saveDB(); render();
     addNotif('حذف مشرف', s?.name||'', 'err');
     toast(t('msg_deleted'),'ok');
-    if(isCloudReady()) pushToCloud(true);
+    if(isCloudReady() && db.settings.autoSync !== false) pushToCloud(true);
   });
   $$('[data-assign]').forEach(b=> b.onclick = ()=> assignModal(b.dataset.assign));
   $$('[data-quick-sup]').forEach(sel=> sel.onchange = ()=>{
@@ -2675,7 +2836,7 @@ function afterSupervisors(){
       r.supervisorId = sel.value; saveDB();
       addNotif('تغيير مشرف', `${r.name} → ${r.supervisorId?supName(r.supervisorId):'بدون'}`, 'info');
       toast(t('msg_updated'),'ok'); render();
-      if(isCloudReady()) pushToCloud(true);
+      if(isCloudReady() && db.settings.autoSync !== false) pushToCloud(true);
     }
   });
 }
@@ -2725,7 +2886,7 @@ function supModal(id){
         addNotif('مشرف جديد', d.name, 'ok'); toast(t('msg_saved'),'ok');
       }
       saveDB(); render();
-      if(isCloudReady()) pushToCloud(true);
+      if(isCloudReady() && db.settings.autoSync !== false) pushToCloud(true);
       return true;
     }
   });
@@ -2756,14 +2917,14 @@ function assignModal(supId){
       saveDB(); render();
       if(changed) addNotif('إسناد سائقين', `${changed} سائق → ${sup.name}`, 'info');
       toast(t('msg_updated'),'ok');
-      if(isCloudReady() && changed) pushToCloud(true);
+      if(isCloudReady() && changed && db.settings.autoSync !== false) pushToCloud(true);
       return true;
     }
   });
 }
 
 /* ==========================================================================
-   15) قسم السيارات
+   16) قسم السيارات
    ========================================================================== */
 function viewCars(){
   const tab = state.carsTab;
@@ -2938,28 +3099,28 @@ function afterCars(){
     cleanupRelations(); saveDB(); render();
     addNotif('حذف مركبة', c ? `${c.brand} ${c.model}` : '', 'err');
     toast(t('msg_deleted'),'ok');
-    if(isCloudReady()) pushToCloud(true);
+    if(isCloudReady() && db.settings.autoSync !== false) pushToCloud(true);
   });
   $$('[data-edit-maint]').forEach(b=> b.onclick = ()=> maintModal(b.dataset.editMaint));
   $$('[data-del-maint]').forEach(b=> b.onclick = ()=>{
     if(!confirm(t('msg_confirm_del'))) return;
     db.maintenance = db.maintenance.filter(x=>x.id!==b.dataset.delMaint);
     saveDB(); render(); toast(t('msg_deleted'),'ok');
-    if(isCloudReady()) pushToCloud(true);
+    if(isCloudReady() && db.settings.autoSync !== false) pushToCloud(true);
   });
   $$('[data-edit-usage]').forEach(b=> b.onclick = ()=> usageModal(b.dataset.editUsage));
   $$('[data-del-usage]').forEach(b=> b.onclick = ()=>{
     if(!confirm(t('msg_confirm_del'))) return;
     db.usage = db.usage.filter(x=>x.id!==b.dataset.delUsage);
     saveDB(); render(); toast(t('msg_deleted'),'ok');
-    if(isCloudReady()) pushToCloud(true);
+    if(isCloudReady() && db.settings.autoSync !== false) pushToCloud(true);
   });
   $$('[data-edit-oil]').forEach(b=> b.onclick = ()=> oilModal(b.dataset.editOil));
   $$('[data-del-oil]').forEach(b=> b.onclick = ()=>{
     if(!confirm(t('msg_confirm_del'))) return;
     db.oil = db.oil.filter(x=>x.id!==b.dataset.delOil);
     saveDB(); render(); toast(t('msg_deleted'),'ok');
-    if(isCloudReady()) pushToCloud(true);
+    if(isCloudReady() && db.settings.autoSync !== false) pushToCloud(true);
   });
 }
 function carModal(id){
@@ -2969,8 +3130,7 @@ function carModal(id){
     <div class="field"><label>${t('fld_brand')} <span class="req">*</span></label>
       <input name="brand" required value="${esc(rec?.brand||'')}" list="brandList" placeholder="تويوتا">
       <datalist id="brandList">
-        ${['تويوتا','هيونداي','نيسان','شيفروليه','فورد','كيا','ميتسوبيشي','هوندا','لكزس','مرسيدس','بي إم دبليو','إيسوزو']
-          .map(b=>`<option value="${b}">`).join('')}
+        ${CAR_BRANDS.map(b=>`<option value="${b}">`).join('')}
       </datalist></div>
     <div class="field"><label>${t('fld_model')} <span class="req">*</span></label>
       <input name="model" required value="${esc(rec?.model||'')}"></div>
@@ -2996,7 +3156,7 @@ function carModal(id){
       else { db.cars.push({id:uid(), ...d, createdAt:new Date().toISOString()});
         addNotif('مركبة جديدة', `${d.brand} ${d.model}`, 'ok'); toast(t('msg_saved'),'ok'); }
       saveDB(); render();
-      if(isCloudReady()) pushToCloud(true);
+      if(isCloudReady() && db.settings.autoSync !== false) pushToCloud(true);
       return true;
     }
   });
@@ -3036,7 +3196,7 @@ function maintModal(id){
       if(rec){ Object.assign(rec, d); toast(t('msg_updated'),'ok'); }
       else { db.maintenance.push({id:uid(), ...d}); toast(t('msg_saved'),'ok'); }
       saveDB(); render();
-      if(isCloudReady()) pushToCloud(true);
+      if(isCloudReady() && db.settings.autoSync !== false) pushToCloud(true);
       return true;
     }
   });
@@ -3074,7 +3234,7 @@ function usageModal(id){
       if(rec){ Object.assign(rec, d); toast(t('msg_updated'),'ok'); }
       else { db.usage.push({id:uid(), ...d}); toast(t('msg_saved'),'ok'); }
       saveDB(); render();
-      if(isCloudReady()) pushToCloud(true);
+      if(isCloudReady() && db.settings.autoSync !== false) pushToCloud(true);
       return true;
     }
   });
@@ -3108,14 +3268,14 @@ function oilModal(id){
       if(rec){ Object.assign(rec, d); toast(t('msg_updated'),'ok'); }
       else { db.oil.push({id:uid(), ...d}); toast(t('msg_saved'),'ok'); }
       saveDB(); render();
-      if(isCloudReady()) pushToCloud(true);
+      if(isCloudReady() && db.settings.autoSync !== false) pushToCloud(true);
       return true;
     }
   });
 }
 
 /* ==========================================================================
-   16) قسم التحليلات
+   17) قسم التحليلات
    ========================================================================== */
 function viewAnalytics(){
   const c = db.settings.charts;
@@ -3257,7 +3417,7 @@ function afterAnalytics(){
 }
 
 /* ==========================================================================
-   17) قسم الأهداف
+   18) قسم الأهداف
    ========================================================================== */
 function computeGoalActuals(period){
   const start = period==='today' ? todayStr()
@@ -3424,14 +3584,14 @@ function goalsModal(){
       saveDB(); render();
       addNotif('تحديث الأهداف', 'تم حفظ أهداف الأداء الجديدة', 'info');
       toast(t('msg_goal_saved'),'ok');
-      if(isCloudReady()) pushToCloud(true);
+      if(isCloudReady() && db.settings.autoSync !== false) pushToCloud(true);
       return true;
     }
   });
 }
 
 /* ==========================================================================
-   18) أدوات عامة
+   19) أدوات عامة
    ========================================================================== */
 function toolAction(act){
   switch(act){
@@ -3450,9 +3610,9 @@ function toolAction(act){
     case 'reset':
       if(!canModify()){ toast(t('msg_no_perm'),'warn'); return; }
       if(confirm(t('msg_confirm_reset'))){
-        db = seedDB(); saveDB(); state.section='dashboard'; render();
+        db = seedDB(); saveDB(); state.section='dashboard'; state.dashDate = todayStr(); render();
         toast(t('msg_reset'),'ok');
-        if(isCloudReady()) pushToCloud(true);
+        if(isCloudReady() && db.settings.autoSync !== false) pushToCloud(true);
       } break;
     case 'refresh':
       if(isCloudReady()){ pullFromCloud().then(ok => { if(ok) render(); }); }
@@ -3486,11 +3646,12 @@ function openImportDialog(){
         if(!db.branding) db.branding = emptyDB().branding;
         if(!db.goals) db.goals = emptyDB().goals;
         if(!db.grades) db.grades = { ...DEFAULT_GRADES };
+        if(!db.dailyRatingTargets) db.dailyRatingTargets = { ...db.grades };
         (db.reports||[]).forEach(r=>{ if(!r.rating) r.rating = computeRatingFromGrades(r.orders, db.grades); });
         cleanupRelations(); saveDB(); render();
         addNotif('استيراد','تم استيراد البيانات','ok');
         toast(t('msg_imported'),'ok');
-        if(isCloudReady()) pushToCloud(true);
+        if(isCloudReady() && db.settings.autoSync !== false) pushToCloud(true);
       }catch(err){ toast(t('msg_import_err'),'err'); }
     };
     rd.readAsText(f);
@@ -3499,7 +3660,7 @@ function openImportDialog(){
 }
 
 /* ==========================================================================
-   19) نافذة الصلاحيات
+   20) نافذة الصلاحيات
    ========================================================================== */
 function permModal(){
   if(!isOwner()){ toast(t('msg_no_perm'),'warn'); return; }
@@ -3533,14 +3694,14 @@ function permModal(){
       saveDB(); render();
       addNotif('تحديث الصلاحيات','تم تحديث صلاحيات المشرفين','info');
       toast(t('msg_updated'),'ok');
-      if(isCloudReady()) pushToCloud(true);
+      if(isCloudReady() && db.settings.autoSync !== false) pushToCloud(true);
       return true;
     }
   });
 }
 
 /* ==========================================================================
-   20) نافذة تغيير كلمة المرور
+   21) نافذة تغيير كلمة المرور
    ========================================================================== */
 function pwdModal(){
   if(!state.user) return;
@@ -3586,14 +3747,14 @@ function pwdModal(){
       saveDB();
       addNotif('تغيير كلمة المرور', state.user.name + ' — تم التحديث', 'ok');
       toast(t('msg_pwd_changed'),'ok');
-      if(isCloudReady()) pushToCloud(true);
+      if(isCloudReady() && db.settings.autoSync !== false) pushToCloud(true);
       return true;
     }
   });
 }
 
 /* ==========================================================================
-   21) نافذة الإعدادات
+   22) نافذة الإعدادات
    ========================================================================== */
 function settingsModal(){
   const colors = ['#6366f1','#8b5cf6','#06b6d4','#10b981','#f59e0b','#ef4444','#ec4899','#0f172a','#4f46e5'];
@@ -3602,6 +3763,7 @@ function settingsModal(){
   const b = db.branding || {};
   const w = db.settings.whatsapp || {};
   const grades = db.grades || { ...DEFAULT_GRADES };
+  const dailyTargets = db.dailyRatingTargets || { ...grades };
 
   const body = `
     <div class="field" style="margin-bottom:18px">
@@ -3632,6 +3794,21 @@ function settingsModal(){
           </div>`).join('')}
       </div>
       <button class="btn btn-sm btn-primary" id="saveGrades" type="button" style="margin-top:12px">⭐ ${t('grades_save')}</button>
+    </div>
+
+    <hr style="border:0;border-top:1px dashed var(--border);margin:20px 0">
+    <div class="field" style="margin-bottom:14px">
+      <label style="font-size:14px;color:var(--text)">${t('daily_targets_section')}</label>
+      <div class="small muted" style="margin-bottom:8px">${t('daily_targets_desc')}</div>
+      <div class="grades-grid" id="dailyTargetsGrid">
+        ${['A','B','C','D','E','F'].map(g=>`
+          <div class="grade-box">
+            <div class="gb-letter ${g}">${g}</div>
+            <input type="number" min="0" step="1" data-target="${g}" value="${num(dailyTargets[g])}" ${g==='F'?'readonly style="opacity:.6"':''}>
+            <div class="gb-lbl">${t('daily_target')}</div>
+          </div>`).join('')}
+      </div>
+      <button class="btn btn-sm btn-primary" id="saveDailyTargets" type="button" style="margin-top:12px">🎯 ${t('daily_targets_save')}</button>
     </div>` : ''}
 
     <hr style="border:0;border-top:1px dashed var(--border);margin:20px 0">
@@ -3690,6 +3867,21 @@ function settingsModal(){
         <button class="btn btn-sm" id="pullNow" type="button">⬇️ ${t('cloud_pull_now')}</button>
         <button class="btn btn-sm" id="testJb" type="button">🧪 ${t('cloud_test')}</button>
       </div>
+    </div>
+
+    <div class="field" style="margin-bottom:16px">
+      <label>🔄 ${t('sync_mode')}</label>
+      <div class="row" style="gap:10px;margin-top:6px">
+        <label class="perm-check" style="padding:10px 16px">
+          <input type="radio" name="syncMode" value="auto" ${db.settings.autoSync!==false?'checked':''}>
+          ⚡ ${t('sync_auto')}
+        </label>
+        <label class="perm-check" style="padding:10px 16px">
+          <input type="radio" name="syncMode" value="manual" ${db.settings.autoSync===false?'checked':''}>
+          ✋ ${t('sync_manual')}
+        </label>
+      </div>
+      <div class="hint" style="margin-top:6px">${t('sync_hint')}</div>
     </div>
 
     <div class="field" style="margin-bottom:16px">
@@ -3752,14 +3944,23 @@ function settingsModal(){
         db.reports.forEach(r=>{ r.rating = computeRatingFromGrades(r.orders, db.grades); });
         saveDB(); render();
         toast(t('msg_saved_grade'),'ok');
-        if(isCloudReady()) pushToCloud(true);
+        if(isCloudReady() && db.settings.autoSync !== false) pushToCloud(true);
+      });
+      $('#saveDailyTargets', root)?.addEventListener('click', ()=>{
+        const g = {};
+        $$('[data-target]', root).forEach(inp=>{ g[inp.dataset.target] = num(inp.value); });
+        g.F = 0;
+        db.dailyRatingTargets = g;
+        saveDB(); render();
+        toast('تم حفظ الأهداف اليومية','ok');
+        if(isCloudReady() && db.settings.autoSync !== false) pushToCloud(true);
       });
       $('#saveBrand', root).onclick = ()=>{
         db.branding.title = $('#brandTitleInp', root).value.trim() || 'تحليل أداء السائقين';
         db.branding.subtitle = $('#brandSubInp', root).value.trim() || 'نظام المتابعة والتقارير';
         saveDB(); applyBranding();
         toast(t('msg_saved'),'ok');
-        if(isCloudReady()) pushToCloud(true);
+        if(isCloudReady() && db.settings.autoSync !== false) pushToCloud(true);
       };
       $('#pickLogo', root).onclick = ()=> $('#logoFile', root).click();
       $('#logoFile', root).onchange = e=>{
@@ -3785,7 +3986,7 @@ function settingsModal(){
         db.settings.whatsapp.number = $('#waNumber', root).value.trim();
         db.settings.whatsapp.message = $('#waMessage', root).value.trim();
         saveDB(); toast(t('msg_saved'),'ok');
-        if(isCloudReady()) pushToCloud(true);
+        if(isCloudReady() && db.settings.autoSync !== false) pushToCloud(true);
       };
       $('#openWa', root).onclick = ()=> openWhatsApp();
       $('#saveJb', root).onclick = ()=>{
@@ -3834,6 +4035,11 @@ function settingsModal(){
         catch(e){ el.select(); document.execCommand('copy'); }
         toast(t('msg_link_ready'),'ok');
       };
+      $$('input[name="syncMode"]', root).forEach(rb=> rb.onchange = ()=>{
+        db.settings.autoSync = (rb.value === 'auto');
+        saveDB();
+        toast(db.settings.autoSync?'تم تفعيل المزامنة التلقائية':'تم تفعيل المزامنة اليدوية','ok');
+      });
       $('#saveOwner', root)?.addEventListener('click', ()=>{
         const e = $('#ownerEmail', root).value.trim();
         const p = $('#ownerPhone', root).value.trim();
@@ -3843,7 +4049,7 @@ function settingsModal(){
         saveDB();
         addNotif('تحديث بيانات المالك','تم حفظ بيانات الدخول','info');
         toast(t('msg_saved'),'ok');
-        if(isCloudReady()) pushToCloud(true);
+        if(isCloudReady() && db.settings.autoSync !== false) pushToCloud(true);
       });
       $('#changePwdBtn', root)?.addEventListener('click', ()=>{
         $('#modalRoot').innerHTML = '';
@@ -3858,7 +4064,7 @@ function settingsModal(){
 }
 
 /* ==========================================================================
-   22) نظام النوافذ
+   23) نظام النوافذ
    ========================================================================== */
 function openModal({title, body, onSubmit, onMount, submitText}){
   const root = $('#modalRoot');
@@ -3899,16 +4105,14 @@ function openModal({title, body, onSubmit, onMount, submitText}){
 }
 
 /* ==========================================================================
-   23) التهيئة والتشغيل
+   24) التهيئة والتشغيل
    ========================================================================== */
 function closeSidebar(){ $('#sidebar').classList.remove('open'); }
 
-/* ★ التعديل 4: init جديد يدعم وضع السحابة */
 async function init(){
   cloudCfg = loadCloudCfg();
   const fromURL = await readFromURLParams();
 
-  // ★ 1) إذا فُتح الرابط المشترك → اجلب البيانات من السحابة أولاً
   if(fromURL && isCloudReady()){
     showLoadingOverlay('جاري تحميل البيانات من السحابة…','يرجى الانتظار لحظات');
     try{
@@ -3917,13 +4121,15 @@ async function init(){
       console.warn('cloud pull failed', e);
     }
     hideLoadingOverlay();
-    // في وضع الرابط المشترك، لو فشل الجلب نبدأ بقاعدة فارغة (لكن لا نكتب فوق السحابة)
     if(!db){ db = emptyDB(); saveDB(); }
   } else {
-    // ★ 2) الفتح العادي من نفس الجهاز
     db = loadDB();
     if(!db){ db = seedDB(); saveDB(); }
   }
+
+  validateRelations();
+  // ★ تعيين تاريخ لوحة التحكم لليوم الحالي عند البدء
+  state.dashDate = state.dashDate || todayStr();
 
   $('#menuBtn').onclick = ()=> $('#sidebar').classList.toggle('open');
   $('#langBtn').onclick = ()=> toolAction('lang');
@@ -3970,31 +4176,28 @@ async function init(){
   const sess = loadSession();
   if(sess){
     state.user = sess; showApp();
-    // في وضع الرابط المشترك لا نرفع تلقائياً (تجنب الكتابة فوق تغييرات الآخرين)
-    if(isCloudReady() && !state.cloudMode) pushToCloud(true);
+    if(isCloudReady() && !state.cloudMode && db.settings.autoSync !== false) pushToCloud(true);
   } else {
     showLogin();
   }
 
-  // ★ 3) المزامنة الذكية: رفع دوري + سحب تلقائي في وضع الرابط المشترك
+  // المزامنة الذكية
   setInterval(async ()=>{
     if(!isCloudReady() || !state.user || state.cloudBusy) return;
+    if(db.settings.autoSync === false) return;
+
     if(state.cloudMode){
-      // وضع الرابط المشترك: اسحب للتزامن مع الأجهزة الأخرى
       const before = JSON.stringify(db);
       const ok = await pullFromCloud(true);
       if(ok && JSON.stringify(db) !== before){
         render();
       }
     } else {
-      // وضع المالك على جهازه: ارفع التغييرات
       await pushToCloud(true);
     }
   }, 45000);
 
-  // ★ 4) استمع لتغيّر الرابط (مثل ما لو تم تحديث الرابط على نفس الصفحة)
   window.addEventListener('beforeunload', ()=>{
-    // حفظ احتياطي عند مغادرة الصفحة (فقط للمالك، ليس في وضع الرابط)
     if(!state.cloudMode) saveDB();
   });
 }
@@ -4002,3 +4205,4 @@ window.addEventListener('load', init);
 </script>
 </body>
 </html>
+feat: add dashboard date picker + all improvements
