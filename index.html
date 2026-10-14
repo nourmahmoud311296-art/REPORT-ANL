@@ -389,6 +389,45 @@ textarea{resize:vertical;min-height:70px}
 .goal-sup-row td{padding:10px 8px!important}
 .goal-sup-row select,.goal-sup-row input{padding:8px 10px!important;border-radius:9px!important;font-size:13px!important}
 
+/* ============ جدول الصلاحيات الجديد (أقسام + فروع) ============ */
+.perm-card{
+  border:1px solid var(--border);border-radius:16px;padding:16px 18px;
+  background:var(--card);margin-bottom:14px;box-shadow:var(--shadow-xs);
+}
+.perm-card-head{
+  display:flex;align-items:center;gap:12px;margin-bottom:14px;
+  padding-bottom:12px;border-bottom:1px solid var(--border-2);
+}
+.perm-card-title{font-weight:800;font-size:14px;color:var(--text)}
+.perm-table{width:100%;border-collapse:collapse}
+.perm-table th{
+  text-align:start;padding:9px 12px;font-size:11px;font-weight:700;
+  color:var(--muted);text-transform:uppercase;letter-spacing:.5px;
+  border-bottom:1px solid var(--border);background:var(--bg-2);
+}
+.perm-table th:nth-child(2),
+.perm-table th:nth-child(3){text-align:center;width:90px}
+.perm-table td{
+  padding:9px 12px;border-bottom:1px solid var(--border-2);
+  font-size:13px;color:var(--text-2);
+}
+.perm-table tr:last-child td{border-bottom:0}
+.perm-table tr:hover{background:linear-gradient(90deg,var(--primary-soft),transparent 60%)}
+.perm-table tr.branch td:first-child{
+  padding-inline-start:38px;font-size:12.5px;color:var(--muted);
+  font-weight:500;position:relative;
+}
+.perm-table tr.branch td:first-child::before{
+  content:'↳';position:absolute;inset-inline-start:18px;
+  color:var(--muted-2);font-weight:700;
+}
+.perm-table .chk-cell{text-align:center}
+.perm-table .chk-cell input[type=checkbox]{
+  width:18px;height:18px;accent-color:var(--primary);cursor:pointer;
+  margin:0;padding:0;vertical-align:middle;
+}
+.perm-table .section-icon{display:inline-block;margin-inline-end:6px;font-size:15px}
+
 /* ============ زر إضافة عنصر داخل القوائم المنسدلة ============ */
 .select-add-wrap{display:flex;gap:6px;align-items:stretch;width:100%}
 .select-add-wrap select{flex:1;min-width:0}
@@ -760,7 +799,11 @@ const I18N = {
     add_rep_quick:'إضافة سائق', add_car_quick:'إضافة سيارة',
     add_sup_quick:'إضافة مشرف', add_office_quick:'إضافة مكتب تأجير',
     msg_no_reps:'لا يوجد سائقون متاحون', msg_no_cars:'لا توجد سيارات متاحة',
-    msg_no_sups:'لا يوجد مشرفون', msg_no_offices:'لا توجد مكاتب تأجير'
+    msg_no_sups:'لا يوجد مشرفون', msg_no_offices:'لا توجد مكاتب تأجير',
+    perm_view_col:'عرض', perm_edit_col:'تعديل',
+    perm_intro:'حدد لكل مشرف الأقسام المسموح بعرضها، ويمكن منح صلاحية التعديل لكل قسم أو فرع بشكل مستقل. خانة "عرض" = قراءة فقط، وخانة "تعديل" = إضافة/حذف/تعديل.',
+    perm_owner_note:'تنبيه: المالك يملك كل الصلاحيات بشكل افتراضي.',
+    perm_branches:'الفروع'
   },
   en:{
     nav_dashboard:'Dashboard', nav_daily:'Daily Reports', nav_reps:'Drivers',
@@ -959,7 +1002,11 @@ const I18N = {
     add_rep_quick:'Add Driver', add_car_quick:'Add Vehicle',
     add_sup_quick:'Add Supervisor', add_office_quick:'Add Rental Office',
     msg_no_reps:'No drivers available', msg_no_cars:'No vehicles available',
-    msg_no_sups:'No supervisors', msg_no_offices:'No rental offices'
+    msg_no_sups:'No supervisors', msg_no_offices:'No rental offices',
+    perm_view_col:'View', perm_edit_col:'Edit',
+    perm_intro:'Choose what each supervisor can view, and separately grant edit permission per section or branch. "View" = read-only, "Edit" = add/delete/modify.',
+    perm_owner_note:'Note: The owner has all permissions by default.',
+    perm_branches:'Branches'
   }
 };
 const t = k => (I18N[state.lang] && I18N[state.lang][k]) || I18N.ar[k] || k;
@@ -1015,6 +1062,10 @@ function timeAgo(iso){
   if(d < 86400) return Math.floor(d/3600) + ' س';
   return Math.floor(d/86400) + ' ي';
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   🎯 مؤشر الأداء العام (يعمل بعدد الطلبات فقط - بدون مخالفات/ساعات)
+   ═══════════════════════════════════════════════════════════════════ */
 function calcPerfScore(days=7, refDate){
   const ref = refDate || todayStr();
   const cutoff = new Date(ref+'T00:00:00');
@@ -1024,17 +1075,9 @@ function calcPerfScore(days=7, refDate){
   const reps = visibleReps();
   if(!rs.length || !reps.length) return 0;
   const totalOrders = sum(rs,'orders');
-  const totalHours = sum(rs,'hours');
-  const totalViol = sum(rs,'violations');
-  const totalAccepted = sum(rs,'accepted');
   const avgOrders = totalOrders / reps.length;
-  const avgHours = totalHours / reps.length;
-  const acceptRate = totalViol > 0 ? (totalAccepted/totalViol) : 1;
-  return Math.round(
-    Math.min(avgOrders/25, 1) * 50 +
-    Math.min(avgHours/8, 1) * 30 +
-    acceptRate * 20
-  );
+  // 🎯 مؤشر الأداء العام: الطلبات فقط (المقياس المرجعي 25 طلب/سائق)
+  return Math.round(Math.min(avgOrders/25, 1) * 100);
 }
 function periodRange(refDate, period){
   let start, end;
@@ -1069,31 +1112,22 @@ function periodLabelText(refDate, period){
   }
   return refDate.slice(0,7);
 }
+/* 🎯 مؤشر الأداء من الأهداف - الطلبات فقط */
 function calcPerfScoreFromGoals(refDate, period){
   const g = (db.goals && db.goals[period]) || {};
   const { start, end } = periodRange(refDate, period);
   const rs = visibleReports().filter(r => r.date >= start && r.date <= end);
   const totalOrders = sum(rs,'orders');
-  const totalHours  = round1(sum(rs,'hours'));
-  const totalViol   = sum(rs,'violations');
-  const totalAcc    = sum(rs,'accepted');
-  const acceptRate  = totalViol > 0 ? (totalAcc/totalViol)*100 : 100;
+  const target = num(g.orders);
 
-  let total = 0, weight = 0;
-  if(num(g.orders) > 0){
-    total  += Math.min(totalOrders/num(g.orders), 1) * 50;
-    weight += 50;
+  // 🎯 المؤشر العام = نسبة الطلبات المحققة من الهدف المحدد فقط
+  if(target > 0){
+    return Math.round(Math.min(totalOrders/target, 1) * 100);
   }
-  if(num(g.hours) > 0){
-    total  += Math.min(totalHours/num(g.hours), 1) * 30;
-    weight += 30;
-  }
-  if(num(g.minAcceptRate) > 0){
-    total  += Math.min(acceptRate/num(g.minAcceptRate), 1) * 20;
-    weight += 20;
-  }
-  if(weight === 0) return calcPerfScore(7, refDate);
-  return Math.round((total/weight)*100);
+  // في حال عدم وجود هدف: القياس على متوسط الطلبات لكل سائق
+  const reps = visibleReps().length || 1;
+  const avgOrders = totalOrders / reps;
+  return Math.round(Math.min(avgOrders/25, 1) * 100);
 }
 function perfLabel(score){
   if(score >= 80) return { txt: t('perf_excellent') };
@@ -1265,6 +1299,51 @@ const EXTRA_PERMS = [
   {id:'edit_goals', icon:'🎯', key:'perm_edit_goals'}
 ];
 
+/* ═══════════════ شجرة الصلاحيات (أقسام + فروع) ═══════════════ */
+const PERM_TREE = [
+  { id:'dashboard',   icon:'🏠', key:'nav_dashboard',   branches:[] },
+  { id:'daily',       icon:'📅', key:'nav_daily',       branches:[] },
+  { id:'reps',        icon:'🚗', key:'nav_reps',        branches:[] },
+  { id:'supervisors', icon:'👔', key:'nav_supervisors', branches:[], viewOnly:true },
+  { id:'cars',        icon:'🚙', key:'nav_cars',        branches:[
+      { id:'vehicles',    icon:'🚗', key:'t_cars' },
+      { id:'offices',     icon:'🏢', key:'t_offices' },
+      { id:'maintenance', icon:'🔧', key:'t_maint' },
+      { id:'usage',       icon:'🧭', key:'t_usage' },
+      { id:'oil',         icon:'🛢️', key:'t_oil' }
+  ]},
+  { id:'analytics',   icon:'📈', key:'nav_analytics',   branches:[] },
+  { id:'goals',       icon:'🎯', key:'nav_goals',       branches:[] }
+];
+
+/* التحقق من صلاحية العرض */
+function permHasView(perms, secId, branchId){
+  if(!perms) return false;
+  if(branchId){
+    return perms.includes(`${secId}.${branchId}`) ||
+           perms.includes(`${secId}.${branchId}_edit`) ||
+           perms.includes(secId) ||
+           perms.includes(`${secId}_edit`);
+  }
+  return perms.includes(secId) || perms.includes(`${secId}_edit`) ||
+         (secId === 'cars'  && perms.includes('edit_cars')) ||
+         (secId === 'goals' && perms.includes('edit_goals')) ||
+         (secId === 'cars'  && perms.some(x => x.startsWith('cars.')));
+}
+
+/* التحقق من صلاحية التعديل */
+function permHasEdit(perms, secId, branchId){
+  if(!perms) return false;
+  if(secId === 'supervisors') return false;
+  if(branchId){
+    return perms.includes(`${secId}.${branchId}_edit`) ||
+           perms.includes(`${secId}_edit`);
+  }
+  return perms.includes(`${secId}_edit`) ||
+         (secId === 'cars'  && perms.includes('edit_cars')) ||
+         (secId === 'goals' && perms.includes('edit_goals'));
+}
+
 function defaultGoals(){
   return {
     daily:   { orders:0, hours:0, maxViolations:0, minAcceptRate:0, perRepDaily:0 },
@@ -1291,7 +1370,7 @@ function emptyDB(){
     goals: defaultGoals(),
     grades: { ...DEFAULT_GRADES },
     dailyGrades: { ...DEFAULT_DAILY_GRADES },
-    meta:{ createdAt:new Date().toISOString(), version:12 }
+    meta:{ createdAt:new Date().toISOString(), version:13 }
   };
 }
 function normalizeDB(d){
@@ -1361,7 +1440,6 @@ function normalizeDB(d){
     if(r.driverRejected === undefined) r.driverRejected = 0;
     r.totalOrders = num(r.orders) + num(r.systemRejected) + num(r.driverRejected);
     r.deliveryRate = r.totalOrders > 0 ? Math.round((num(r.orders)/r.totalOrders)*100) : 0;
-    // حقل حالة الرفع للسحابة
     if(r.syncedAt === undefined) r.syncedAt = r.createdAt || null;
   });
   (d.reps||[]).forEach(r=>{
@@ -1378,6 +1456,29 @@ function normalizeDB(d){
     if(m.category === undefined) m.category = '';
     if(m.customCategory === undefined) m.customCategory = '';
   });
+  (d.oil||[]).forEach(o=>{
+    if(o.notifiedDue === undefined) o.notifiedDue = false;
+    if(o.notifiedSoon === undefined) o.notifiedSoon = false;
+  });
+
+  /* 🛡️ ترحيل الإصدار القديم من الصلاحيات إلى نموذج الأقسام + الفروع */
+  if(num(d.meta && d.meta.version) < 13){
+    (d.supervisors||[]).forEach(s=>{
+      if(!s.permissions) return;
+      const migrated = [...s.permissions];
+      s.permissions.forEach(pid => {
+        if(['dashboard','analytics','supervisors'].includes(pid)) return;
+        if(pid === 'edit_cars' || pid === 'edit_goals') return;
+        if(pid.includes('.')) return;
+        if(pid.endsWith('_edit')) return;
+        const editId = pid + '_edit';
+        if(!migrated.includes(editId)) migrated.push(editId);
+      });
+      s.permissions = migrated;
+    });
+    d.meta = d.meta || {};
+    d.meta.version = 13;
+  }
   return d;
 }
 function loadDB(){
@@ -1482,9 +1583,9 @@ function seedDB(){
     id:uid(), name, phone, code, email, password:hashPwd(password),
     permissions:perms, goals: defaultGoals(), createdAt:new Date().toISOString()
   });
-  const s1 = sup('أحمد المالكي','0551000001','SUP-001','ahmed@rep.com','1234',['dashboard','daily','reps','analytics','goals','edit_goals']);
-  const s2 = sup('خالد العتيبي','0551000002','SUP-002','khaled@rep.com','1234',['dashboard','daily','reps','goals','edit_goals']);
-  const s3 = sup('سارة الحربي','0551000003','SUP-003','sara@rep.com','1234',['dashboard','analytics','cars','edit_cars']);
+  const s1 = sup('أحمد المالكي','0551000001','SUP-001','ahmed@rep.com','1234',['dashboard','daily','daily_edit','reps','reps_edit','analytics','goals','goals_edit']);
+  const s2 = sup('خالد العتيبي','0551000002','SUP-002','khaled@rep.com','1234',['dashboard','daily','daily_edit','reps','reps_edit','goals','goals_edit']);
+  const s3 = sup('سارة الحربي','0551000003','SUP-003','sara@rep.com','1234',['dashboard','analytics','cars','cars_edit','cars.vehicles','cars.vehicles_edit','cars.offices','cars.offices_edit','cars.maintenance','cars.maintenance_edit','cars.usage','cars.usage_edit','cars.oil','cars.oil_edit']);
   d.supervisors.push(s1,s2,s3);
   const rep = (name,phone,code,app,supId,region,plate,startKm,carId)=>({
     id:uid(), name, phone, code, app, plate, startKm, carId:carId||'',
@@ -1522,8 +1623,8 @@ function seedDB(){
     {id:uid(),username:'خالد العتيبي',carId:c1.id,repId:d.reps[2].id,supervisorId:s2.id,startDate:todayStr(),endDate:'',startKm:31200,endKm:'',createdAt:new Date().toISOString()}
   );
   d.oil.push(
-    {id:uid(),carId:c1.id,date:todayStr(),km:31000,nextKm:36000,nextDate:'',cost:180},
-    {id:uid(),carId:c2.id,date:todayStr(),km:44500,nextKm:49500,nextDate:'',cost:210}
+    {id:uid(),carId:c1.id,date:todayStr(),km:31000,nextKm:36000,nextDate:'',cost:180,notifiedDue:false,notifiedSoon:false},
+    {id:uid(),carId:c2.id,date:todayStr(),km:44500,nextKm:49500,nextDate:'',cost:210,notifiedDue:false,notifiedSoon:false}
   );
   for(let i=6;i>=0;i--){
     const dt = new Date(); dt.setDate(dt.getDate()-i);
@@ -1815,7 +1916,8 @@ function allowedSections(){
   if(!state.user) return [];
   if(state.user.role === 'owner') return NAV.map(n=>n.id);
   const sup = db.supervisors.find(s=>s.id === state.user.id);
-  return sup && sup.permissions ? sup.permissions.filter(p=> NAV.some(n=>n.id===p)) : ['dashboard'];
+  if(!sup || !sup.permissions) return ['dashboard'];
+  return NAV.filter(n => permHasView(sup.permissions, n.id)).map(n=>n.id);
 }
 function isOwner(){ return state.user && state.user.role === 'owner'; }
 function isSupervisor(){ return state.user && state.user.role === 'supervisor'; }
@@ -1827,13 +1929,20 @@ function canEditSection(section){
   const s = getMySupervisor();
   if(!s) return false;
   const p = s.permissions || [];
-  if(section === 'supervisors') return false;
-  if(section === 'cars')  return p.includes('edit_cars');
-  if(section === 'goals') return p.includes('edit_goals');
-  return p.includes(section);
+  if(section === 'cars'){
+    return permHasEdit(p, 'cars') ||
+      PERM_TREE.find(x=>x.id==='cars').branches.some(b => permHasEdit(p, 'cars', b.id));
+  }
+  return permHasEdit(p, section);
 }
 function canModify(){ return canEditSection(state.section); }
-function hasExtraPerm(id){ return isOwner() || ((getMySupervisor()?.permissions)||[]).includes(id); }
+function hasExtraPerm(id){
+  if(isOwner()) return true;
+  const p = (getMySupervisor()?.permissions)||[];
+  if(id === 'edit_cars')  return permHasEdit(p, 'cars');
+  if(id === 'edit_goals') return permHasEdit(p, 'goals');
+  return p.includes(id);
+}
 
 function visibleReps(){
   if(!state.user) return [];
@@ -2299,6 +2408,7 @@ function viewDashboard(){
     last7Labels.push({label:dayName(ds), value:sum(rs,'orders')});
   }
 
+  // 🎯 مؤشر الأداء العام - يعمل بعدد الطلبات فقط
   const perfScore = calcPerfScoreFromGoals(refDate, period);
   const perfLbl = perfLabel(perfScore);
   const ringCircumference = 2 * Math.PI * 62;
@@ -2326,6 +2436,7 @@ function viewDashboard(){
   const violTodayGoalPct   = dailyG.maxViolations ? Math.min(100, Math.round((actualViol/Math.max(dailyG.maxViolations,1))*100)) : null;
   const accRatePct         = dailyG.minAcceptRate ? Math.min(100, Math.round((accRate/dailyG.minAcceptRate)*100)) : null;
 
+  // 📊 المؤشرات الفرعية (للعرض فقط — لا تؤثر على مؤشر الأداء العام)
   const ordersScore = dailyG.orders ? Math.min((actualOrders/dailyG.orders),1)*100 : Math.min((avgOrders/25),1)*100;
   const hoursScore  = dailyG.hours  ? Math.min((actualHours/dailyG.hours),1)*100  : Math.min((avgHours/8),1)*100;
   const accScore    = accRate;
@@ -2920,10 +3031,11 @@ function dailyReportModal(){
       if(!saved){
         err.textContent = t('msg_bulk_empty'); err.style.display='block'; return false;
       }
+      // 🛢️ فحص مواعيد تغيير الزيت لكل سيارة بعد حفظ التقارير
+      db.cars.forEach(c => checkOilForCar(c.id));
       saveDB(); render();
       addNotif('تقرير يومي', `${saved} ${t('nav_reps')} — ${date}`, 'ok');
       toast(t('msg_saved_local'), 'ok');
-      // بعد الحفظ المحلي: أرسل للسحابة إن كانت جاهزة وحدّث حالة الإرسال
       if(isCloudReady()){
         pushToCloud(true).then(ok => {
           if(ok){
@@ -2931,7 +3043,6 @@ function dailyReportModal(){
             db.reports.forEach(r => { if(!r.syncedAt) r.syncedAt = syncNow; });
             saveDB();
             toast(t('msg_report_sent'), 'ok');
-            // تحديث شارات حالة المزامنة في الجدول دون إعادة الرسم الكامل
             $$('[data-sync-chip]').forEach(el=>{
               el.className = 'chip green';
               el.textContent = '☁️ ' + t('msg_synced');
@@ -3088,6 +3199,8 @@ function reportModal(id){
         addNotif('تقرير جديد', `${repName(data.repId)} — ${data.orders} طلب (${rating})`, 'ok');
         toast(t('msg_saved_local'),'ok');
       }
+      // 🛢️ فحص موعد تغيير الزيت بعد حفظ التقرير
+      db.cars.forEach(c => checkOilForCar(c.id));
       saveDB(); render();
       if(isCloudReady()){
         pushToCloud(true).then(ok => {
@@ -3392,11 +3505,20 @@ function viewSupervisors(){
   };
   const permChips = (s)=>{
     const p = s.permissions || [];
-    const list = [
-      ...NAV.filter(n=> p.includes(n.id)).map(n=> `<span class="chip violet" style="margin:2px">${esc(navLabel(n.id))}</span>`),
-      ...EXTRA_PERMS.filter(e=> p.includes(e.id)).map(e=> `<span class="chip amber" style="margin:2px">${esc(t(e.key))}</span>`)
-    ];
-    return list.length ? list.join('') : '<span class="chip red">—</span>';
+    const chips = [];
+    PERM_TREE.forEach(sec=>{
+      if(!permHasView(p, sec.id)) return;
+      const hasE = permHasEdit(p, sec.id);
+      chips.push(`<span class="chip ${hasE?'amber':'violet'}" style="margin:2px">${sec.icon} ${esc(t(sec.key))}${hasE?' · تعديل':' · عرض'}</span>`);
+      if(!hasE && sec.branches && sec.branches.length){
+        sec.branches.forEach(b=>{
+          if(permHasView(p, sec.id, b.id) && permHasEdit(p, sec.id, b.id)){
+            chips.push(`<span class="chip amber" style="margin:2px;font-size:10.5px">↳ ${esc(t(b.key))} · تعديل</span>`);
+          }
+        });
+      }
+    });
+    return chips.length ? chips.join('') : '<span class="chip red">—</span>';
   };
   const tableHTML = `
     <div class="tbl-wrap" style="border:0"><table><thead><tr>
@@ -3515,7 +3637,6 @@ function afterSupervisors(){
 function supModal(id){
   if(!isOwner()){ toast(t('msg_no_perm'),'warn'); return; }
   const rec = id ? getSup(id) : null;
-  const p = rec?.permissions || ['dashboard'];
   const body = `<form id="supForm" class="form-grid" novalidate>
     <div class="field"><label>${t('fld_name')} <span class="req">*</span></label>
       <input name="name" required value="${esc(rec?.name||'')}"></div>
@@ -3528,20 +3649,13 @@ function supModal(id){
       <span class="hint">يُستخدم لتسجيل الدخول</span></div>
     <div class="field"><label>${t('fld_password')} ${rec?'':'<span class="req">*</span>'}</label>
       <input type="text" name="password" ${rec?'':'required'} value="" placeholder="${rec?'اتركها فارغة للإبقاء':'••••••'}"></div>
-    <div class="field" style="grid-column:1/-1"><label>${t('fld_sections')}</label>
-      <div class="checkbox-list">
-        ${NAV.filter(n=>n.id!=='supervisors').map(n=>`<label class="perm-check">
-          <input type="checkbox" name="perm_${n.id}" ${(!rec || p.includes(n.id))?'checked':''}>
-          ${n.icon} ${t(n.key)}
-        </label>`).join('')}
-      </div></div>
-    <div class="field" style="grid-column:1/-1"><label>${t('perm_extra')}</label>
-      <div class="checkbox-list" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">
-        ${EXTRA_PERMS.map(e=>`<label class="perm-check">
-          <input type="checkbox" name="extra_${e.id}" ${(!rec || p.includes(e.id))?'checked':''}>
-          ${e.icon} ${t(e.key)}
-        </label>`).join('')}
-      </div></div>
+    <div class="field" style="grid-column:1/-1">
+      <label>${t('fld_permissions')}</label>
+      <div class="small muted" style="padding:12px 14px;border-radius:11px;background:var(--primary-soft);border:1px solid var(--border);line-height:1.65">
+        ℹ️ لتحديد صلاحيات هذا المشرف (عرض/تعديل لكل قسم وفرع)، استخدم زر
+        <b>🛡️ ${t('btn_permissions')}</b> في القائمة الجانبية بعد حفظ المشرف.
+      </div>
+    </div>
     <div id="supErr" class="err" style="grid-column:1/-1;display:none"></div>
   </form>`;
   openModal({
@@ -3553,19 +3667,19 @@ function supModal(id){
       if(!d.name || !d.phone || !d.code || !d.email){
         err.textContent = t('msg_required'); err.style.display='block'; return false;
       }
-      const perms = [
-        ...NAV.filter(n=> d['perm_'+n.id]).map(n=>n.id),
-        ...EXTRA_PERMS.filter(e=> d['extra_'+e.id]).map(e=>e.id)
-      ];
       if(rec){
-        const patch = {name:d.name, phone:d.phone, code:d.code, email:d.email, permissions:perms, updatedAt:new Date().toISOString()};
+        const patch = {name:d.name, phone:d.phone, code:d.code, email:d.email, updatedAt:new Date().toISOString()};
         if(d.password) patch.password = hashPwd(d.password);
         Object.assign(rec, patch);
         addNotif('تعديل مشرف', d.name, 'warn'); toast(t('msg_updated'),'ok');
       } else {
         if(!d.password){ err.textContent = t('msg_required'); err.style.display='block'; return false; }
-        db.supervisors.push({id:uid(), name:d.name, phone:d.phone, code:d.code, email:d.email,
-          password:hashPwd(d.password), permissions:perms, goals: defaultGoals(), createdAt:new Date().toISOString()});
+        db.supervisors.push({
+          id:uid(), name:d.name, phone:d.phone, code:d.code, email:d.email,
+          password:hashPwd(d.password),
+          permissions:['dashboard','daily','daily_edit','reps','reps_edit','analytics','goals'],
+          goals: defaultGoals(), createdAt:new Date().toISOString()
+        });
         addNotif('مشرف جديد', d.name, 'ok'); toast(t('msg_saved'),'ok');
       }
       saveDB(); render();
@@ -3611,13 +3725,15 @@ function assignModal(supId){
    ========================================================================== */
 function viewCars(){
   const tab = state.carsTab;
-  const canEdit = canEditSection('cars');
+  const permP = isOwner() ? null : ((getMySupervisor()?.permissions)||[]);
+  const canEditTab = (tabId) => isOwner() || permHasEdit(permP, 'cars', tabId);
   const tabsHTML = `<div class="tabs">
     ${[['vehicles','🚗',t('t_cars')],['offices','🏢',t('t_offices')],['maintenance','🔧',t('t_maint')],['usage','🧭',t('t_usage')],['oil','🛢️',t('t_oil')]]
       .map(([id,ic,lb])=>`<button class="tab ${tab===id?'active':''}" data-tab="${id}">${ic} ${lb}</button>`).join('')}
   </div>`;
   let content = '';
   if(tab==='vehicles'){
+    const canEdit = canEditTab('vehicles');
     const mode = state.viewModes.cars || 'table';
     const tableHTML = `<div class="tbl-wrap" style="border:0"><table><thead><tr>
       <th>${t('fld_brand')}</th><th>${t('fld_model')}</th><th>${t('fld_plate')}</th>
@@ -3674,6 +3790,7 @@ function viewCars(){
       ${mode==='table' ? tableHTML : `<div class="card-body">${cardsHTML}</div>`}
     </div>`;
   } else if(tab==='offices'){
+    const canEdit = canEditTab('offices');
     content = `<div class="card">
       <div class="card-head">🏢 ${t('t_offices')} <span class="spacer"></span>
         ${canEdit?`<button class="btn btn-primary btn-sm" id="addOffice">➕ ${t('btn_add')}</button>`:''}</div>
@@ -3700,6 +3817,7 @@ function viewCars(){
       </tbody></table></div>
     </div>`;
   } else if(tab==='maintenance'){
+    const canEdit = canEditTab('maintenance');
     content = `<div class="card">
       <div class="card-head">🔧 ${t('t_maint')} <span class="spacer"></span>
         ${canEdit?`<button class="btn btn-primary btn-sm" id="addMaint">➕ ${t('btn_add')}</button>`:''}</div>
@@ -3727,6 +3845,7 @@ function viewCars(){
       </tbody></table></div>
     </div>`;
   } else if(tab==='usage'){
+    const canEdit = canEditTab('usage');
     content = `<div class="card">
       <div class="card-head">🧭 ${t('t_usage')} <span class="spacer"></span>
         ${canEdit?`<button class="btn btn-primary btn-sm" id="addUsage">➕ ${t('btn_add')}</button>`:''}</div>
@@ -3756,6 +3875,7 @@ function viewCars(){
       </tbody></table></div>
     </div>`;
   } else {
+    const canEdit = canEditTab('oil');
     content = `<div class="card">
       <div class="card-head">🛢️ ${t('t_oil')} <span class="spacer"></span>
         ${canEdit?`<button class="btn btn-primary btn-sm" id="addOil">➕ ${t('btn_add')}</button>`:''}</div>
@@ -3768,15 +3888,15 @@ function viewCars(){
           const cur = currentKm(o.carId);
           const remain = o.nextKm ? num(o.nextKm) - cur : null;
           const st = remain===null ? '<span class="chip gray">—</span>'
-                   : remain<=0 ? '<span class="chip red">تغيير فوري</span>'
-                   : remain<=500 ? '<span class="chip amber">قريباً</span>'
-                   : '<span class="chip green">جيد</span>';
+                   : remain<=0 ? '<span class="chip red">🛢️ تغيير فوري</span>'
+                   : remain<=500 ? '<span class="chip amber">⚠️ قريباً</span>'
+                   : '<span class="chip green">✔ جيد</span>';
           return `<tr>
             <td><b>${esc(carName(o.carId))}</b></td>
             <td>${esc(o.date)}</td><td>${esc(o.km)}</td>
             <td>${esc(o.nextKm||'—')}</td><td>${esc(o.nextDate||'—')}</td>
             <td>${esc(o.cost||0)} ر.س</td>
-            <td>${st}${remain!==null?`<div class="small muted">متبقي ${remain} كم</div>`:''}</td>
+            <td>${st}${remain!==null?`<div class="small muted">قراءة حالية ${cur} • متبقي ${remain} كم</div>`:''}</td>
             ${canEdit?`<td><div class="tbl-actions">
               <button class="btn btn-ghost btn-sm" data-edit-oil="${o.id}">✏️</button>
               <button class="btn btn-ghost btn-sm" data-del-oil="${o.id}">🗑️</button>
@@ -3794,56 +3914,135 @@ function statusChip(s){
   const [c,k] = map[s] || ['gray','st_inactive'];
   return `<span class="chip ${c}">${t(k)}</span>`;
 }
-function currentKm(carId){
-  const us = db.usage.filter(u=>u.carId===carId);
-  if(!us.length) return 0;
-  const last = us.sort((a,b)=> (b.startDate||'').localeCompare(a.startDate||''))[0];
-  return num(last.endKm || last.startKm);
+
+/* ═══════════════════════════════════════════════════════════════════
+   🛢️ ربط الكيلومترات تلقائياً مع جدول تغيير الزيت
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* استخراج أحدث قراءة عداد لسيارة (من التقارير + سجلات الاستخدام) */
+function latestKmForCar(carId){
+  const car = getCar(carId);
+  if(!car) return 0;
+  let maxKm = 0;
+
+  // 1) من تقارير السائق المسند إليه (بداية/نهاية العمل)
+  if(car.assignedRepId){
+    db.reports.forEach(r => {
+      if(r.repId !== car.assignedRepId) return;
+      const eK = (r.endKm !== '' && r.endKm !== undefined) ? num(r.endKm) : 0;
+      const sK = (r.startKm !== '' && r.startKm !== undefined) ? num(r.startKm) : 0;
+      const km = Math.max(eK, sK);
+      if(km > maxKm) maxKm = km;
+    });
+  }
+
+  // 2) من سجلات استخدام المركبة
+  db.usage.filter(u => u.carId === carId).forEach(u => {
+    const eK = (u.endKm !== '' && u.endKm !== undefined) ? num(u.endKm) : 0;
+    const sK = (u.startKm !== '' && u.startKm !== undefined) ? num(u.startKm) : 0;
+    const km = Math.max(eK, sK);
+    if(km > maxKm) maxKm = km;
+  });
+
+  return maxKm;
 }
+
+function currentKm(carId){
+  return latestKmForCar(carId);
+}
+
+/* فحص موعد تغيير الزيت وإصدار إشعار */
+function checkOilForCar(carId){
+  const car = getCar(carId);
+  if(!car) return;
+
+  // نبحث عن أحدث سجل تغيير زيت يحتوي على "التغيير القادم"
+  const oils = db.oil.filter(o => o.carId === carId && num(o.nextKm) > 0);
+  if(!oils.length) return;
+
+  const latest = oils.slice().sort((a,b) => num(b.km) - num(a.km))[0];
+  const nextKm = num(latest.nextKm);
+  const currentKmv = latestKmForCar(carId);
+  if(!currentKmv) return;
+
+  const remain = nextKm - currentKmv;
+
+  // 🔔 إشعار عند الوصول أو التجاوز (القراءة = الموعد أو أكبر)
+  if(remain <= 0 && !latest.notifiedDue){
+    latest.notifiedDue = true;
+    addNotif(
+      '🛢️ موعد تغيير الزيت',
+      `${carName(carId)} — القراءة الحالية ${currentKmv} كم (الموعد المحدد: ${nextKm} كم)`,
+      'warn'
+    );
+  }
+  // 🔔 إشعار عند الاقتراب (500 كم أو أقل متبقية)
+  else if(remain > 0 && remain <= 500 && !latest.notifiedSoon){
+    latest.notifiedSoon = true;
+    addNotif(
+      '🛢️ تغيير زيت قريب',
+      `${carName(carId)} — متبقٍ ${remain} كم لتغيير الزيت (القراءة: ${currentKmv} كم)`,
+      'info'
+    );
+  }
+}
+
 function afterCars(){
   $$('[data-tab]').forEach(b=> b.onclick = ()=>{ state.carsTab = b.dataset.tab; render(); });
   bindViewToggles();
-  if(!canEditSection('cars')) return;
-  $('#addCar')?.addEventListener('click', ()=> carModal());
-  $('#addOffice')?.addEventListener('click', ()=> officeModal());
-  $('#addMaint')?.addEventListener('click', ()=> maintModal());
-  $('#addUsage')?.addEventListener('click', ()=> usageModal());
-  $('#addOil')?.addEventListener('click', ()=> oilModal());
-  $$('[data-edit-car]').forEach(b=> b.onclick = ()=> carModal(b.dataset.editCar));
-  $$('[data-del-car]').forEach(b=> b.onclick = ()=>{
-    if(!confirm(t('msg_confirm_del'))) return;
-    db.cars = db.cars.filter(x=>x.id!==b.dataset.delCar);
-    cleanupRelations(); saveDB(); render(); toast(t('msg_deleted'),'ok');
-    if(isCloudReady()) pushToCloud(true);
-  });
-  $$('[data-edit-office]').forEach(b=> b.onclick = ()=> officeModal(b.dataset.editOffice));
-  $$('[data-del-office]').forEach(b=> b.onclick = ()=>{
-    if(!confirm(t('msg_confirm_del'))) return;
-    db.rentalOffices = (db.rentalOffices||[]).filter(x=>x.id!==b.dataset.delOffice);
-    cleanupRelations(); saveDB(); render(); toast(t('msg_deleted'),'ok');
-    if(isCloudReady()) pushToCloud(true);
-  });
-  $$('[data-edit-maint]').forEach(b=> b.onclick = ()=> maintModal(b.dataset.editMaint));
-  $$('[data-del-maint]').forEach(b=> b.onclick = ()=>{
-    if(!confirm(t('msg_confirm_del'))) return;
-    db.maintenance = db.maintenance.filter(x=>x.id!==b.dataset.delMaint);
-    saveDB(); render(); toast(t('msg_deleted'),'ok');
-    if(isCloudReady()) pushToCloud(true);
-  });
-  $$('[data-edit-usage]').forEach(b=> b.onclick = ()=> usageModal(b.dataset.editUsage));
-  $$('[data-del-usage]').forEach(b=> b.onclick = ()=>{
-    if(!confirm(t('msg_confirm_del'))) return;
-    db.usage = db.usage.filter(x=>x.id!==b.dataset.delUsage);
-    saveDB(); render(); toast(t('msg_deleted'),'ok');
-    if(isCloudReady()) pushToCloud(true);
-  });
-  $$('[data-edit-oil]').forEach(b=> b.onclick = ()=> oilModal(b.dataset.editOil));
-  $$('[data-del-oil]').forEach(b=> b.onclick = ()=>{
-    if(!confirm(t('msg_confirm_del'))) return;
-    db.oil = db.oil.filter(x=>x.id!==b.dataset.delOil);
-    saveDB(); render(); toast(t('msg_deleted'),'ok');
-    if(isCloudReady()) pushToCloud(true);
-  });
+  const permP = isOwner() ? null : ((getMySupervisor()?.permissions)||[]);
+  const canEditTab = (tabId) => isOwner() || permHasEdit(permP, 'cars', tabId);
+
+  if(canEditTab('vehicles')){
+    $('#addCar')?.addEventListener('click', ()=> carModal());
+    $$('[data-edit-car]').forEach(b=> b.onclick = ()=> carModal(b.dataset.editCar));
+    $$('[data-del-car]').forEach(b=> b.onclick = ()=>{
+      if(!confirm(t('msg_confirm_del'))) return;
+      db.cars = db.cars.filter(x=>x.id!==b.dataset.delCar);
+      cleanupRelations(); saveDB(); render(); toast(t('msg_deleted'),'ok');
+      if(isCloudReady()) pushToCloud(true);
+    });
+  }
+  if(canEditTab('offices')){
+    $('#addOffice')?.addEventListener('click', ()=> officeModal());
+    $$('[data-edit-office]').forEach(b=> b.onclick = ()=> officeModal(b.dataset.editOffice));
+    $$('[data-del-office]').forEach(b=> b.onclick = ()=>{
+      if(!confirm(t('msg_confirm_del'))) return;
+      db.rentalOffices = (db.rentalOffices||[]).filter(x=>x.id!==b.dataset.delOffice);
+      cleanupRelations(); saveDB(); render(); toast(t('msg_deleted'),'ok');
+      if(isCloudReady()) pushToCloud(true);
+    });
+  }
+  if(canEditTab('maintenance')){
+    $('#addMaint')?.addEventListener('click', ()=> maintModal());
+    $$('[data-edit-maint]').forEach(b=> b.onclick = ()=> maintModal(b.dataset.editMaint));
+    $$('[data-del-maint]').forEach(b=> b.onclick = ()=>{
+      if(!confirm(t('msg_confirm_del'))) return;
+      db.maintenance = db.maintenance.filter(x=>x.id!==b.dataset.delMaint);
+      saveDB(); render(); toast(t('msg_deleted'),'ok');
+      if(isCloudReady()) pushToCloud(true);
+    });
+  }
+  if(canEditTab('usage')){
+    $('#addUsage')?.addEventListener('click', ()=> usageModal());
+    $$('[data-edit-usage]').forEach(b=> b.onclick = ()=> usageModal(b.dataset.editUsage));
+    $$('[data-del-usage]').forEach(b=> b.onclick = ()=>{
+      if(!confirm(t('msg_confirm_del'))) return;
+      db.usage = db.usage.filter(x=>x.id!==b.dataset.delUsage);
+      saveDB(); render(); toast(t('msg_deleted'),'ok');
+      if(isCloudReady()) pushToCloud(true);
+    });
+  }
+  if(canEditTab('oil')){
+    $('#addOil')?.addEventListener('click', ()=> oilModal());
+    $$('[data-edit-oil]').forEach(b=> b.onclick = ()=> oilModal(b.dataset.editOil));
+    $$('[data-del-oil]').forEach(b=> b.onclick = ()=>{
+      if(!confirm(t('msg_confirm_del'))) return;
+      db.oil = db.oil.filter(x=>x.id!==b.dataset.delOil);
+      saveDB(); render(); toast(t('msg_deleted'),'ok');
+      if(isCloudReady()) pushToCloud(true);
+    });
+  }
 }
 function carModal(id){
   if(!canEditSection('cars')){ toast(t('msg_no_perm'),'warn'); return; }
@@ -4140,6 +4339,8 @@ function usageModal(id){
         db.usage.push({id:uid(), ...payload, createdAt:new Date().toISOString()});
         toast(t('msg_saved'),'ok');
       }
+      // 🛢️ فحص الزيت بعد تحديث قراءة العداد
+      if(payload.endKm !== '') checkOilForCar(payload.carId);
       saveDB(); render();
       if(isCloudReady()){
         if(isSupervisorAutoSync()) pushToCloud(true); else fullSync(true);
@@ -4182,8 +4383,11 @@ function oilModal(id){
       const err = $('#oErr', root);
       if(!db.cars.length){ err.textContent = t('msg_no_cars'); err.style.display='block'; return false; }
       if(['carId','date','km'].some(k=>!d[k])){ err.textContent=t('msg_required'); err.style.display='block'; return false; }
-      if(rec){ Object.assign(rec, d, {updatedAt:new Date().toISOString()}); toast(t('msg_updated'),'ok'); }
-      else { db.oil.push({id:uid(), ...d}); toast(t('msg_saved'),'ok'); }
+      const payload = { ...d, notifiedDue:false, notifiedSoon:false, updatedAt:new Date().toISOString() };
+      if(rec){ Object.assign(rec, payload); toast(t('msg_updated'),'ok'); }
+      else { db.oil.push({id:uid(), ...payload}); toast(t('msg_saved'),'ok'); }
+      // 🛢️ فحص الزيت بعد الحفظ
+      checkOilForCar(d.carId);
       saveDB(); render();
       if(isCloudReady()){
         if(isSupervisorAutoSync()) pushToCloud(true); else fullSync(true);
@@ -4567,7 +4771,7 @@ function goalCard({icon,label,target,actual,unit='',inverse=false}){
 function canEditGoals(){
   if(isOwner()) return true;
   const s = getMySupervisor();
-  return s && (s.permissions||[]).includes('edit_goals');
+  return s && permHasEdit(s.permissions || [], 'goals');
 }
 function viewGoals(){
   const sups = isOwner() ? db.supervisors : (isSupervisor() ? db.supervisors.filter(s=>s.id===state.user.id) : []);
@@ -5018,34 +5222,145 @@ function openImportDialog(){
    ========================================================================== */
 function permModal(){
   if(!isOwner()){ toast(t('msg_no_perm'),'warn'); return; }
-  const body = `
-    <div class="small muted" style="margin-bottom:12px">يمنح المالك الصلاحيات لكل مشرف لتحديد الأقسام والعمليات المسموح بها.</div>
-    <div class="perm-list">
-      ${db.supervisors.length ? db.supervisors.map(s=>`
-        <div class="perm-row">
-          <div class="pn">${esc(s.name)}</div>
-          <div class="pc">
-            ${NAV.filter(n=>n.id!=='supervisors').map(n=>`<label class="perm-check">
-              <input type="checkbox" data-perm="${s.id}" data-sec="${n.id}" ${(s.permissions||[]).includes(n.id)?'checked':''}>
-              ${n.icon} ${t(n.key)}
-            </label>`).join('')}
-            ${EXTRA_PERMS.map(e=>`<label class="perm-check" style="border-color:#fde68a">
-              <input type="checkbox" data-perm="${s.id}" data-sec="${e.id}" ${(s.permissions||[]).includes(e.id)?'checked':''}>
-              ${e.icon} ${t(e.key)}
-            </label>`).join('')}
-          </div>
-        </div>`).join('') : `<div class="empty">${t('no_data')}</div>`}
+
+  const renderSupCard = (s)=>{
+    const p = s.permissions || [];
+    const rows = [];
+    PERM_TREE.forEach(sec=>{
+      const hasV = permHasView(p, sec.id);
+      const hasE = !sec.viewOnly && permHasEdit(p, sec.id);
+      rows.push(`<tr class="sec-row" data-sec="${sec.id}">
+        <td><span class="section-icon">${sec.icon}</span><b>${esc(t(sec.key))}</b></td>
+        <td class="chk-cell"><input type="checkbox"
+            data-sup="${s.id}" data-sec="${sec.id}" data-kind="view" ${hasV?'checked':''}></td>
+        <td class="chk-cell">${
+          sec.viewOnly
+            ? '<span class="muted small">—</span>'
+            : `<input type="checkbox" data-sup="${s.id}" data-sec="${sec.id}" data-kind="edit" ${hasE?'checked':''}>`
+        }</td>
+      </tr>`);
+      (sec.branches||[]).forEach(b=>{
+        const bHasV = permHasView(p, sec.id, b.id);
+        const bHasE = permHasEdit(p, sec.id, b.id);
+        rows.push(`<tr class="branch" data-sec="${sec.id}" data-branch="${b.id}">
+          <td><span class="section-icon">${b.icon}</span>${esc(t(b.key))}</td>
+          <td class="chk-cell"><input type="checkbox"
+              data-sup="${s.id}" data-sec="${sec.id}" data-branch="${b.id}" data-kind="view" ${bHasV?'checked':''}></td>
+          <td class="chk-cell"><input type="checkbox"
+              data-sup="${s.id}" data-sec="${sec.id}" data-branch="${b.id}" data-kind="edit" ${bHasE?'checked':''}></td>
+        </tr>`);
+      });
+    });
+    return `<div class="perm-card">
+      <div class="perm-card-head">
+        <div class="ic-avatar" style="width:34px;height:34px;font-size:14px">${esc((s.name||'?').charAt(0))}</div>
+        <div style="flex:1;min-width:0">
+          <div class="perm-card-title">${esc(s.name)}</div>
+          <div class="small muted" dir="ltr">${esc(s.email||'')}</div>
+        </div>
+      </div>
+      <table class="perm-table">
+        <thead><tr>
+          <th>${t('fld_sections')} / ${t('perm_branches')}</th>
+          <th>👁️ ${t('perm_view_col')}</th>
+          <th>✏️ ${t('perm_edit_col')}</th>
+        </tr></thead>
+        <tbody>${rows.join('')}</tbody>
+      </table>
     </div>`;
+  };
+
+  const body = `
+    <div class="small muted" style="margin-bottom:14px;line-height:1.7">${t('perm_intro')}</div>
+    <div class="perm-list">
+      ${db.supervisors.length ? db.supervisors.map(renderSupCard).join('') : `<div class="empty">${t('no_data')}</div>`}
+    </div>
+    <div class="small muted" style="margin-top:14px;padding:10px 14px;border-radius:10px;background:var(--primary-soft);border:1px solid var(--border)">
+      ${t('perm_owner_note')}
+    </div>`;
+
   openModal({
     title:`🛡️ ${t('btn_permissions')}`,
-    body, submitText:t('btn_save'),
+    body, wide:true, submitText:t('btn_save'),
+    onMount(root){
+      const get = (supId, secId, branchId, kind)=>{
+        const sel = branchId
+          ? `input[data-sup="${supId}"][data-sec="${secId}"][data-branch="${branchId}"][data-kind="${kind}"]`
+          : `input[data-sup="${supId}"][data-sec="${secId}"][data-kind="${kind}"]:not([data-branch])`;
+        return root.querySelector(sel);
+      };
+      const setChk = (el,v)=>{ if(el) el.checked = v; };
+
+      const syncFromSection = (supId, secId)=>{
+        const v = get(supId, secId, '', 'view');
+        const e = get(supId, secId, '', 'edit');
+        const sec = PERM_TREE.find(x=>x.id===secId);
+        const branches = sec?.branches || [];
+        if(v && !v.checked){
+          setChk(e,false);
+          branches.forEach(b=>{
+            setChk(get(supId,secId,b.id,'view'),false);
+            setChk(get(supId,secId,b.id,'edit'),false);
+          });
+        }
+        if(v && v.checked){
+          branches.forEach(b=> setChk(get(supId,secId,b.id,'view'),true));
+        }
+        if(e && e.checked){
+          setChk(v,true);
+          branches.forEach(b=>{
+            setChk(get(supId,secId,b.id,'view'),true);
+            setChk(get(supId,secId,b.id,'edit'),true);
+          });
+        }
+      };
+
+      const syncFromBranch = (supId, secId, branchId)=>{
+        const bv = get(supId,secId,branchId,'view');
+        const be = get(supId,secId,branchId,'edit');
+        if(be && be.checked) setChk(bv,true);
+        if(bv && !bv.checked) setChk(be,false);
+        if((bv && bv.checked) || (be && be.checked)){
+          setChk(get(supId,secId,'','view'), true);
+        }
+        const sec = PERM_TREE.find(x=>x.id===secId);
+        if(sec && sec.branches.length){
+          const anyV = sec.branches.some(b=>{
+            const el = get(supId,secId,b.id,'view'); return el && el.checked;
+          });
+          const anyE = sec.branches.some(b=>{
+            const el = get(supId,secId,b.id,'edit'); return el && el.checked;
+          });
+          if(!anyV && !anyE){
+            setChk(get(supId,secId,'','view'),false);
+            setChk(get(supId,secId,'','edit'),false);
+          }
+        }
+      };
+
+      root.addEventListener('change', e=>{
+        const cb = e.target;
+        if(!cb.matches('input[type=checkbox][data-kind]')) return;
+        const supId = cb.dataset.sup, secId = cb.dataset.sec;
+        const branchId = cb.dataset.branch || '';
+        if(branchId) syncFromBranch(supId, secId, branchId);
+        else syncFromSection(supId, secId);
+      });
+    },
     onSubmit(root){
       db.supervisors.forEach(s=>{
-        const all = [...NAV.filter(n=>n.id!=='supervisors').map(n=>n.id), ...EXTRA_PERMS.map(e=>e.id)];
-        s.permissions = all.filter(id=>{
-          const cb = root.querySelector(`[data-perm="${s.id}"][data-sec="${id}"]`);
-          return cb && cb.checked;
+        const perms = [];
+        root.querySelectorAll(`input[data-kind="view"][data-sup="${s.id}"]`).forEach(cb=>{
+          if(!cb.checked) return;
+          const secId = cb.dataset.sec, branchId = cb.dataset.branch || '';
+          perms.push(branchId ? `${secId}.${branchId}` : secId);
         });
+        root.querySelectorAll(`input[data-kind="edit"][data-sup="${s.id}"]`).forEach(cb=>{
+          if(!cb.checked) return;
+          const secId = cb.dataset.sec, branchId = cb.dataset.branch || '';
+          perms.push(branchId ? `${secId}.${branchId}_edit` : `${secId}_edit`);
+        });
+        s.permissions = perms;
       });
       saveDB(); render();
       toast(t('msg_updated'),'ok');
@@ -5662,7 +5977,6 @@ async function init(){
     }
   }, 45000);
 
-  // مستمعات عدم النشاط لإعادة تصفير المؤقت
   ['mousemove','mousedown','keydown','touchstart','scroll','click','input'].forEach(ev =>
     document.addEventListener(ev, resetInactivity, {passive:true})
   );
