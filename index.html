@@ -390,20 +390,17 @@ textarea{resize:vertical;min-height:70px}
 /* ============ الاستجابة للشاشات ============ */
 img,svg,table{max-width:100%}
 
-/* شاشات كبيرة جداً */
 @media(min-width:1500px){
   .view{padding:32px;gap:24px}
   .g4{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
 }
 
-/* شاشات متوسطة (تابلت أفقي) */
 @media(max-width:1200px){
   .view{padding:20px;gap:18px}
   .g2{grid-template-columns:1fr}
   .g3{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
 }
 
-/* شاشات تابلت صغيرة */
 @media(max-width:980px){
   .sidebar{position:fixed;inset-inline-start:0;top:0;transform:translateX(100%);visibility:hidden}
   [dir=ltr] .sidebar{transform:translateX(-100%)}
@@ -415,7 +412,6 @@ img,svg,table{max-width:100%}
   .grades-grid{grid-template-columns:repeat(3,1fr)}
 }
 
-/* شاشات صغيرة */
 @media(max-width:768px){
   .topbar{padding:10px 12px}
   .topbar-actions{gap:4px}
@@ -426,7 +422,6 @@ img,svg,table{max-width:100%}
   .card-head{padding:14px 16px;font-size:13.5px}
 }
 
-/* شاشات موبايل */
 @media(max-width:600px){
   .kpi-value{font-size:22px}
   .topbar h1{font-size:15px}
@@ -738,7 +733,12 @@ const I18N = {
     goals_active_period_note:'🔗 سيتم ربط مؤشر الأداء العام في لوحة التحكم بالفترة المختارة',
     goals_all_targets_hint:'💡 حدد الهدف العام، ثم أضف صفوفاً لأهداف المشرفين إن أردت.',
     goals_link_perf:'🔗 ربط مؤشر الأداء العام',
-    goals_saved_count:'تم حفظ {n} هدف'
+    goals_saved_count:'تم حفظ {n} هدف',
+    msg_session_expired:'تم تسجيل الخروج تلقائياً بسبب عدم النشاط (30 دقيقة)',
+    add_rep_quick:'إضافة سائق', add_car_quick:'إضافة سيارة',
+    add_sup_quick:'إضافة مشرف', add_office_quick:'إضافة مكتب تأجير',
+    msg_no_reps:'لا يوجد سائقون متاحون', msg_no_cars:'لا توجد سيارات متاحة',
+    msg_no_sups:'لا يوجد مشرفون', msg_no_offices:'لا توجد مكاتب تأجير'
   },
   en:{
     nav_dashboard:'Dashboard', nav_daily:'Daily Reports', nav_reps:'Drivers',
@@ -928,7 +928,12 @@ const I18N = {
     goals_active_period_note:'🔗 The dashboard performance indicator will be linked to the selected period',
     goals_all_targets_hint:'💡 Set the general target, then add rows for supervisor targets if needed.',
     goals_link_perf:'🔗 Link Performance Indicator',
-    goals_saved_count:'{n} goals saved'
+    goals_saved_count:'{n} goals saved',
+    msg_session_expired:'Logged out automatically due to 30 minutes of inactivity',
+    add_rep_quick:'Add Driver', add_car_quick:'Add Vehicle',
+    add_sup_quick:'Add Supervisor', add_office_quick:'Add Rental Office',
+    msg_no_reps:'No drivers available', msg_no_cars:'No vehicles available',
+    msg_no_sups:'No supervisors', msg_no_offices:'No rental offices'
   }
 };
 const t = k => (I18N[state.lang] && I18N[state.lang][k]) || I18N.ar[k] || k;
@@ -1152,8 +1157,53 @@ const state = {
   goalTarget:'owner',
   carsTab:'vehicles', user:null, cloudBusy:false, cloudMode:false,
   cloudEdit:false,
+  pendingReopen: null,
   viewModes:{ reps:'table', supervisors:'table', cars:'table', reports:'table' }
 };
+
+/* ============ الخروج التلقائي بعد 30 دقيقة من عدم النشاط ============ */
+let inactivityTimer = null;
+const INACTIVITY_MS = 30 * 60 * 1000;
+function resetInactivity(){
+  clearTimeout(inactivityTimer);
+  if(!state.user) return;
+  inactivityTimer = setTimeout(() => {
+    if(!state.user) return;
+    toast(t('msg_session_expired'),'warn');
+    doLogout(true);
+  }, INACTIVITY_MS);
+}
+function clearInactivity(){ clearTimeout(inactivityTimer); inactivityTimer = null; }
+
+/* ============ مساعدات القوائم المنسدلة الفارغة ============ */
+function emptySelectHTML(message, addType, addLabel){
+  const allowed = {
+    rep:    () => canEditSection('reps') || isOwner(),
+    car:    () => canEditSection('cars') || isOwner(),
+    office: () => canEditSection('cars') || isOwner(),
+    sup:    () => isOwner()
+  }[addType]?.() ?? false;
+  if(!allowed){
+    return `<div style="padding:14px;border:1px dashed var(--border);border-radius:11px;background:var(--bg-2);text-align:center">
+      <div class="small muted">${esc(message)}</div>
+    </div>`;
+  }
+  return `<div style="padding:16px;border:1.5px dashed var(--border);border-radius:12px;background:var(--bg-2);text-align:center">
+    <div class="small muted" style="margin-bottom:10px">${esc(message)}</div>
+    <button type="button" class="btn btn-sm btn-primary" data-quick-add="${addType}">➕ ${esc(addLabel)}</button>
+  </div>`;
+}
+function bindQuickAdd(root, reopenFn){
+  root.querySelectorAll('[data-quick-add]').forEach(btn => {
+    btn.onclick = () => {
+      const type = btn.dataset.quickAdd;
+      state.pendingReopen = reopenFn;
+      const map = { rep: repModal, car: carModal, sup: supModal, office: officeModal };
+      const fn = map[type];
+      if(fn) fn();
+    };
+  });
+}
 
 const DEFAULT_GRADES = { A:35, B:30, C:25, D:20, E:15, F:0 };
 const DEFAULT_DAILY_GRADES = { A:30, B:22, C:15, D:0 };
@@ -1811,6 +1861,8 @@ function doLogin(identifier, password){
 }
 function doLogout(silent){
   if(!silent && !confirm(t('msg_confirm_logout'))) return;
+  clearInactivity();
+  state.pendingReopen = null;
   const wasCloudMode = state.cloudMode;
   state.user = null; saveSession(null);
   if(wasCloudMode){
@@ -1856,6 +1908,7 @@ function showApp(){
   $('#app').style.display = 'flex';
   setCloudStatus(isCloudReady() ? 'on' : 'off');
   render();
+  resetInactivity();
 }
 
 /* ==========================================================================
@@ -2790,10 +2843,8 @@ function dailyReportModal(){
       saveDB(); render();
       addNotif('تقرير يومي', `${saved} ${t('nav_reps')} — ${date}`, 'ok');
       toast(t('msg_report_sent'), 'ok');
-      if(isCloudReady()){
-        if(isSupervisorAutoSync()) pushToCloud(true);
-        else fullSync(true);
-      }
+      // رفع فوري إجباري للسحابة عند إنشاء التقرير
+      if(isCloudReady()) pushToCloud(true);
       return true;
     }
   });
@@ -2801,14 +2852,15 @@ function dailyReportModal(){
 function reportModal(id){
   const rec = id ? db.reports.find(r=>r.id===id) : null;
   const reps = visibleReps();
-  if(!reps.length){ toast('أضف سائقاً أولاً','warn'); return; }
   const startKmVal = rec && rec.startKm!=='' && rec.startKm!==undefined ? num(rec.startKm) : '';
   const endKmVal = rec && rec.endKm!=='' && rec.endKm!==undefined ? num(rec.endKm) : '';
   const body = `
     <form id="rForm" class="form-grid" novalidate>
       <div class="field"><label>${t('fld_rep')} <span class="req">*</span></label>
-        <select name="repId" required><option value="">${t('fld_none')}</option>
-          ${reps.map(r=>`<option value="${r.id}" ${rec&&rec.repId===r.id?'selected':''}>${esc(r.name)} — ${esc(supName(r.supervisorId))}</option>`).join('')}</select></div>
+        ${reps.length ? `<select name="repId" required><option value="">${t('fld_none')}</option>
+          ${reps.map(r=>`<option value="${r.id}" ${rec&&rec.repId===r.id?'selected':''}>${esc(r.name)} — ${esc(supName(r.supervisorId))}</option>`).join('')}</select>`
+        : emptySelectHTML(t('msg_no_reps'), 'rep', t('add_rep_quick'))}
+      </div>
       <div class="field"><label>${t('fld_date')} <span class="req">*</span></label>
         <input type="date" name="date" required value="${rec?rec.date:(state.daily.d1||todayStr())}"></div>
       <div class="field"><label>${t('fld_delivered_orders')} <span class="req">*</span></label>
@@ -2851,7 +2903,9 @@ function reportModal(id){
     title: rec ? `${t('btn_edit')} — ${t('t_daily')}` : `${t('btn_create_report')}`,
     body,
     onMount(root){
+      bindQuickAdd(root, () => reportModal(id));
       const form = $('#rForm', root);
+      if(!form) return;
       const ordersInp = form.orders;
       const accInp = form.accepted;
       const rejInp = form.rejected;
@@ -2892,6 +2946,7 @@ function reportModal(id){
     },
     onSubmit(root){
       const form = $('#rForm', root), err = $('#rErr', root);
+      if(!reps.length){ err.textContent = t('msg_no_reps'); err.style.display='block'; return false; }
       const data = Object.fromEntries(new FormData(form));
       const req = ['repId','date','orders','hours','accepted','rejected'];
       if(req.some(k=> data[k]==='' || data[k]==null)){
@@ -2936,10 +2991,7 @@ function reportModal(id){
         toast(t('msg_report_sent'),'ok');
       }
       saveDB(); render();
-      if(isCloudReady()){
-        if(isSupervisorAutoSync()) pushToCloud(true);
-        else fullSync(true);
-      }
+      if(isCloudReady()) pushToCloud(true);
       return true;
     }
   });
@@ -3084,15 +3136,18 @@ function repModal(id){
       </select></div>
     <div class="field" style="grid-column:1/-1">
       <label>${t('fld_car_assigned')} <span class="small muted">${t('fld_optional')}</span></label>
+      ${db.cars.length ? `
       <input type="text" id="carSearchInput" placeholder="🔍 ${t('search_car')}" style="margin-bottom:8px">
       <select name="carId" id="carSelect">
         <option value="">${t('fld_none')}</option>
         ${db.cars.map(c=>`<option value="${c.id}" ${rec&&rec.carId===c.id?'selected':''} data-search="${esc((c.brand+' '+c.model+' '+c.plate).toLowerCase())}">${esc(c.brand)} ${esc(c.model)} — ${esc(c.plate)}${c.assignedRepId && (!rec || c.assignedRepId!==rec.id) ? ' (مُسندة لسائق آخر)' : ''}</option>`).join('')}
-      </select>
+      </select>` : emptySelectHTML(t('msg_no_cars'), 'car', t('add_car_quick'))}
     </div>
     <div class="field"><label>${t('fld_supervisor')} <span class="req">*</span></label>
-      <select name="supervisorId" required><option value="">${t('fld_none')}</option>
-        ${db.supervisors.map(s=>`<option value="${s.id}" ${rec&&rec.supervisorId===s.id?'selected':''}>${esc(s.name)}</option>`).join('')}</select></div>
+      ${db.supervisors.length ? `<select name="supervisorId" required><option value="">${t('fld_none')}</option>
+        ${db.supervisors.map(s=>`<option value="${s.id}" ${rec&&rec.supervisorId===s.id?'selected':''}>${esc(s.name)}</option>`).join('')}</select>`
+      : emptySelectHTML(t('msg_no_sups'), 'sup', t('add_sup_quick'))}
+    </div>
     <div class="field"><label>${t('fld_region')} <span class="req">*</span></label>
       <input name="region" required value="${esc(rec?.region||'')}"></div>
     <div class="field" style="grid-column:1/-1"><label>${t('fld_created')}</label>
@@ -3103,6 +3158,7 @@ function repModal(id){
     title: rec ? `${t('btn_edit')} — ${t('nav_reps')}` : `${t('btn_add')} — ${t('nav_reps')}`,
     body,
     onMount(root){
+      bindQuickAdd(root, () => repModal(id));
       const search = root.querySelector('#carSearchInput');
       const sel = root.querySelector('#carSelect');
       if(search && sel){
@@ -3682,10 +3738,11 @@ function carModal(id){
     <div class="field"><label>${t('fld_year')} <span class="req">*</span></label>
       <input type="number" name="year" required min="1990" max="2100" value="${esc(rec?.year||new Date().getFullYear())}"></div>
     <div class="field"><label>${t('fld_rental_office')}</label>
-      <select name="rentalOfficeId">
+      ${(db.rentalOffices||[]).length ? `<select name="rentalOfficeId">
         <option value="">${t('fld_none')}</option>
         ${(db.rentalOffices||[]).map(o=>`<option value="${o.id}" ${rec&&rec.rentalOfficeId===o.id?'selected':''}>${esc(o.name)}</option>`).join('')}
-      </select></div>
+      </select>` : emptySelectHTML(t('msg_no_offices'), 'office', t('add_office_quick'))}
+    </div>
     <div class="field"><label>${t('fld_status')} <span class="req">*</span></label>
       <select name="status" required>
         ${[['available','st_available'],['in_use','st_active'],['maintenance','st_maintenance'],['broken','st_broken']]
@@ -3693,11 +3750,12 @@ function carModal(id){
       </select></div>
     <div class="field" style="grid-column:1/-1">
       <label>${t('assign_car_to_driver')} <span class="small muted">${t('fld_optional')}</span></label>
+      ${reps.length ? `
       <input type="text" id="drvSearchInp" placeholder="🔍 ${t('search_driver')}" style="margin-bottom:8px">
       <select name="assignedRepId" id="drvSel">
         <option value="">${t('fld_none')}</option>
         ${reps.map(r=>`<option value="${r.id}" ${rec&&rec.assignedRepId===r.id?'selected':''} data-search="${esc((r.name+' '+(r.code||'')+' '+(r.phone||'')).toLowerCase())}">${esc(r.name)}${r.code?' — '+esc(r.code):''}</option>`).join('')}
-      </select>
+      </select>` : emptySelectHTML(t('msg_no_reps'), 'rep', t('add_rep_quick'))}
     </div>
     <div id="carErr" class="err" style="grid-column:1/-1;display:none"></div>
   </form>`;
@@ -3705,6 +3763,7 @@ function carModal(id){
     title: rec ? `${t('btn_edit')} — ${t('nav_cars')}` : `${t('btn_add')} — ${t('nav_cars')}`,
     body,
     onMount(root){
+      bindQuickAdd(root, () => carModal(id));
       const search = root.querySelector('#drvSearchInp');
       const sel = root.querySelector('#drvSel');
       if(search && sel){
@@ -3795,12 +3854,13 @@ function officeModal(id){
 function maintModal(id){
   if(!canEditSection('cars')){ toast(t('msg_no_perm'),'warn'); return; }
   const rec = id ? db.maintenance.find(x=>x.id===id) : null;
-  if(!db.cars.length){ toast('أضف مركبة أولاً','warn'); return; }
   const type = rec?.type || 'maint';
   const cats = type === 'fault' ? FAULT_CATEGORIES : MAINT_CATEGORIES;
   const body = `<form id="mForm" class="form-grid" novalidate>
     <div class="field"><label>${t('fld_car')} <span class="req">*</span></label>
-      <select name="carId" required>${db.cars.map(c=>`<option value="${c.id}" ${rec&&rec.carId===c.id?'selected':''}>${esc(c.brand)} ${esc(c.model)} — ${esc(c.plate)}</option>`).join('')}</select></div>
+      ${db.cars.length ? `<select name="carId" required>${db.cars.map(c=>`<option value="${c.id}" ${rec&&rec.carId===c.id?'selected':''}>${esc(c.brand)} ${esc(c.model)} — ${esc(c.plate)}</option>`).join('')}</select>`
+      : emptySelectHTML(t('msg_no_cars'), 'car', t('add_car_quick'))}
+    </div>
     <div class="field"><label>${t('fld_type')} <span class="req">*</span></label>
       <select name="type" id="mTypeSel" required>
         <option value="maint" ${type==='maint'?'selected':''}>${t('mt_maint')}</option>
@@ -3831,9 +3891,11 @@ function maintModal(id){
     title: rec ? t('btn_edit') : `${t('btn_add')} — ${t('t_maint')}`,
     body,
     onMount(root){
+      bindQuickAdd(root, () => maintModal(id));
       const typeSel = root.querySelector('#mTypeSel');
       const catSel = root.querySelector('#mCatSel');
       const wrap = root.querySelector('#customCatWrap');
+      if(!typeSel || !catSel || !wrap) return;
       const curCat = rec?.category || '';
       const rebuildCats = (newType, keep)=>{
         const list = newType === 'fault' ? FAULT_CATEGORIES : MAINT_CATEGORIES;
@@ -3848,6 +3910,7 @@ function maintModal(id){
     onSubmit(root){
       const d = Object.fromEntries(new FormData($('#mForm', root)));
       const err = $('#mErr', root);
+      if(!db.cars.length){ err.textContent = t('msg_no_cars'); err.style.display='block'; return false; }
       if(['carId','type','category','date','cost','desc','status'].some(k=>!d[k])){ err.textContent=t('msg_required'); err.style.display='block'; return false; }
       if(d.category === 'other' && !d.customCategory.trim()){ err.textContent='يرجى كتابة التصنيف'; err.style.display='block'; return false; }
       const payload = {
@@ -3869,23 +3932,25 @@ function maintModal(id){
 function usageModal(id){
   if(!canEditSection('cars')){ toast(t('msg_no_perm'),'warn'); return; }
   const rec = id ? db.usage.find(x=>x.id===id) : null;
-  if(!db.cars.length || !db.reps.length){ toast('أضف مركبة وسائقاً أولاً','warn'); return; }
   const body = `<form id="uForm" class="form-grid" novalidate>
     <div class="field"><label>${t('fld_username')} <span class="req">*</span></label>
       <input name="username" required value="${esc(rec?.username || state.user?.name || '')}" placeholder="${t('fld_username')}"></div>
     <div class="field"><label>${t('fld_car')} <span class="req">*</span></label>
-      <select name="carId" required>${db.cars.map(c=>`<option value="${c.id}" ${rec&&rec.carId===c.id?'selected':''}>${esc(c.brand)} ${esc(c.model)} — ${esc(c.plate)}</option>`).join('')}</select></div>
+      ${db.cars.length ? `<select name="carId" required>${db.cars.map(c=>`<option value="${c.id}" ${rec&&rec.carId===c.id?'selected':''}>${esc(c.brand)} ${esc(c.model)} — ${esc(c.plate)}</option>`).join('')}</select>`
+      : emptySelectHTML(t('msg_no_cars'), 'car', t('add_car_quick'))}</div>
     <div class="field" style="grid-column:1/-1">
       <label>${t('fld_rep')} <span class="req">*</span></label>
+      ${db.reps.length ? `
       <input type="text" id="usageDrvSearch" placeholder="🔍 ${t('search_driver')}" style="margin-bottom:8px">
       <select name="repId" id="usageRepSel" required>
         <option value="">${t('fld_none')}</option>
         ${db.reps.map(r=>`<option value="${r.id}" ${rec&&rec.repId===r.id?'selected':''} data-search="${esc((r.name+' '+(r.code||'')+' '+(r.phone||'')).toLowerCase())}">${esc(r.name)}${r.code?' — '+esc(r.code):''}</option>`).join('')}
-      </select>
+      </select>` : emptySelectHTML(t('msg_no_reps'), 'rep', t('add_rep_quick'))}
     </div>
     <div class="field"><label>${t('fld_supervisor')} <span class="req">*</span></label>
-      <select name="supervisorId" required><option value="">${t('fld_none')}</option>
-        ${db.supervisors.map(s=>`<option value="${s.id}" ${rec&&rec.supervisorId===s.id?'selected':''}>${esc(s.name)}</option>`).join('')}</select></div>
+      ${db.supervisors.length ? `<select name="supervisorId" required><option value="">${t('fld_none')}</option>
+        ${db.supervisors.map(s=>`<option value="${s.id}" ${rec&&rec.supervisorId===s.id?'selected':''}>${esc(s.name)}</option>`).join('')}</select>`
+      : emptySelectHTML(t('msg_no_sups'), 'sup', t('add_sup_quick'))}</div>
     <div class="field"><label>${t('fld_start_date')} <span class="req">*</span></label>
       <input type="date" name="startDate" required value="${rec?rec.startDate:todayStr()}"></div>
     <div class="field"><label>${t('fld_end_date')}</label>
@@ -3900,6 +3965,7 @@ function usageModal(id){
     title: rec ? t('btn_edit') : `${t('btn_add')} — ${t('t_usage')}`,
     body,
     onMount(root){
+      bindQuickAdd(root, () => usageModal(id));
       const search = root.querySelector('#usageDrvSearch');
       const sel = root.querySelector('#usageRepSel');
       if(search && sel){
@@ -3919,6 +3985,9 @@ function usageModal(id){
     onSubmit(root){
       const d = Object.fromEntries(new FormData($('#uForm', root)));
       const err = $('#uErr', root);
+      if(!db.cars.length || !db.reps.length || !db.supervisors.length){
+        err.textContent = 'أكمل إضافة المركبة/السائق/المشرف أولاً'; err.style.display='block'; return false;
+      }
       if(!d.username || !d.carId || !d.repId || !d.supervisorId || !d.startDate || d.startKm===''){
         err.textContent=t('msg_required'); err.style.display='block'; return false;
       }
@@ -3944,10 +4013,11 @@ function usageModal(id){
 function oilModal(id){
   if(!canEditSection('cars')){ toast(t('msg_no_perm'),'warn'); return; }
   const rec = id ? db.oil.find(x=>x.id===id) : null;
-  if(!db.cars.length){ toast('أضف مركبة أولاً','warn'); return; }
   const body = `<form id="oForm" class="form-grid" novalidate>
     <div class="field"><label>${t('fld_car')} <span class="req">*</span></label>
-      <select name="carId" required>${db.cars.map(c=>`<option value="${c.id}" ${rec&&rec.carId===c.id?'selected':''}>${esc(c.brand)} ${esc(c.model)} — ${esc(c.plate)}</option>`).join('')}</select></div>
+      ${db.cars.length ? `<select name="carId" required>${db.cars.map(c=>`<option value="${c.id}" ${rec&&rec.carId===c.id?'selected':''}>${esc(c.brand)} ${esc(c.model)} — ${esc(c.plate)}</option>`).join('')}</select>`
+      : emptySelectHTML(t('msg_no_cars'), 'car', t('add_car_quick'))}
+    </div>
     <div class="field"><label>${t('fld_date')} <span class="req">*</span></label>
       <input type="date" name="date" required value="${rec?rec.date:todayStr()}"></div>
     <div class="field"><label>${t('fld_km')} <span class="req">*</span></label>
@@ -3963,9 +4033,13 @@ function oilModal(id){
   openModal({
     title: rec ? t('btn_edit') : `${t('btn_add')} — ${t('t_oil')}`,
     body,
+    onMount(root){
+      bindQuickAdd(root, () => oilModal(id));
+    },
     onSubmit(root){
       const d = Object.fromEntries(new FormData($('#oForm', root)));
       const err = $('#oErr', root);
+      if(!db.cars.length){ err.textContent = t('msg_no_cars'); err.style.display='block'; return false; }
       if(['carId','date','km'].some(k=>!d[k])){ err.textContent=t('msg_required'); err.style.display='block'; return false; }
       if(rec){ Object.assign(rec, d, {updatedAt:new Date().toISOString()}); toast(t('msg_updated'),'ok'); }
       else { db.oil.push({id:uid(), ...d}); toast(t('msg_saved'),'ok'); }
@@ -5297,7 +5371,14 @@ function openModal({title, body, onSubmit, onMount, submitText, wide}){
         </div>
       </div>
     </div>`;
-  const close = ()=> root.innerHTML = '';
+  const close = ()=>{
+    root.innerHTML = '';
+    if(state.pendingReopen){
+      const fn = state.pendingReopen;
+      state.pendingReopen = null;
+      setTimeout(fn, 200);
+    }
+  };
   $('#mClose').onclick = close;
   $('#mCancel').onclick = close;
   $('#ovl').onclick = e=>{ if(e.target.id==='ovl') close(); };
@@ -5439,6 +5520,11 @@ async function init(){
       await pushToCloud(true);
     }
   }, 45000);
+
+  // مستمعات عدم النشاط لإعادة تصفير المؤقت
+  ['mousemove','mousedown','keydown','touchstart','scroll','click','input'].forEach(ev =>
+    document.addEventListener(ev, resetInactivity, {passive:true})
+  );
 
   window.addEventListener('beforeunload', ()=>{
     if(!state.cloudMode) saveDB();
