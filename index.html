@@ -7253,5 +7253,432 @@ async function init(){
 }
 window.addEventListener('load', init);
 </script>
+<!-- ═══════════════════════════════════════════════════════════════════
+     PATCH: إضافة تعديل الرؤوس + ترتيب الأعمدة + ملاءمة الطباعة
+     لا يمس الكود الأصلي — فقط يضيف الوظائف المطلوبة
+     ═══════════════════════════════════════════════════════════════════ -->
+<script>
+(function(){
+'use strict';
+
+/* ─── 1) CSS الطباعة التلقائية (يحل محل CSS الأصلي بنفس الأولوية) ─── */
+const printCSS = `
+@media print{
+  .sidebar,.topbar,.toolbar,.day-picker,#toast,.notif-panel,.icon-btn,.btn,
+  .card-collapse,.tabs,.view-toggle,.chart-type-selector{display:none!important}
+  .app{display:block!important;width:100%!important}
+  html,body{
+    background:#fff!important;
+    -webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;
+  }
+  body{
+    font-size:11px!important;
+    zoom:var(--print-zoom,1)!important;
+    transform:none!important;
+  }
+  .view{padding:6px;gap:8px;max-width:100%;width:100%}
+  .card{break-inside:avoid;page-break-inside:avoid;box-shadow:none!important;
+        border:1px solid #ddd!important;margin-bottom:8px;border-radius:8px!important}
+  .perf-hero{box-shadow:none!important;border-radius:8px!important;padding:16px!important}
+  .perf-hero-info .ph-title{font-size:18px!important}
+  .perf-ring{width:110px!important;height:110px!important;flex:0 0 110px!important}
+  .perf-ring .pr-num{font-size:26px!important}
+  .ph-stat{padding:8px 10px!important;min-width:90px!important}
+  .ph-stat .phs-v{font-size:15px!important}
+  .card.collapsed > *:not(.card-head){display:block!important}
+  #printHeader{display:block!important}
+  .tbl-wrap{overflow:visible!important;border:0!important;border-radius:0!important}
+  table{min-width:0!important;width:100%!important;table-layout:auto!important}
+  thead th{padding:4px 5px!important;font-size:9px!important;
+           white-space:normal!important;word-break:break-word!important;
+           letter-spacing:0!important;text-transform:none!important}
+  tbody td{padding:4px 5px!important;font-size:9.5px!important;
+           white-space:normal!important;word-break:break-word!important}
+  .chip{font-size:8.5px!important;padding:1px 4px!important;border-radius:4px!important}
+  .chip.grade{width:18px!important;height:18px!important;font-size:10px!important;border-radius:5px!important}
+  .kpi{padding:8px!important;break-inside:avoid;page-break-inside:avoid}
+  .kpi-value{font-size:15px!important}
+  .kpi-label{font-size:9px!important}
+  .kpi-icon{width:28px!important;height:28px!important;font-size:13px!important;flex-basis:28px!important}
+  .grid{gap:6px!important}
+  .g2{grid-template-columns:1fr 1fr!important}
+  .g3{grid-template-columns:repeat(3,1fr)!important}
+  .g4{grid-template-columns:repeat(4,1fr)!important}
+  .card-head{padding:6px 10px!important;font-size:10.5px!important}
+  .card-body{padding:6px 8px!important}
+  .goal-card{padding:8px!important;break-inside:avoid}
+  .grade-box{min-height:auto!important;padding:4px 3px!important}
+  .grades-grid{grid-template-columns:repeat(6,1fr)!important;gap:3px!important}
+  .grade-box .gb-letter{width:22px!important;height:22px!important;font-size:11px!important}
+  .legend{font-size:9px!important;gap:6px!important;margin-top:4px!important}
+  #printHeader{padding:6px 8px!important;margin-bottom:4px!important}
+  #printHeader .ph-name{font-size:13px!important}
+  #printHeader .ph-meta{font-size:9px!important;gap:10px!important;margin-top:3px!important}
+  @page{size:A4;margin:10mm}
+}`;
+const styleEl = document.createElement('style');
+styleEl.textContent = printCSS;
+document.head.appendChild(styleEl);
+
+/* ─── 2) helper: قراءة اسم الرأس المخصص ─── */
+window.hdr = function(tableId, key, defaultLabel){
+  const c = (window.db?.settings?.customHeaders?.[tableId] || {})[key];
+  return (c && String(c).trim()) ? String(c) : defaultLabel;
+};
+
+/* ─── 3) خرائط رؤوس كل جدول (مفتاح → دالة تُعيد النص الافتراضي) ─── */
+const DEFS = {
+  reps: {
+    name:             () => t('fld_name'),
+    code:             () => t('fld_code'),
+    phone:            () => t('fld_phone'),
+    app:              () => t('fld_app'),
+    carId:            () => t('fld_car_assigned'),
+    supervisorId:     () => t('fld_supervisor'),
+    region:           () => t('fld_region'),
+    deliveredOrders:  () => t('fld_delivered_orders')
+  },
+  supervisors: {
+    name:             () => t('fld_name'),
+    code:             () => t('fld_code'),
+    email:            () => t('fld_email'),
+    repsCount:        () => t('nav_reps'),
+    orders:           () => t('fld_orders') + ' (7d)',
+    hours:            () => t('fld_hours') + ' (7d)',
+    permissions:      () => t('fld_permissions')
+  },
+  cars: {
+    brand:            () => t('fld_brand'),
+    model:            () => t('fld_model'),
+    plate:            () => t('fld_plate'),
+    year:             () => t('fld_year'),
+    rentalOfficeId:   () => t('fld_rental_office'),
+    status:           () => t('fld_status'),
+    assignedRepId:    () => t('fld_rep'),
+    oil:              () => t('t_oil')
+  },
+  offices: {
+    name:             () => t('office_name'),
+    phone:            () => t('office_phone'),
+    contact:          () => t('office_contact'),
+    address:          () => t('office_address'),
+    carsCount:        () => t('kpi_cars')
+  },
+  maintenance: {
+    carId:            () => t('fld_car'),
+    type:             () => t('fld_type'),
+    category:         () => t('fld_category'),
+    date:             () => t('fld_date'),
+    cost:             () => t('fld_cost'),
+    desc:             () => t('fld_desc'),
+    status:           () => t('fld_status')
+  },
+  usage: {
+    username:         () => t('fld_username'),
+    carId:            () => t('fld_car'),
+    repId:            () => t('fld_rep'),
+    supervisorId:     () => t('fld_supervisor'),
+    startDate:        () => t('fld_start_date'),
+    endDate:          () => t('fld_end_date'),
+    startKm:          () => t('fld_start_km'),
+    endKm:            () => t('fld_end_km'),
+    km:               () => t('fld_km')
+  },
+  oil: {
+    carId:            () => t('fld_car'),
+    date:             () => t('fld_date'),
+    km:               () => t('fld_km'),
+    nextKm:           () => t('fld_next_km'),
+    nextDate:         () => t('fld_next_date'),
+    cost:             () => t('fld_cost'),
+    status:           () => t('fld_status')
+  },
+  internet: {
+    repId:            () => t('fld_name'),
+    prevRenewal:      () => t('fld_prev_renewal'),
+    nextRenewal:      () => t('fld_next_renewal'),
+    daysLeft:         () => t('fld_days_left'),
+    price:            () => t('fld_price'),
+    actualDuration:   () => t('fld_actual_duration')
+  },
+  settlements: {
+    code:             () => 'ID',
+    responsible:      () => t('fld_responsible'),
+    app:              () => t('fld_app'),
+    from:             () => t('fld_from'),
+    to:               () => t('fld_to'),
+    days:             () => t('fld_rental_days'),
+    amount:           () => t('fld_settlement_amount'),
+    bank:             () => t('fld_bank_account'),
+    regTime:          () => t('fld_reg_time')
+  }
+};
+
+/* ─── 4) تحديد الجدول النشط حالياً ─── */
+function currentTableId(){
+  const s = window.state?.section;
+  if(s === 'reps')        return 'reps';
+  if(s === 'supervisors') return 'supervisors';
+  if(s === 'cars'){
+    return ({ vehicles:'cars', offices:'offices', maintenance:'maintenance',
+              usage:'usage', oil:'oil' })[window.state.carsTab] || 'cars';
+  }
+  if(s === 'internet')   return 'internet';
+  if(s === 'settlement') return 'settlements';
+  return null;
+}
+
+/* ─── 5) تزيين الرؤوس بعد كل رسم: تعيين data-col + تطبيق التسمية المخصصة ─── */
+function patchHeadersAndOrder(){
+  const tableId = currentTableId();
+  if(!tableId) return;
+  const defs = DEFS[tableId];
+  if(!defs) return;
+
+  document.querySelectorAll('#view table').forEach(table => {
+    const headerRow = table.querySelector('thead tr');
+    if(!headerRow) return;
+    const ths = [...headerRow.children];
+
+    /* 5.1: تعيين data-col لكل <th> افتراضي عبر مطابقة النص */
+    ths.forEach(th => {
+      if(th.dataset.col) return;                    // مخصص بالفعل
+      const txt = (th.textContent || '').trim();
+      if(!txt) return;
+      // مطابقة تامة أولاً
+      let matchedKey = null;
+      for(const [key, fn] of Object.entries(defs)){
+        if(txt === fn()){ matchedKey = key; break; }
+      }
+      // مطابقة بادئة (مثل "عدد الطلبات (7d)")
+      if(!matchedKey){
+        for(const [key, fn] of Object.entries(defs)){
+          if(txt.startsWith(fn())){ matchedKey = key; break; }
+        }
+      }
+      if(matchedKey){
+        th.dataset.col = matchedKey;
+        const defLabel = th.textContent;
+        const custom = hdr(tableId, matchedKey, defLabel);
+        if(custom !== defLabel) th.textContent = custom;
+      }
+    });
+
+    /* 5.2: تطبيق الترتيب المحفوظ */
+    const order = window.db?.settings?.columnOrder?.[tableId];
+    if(!Array.isArray(order) || !order.length) return;
+
+    const keys = ths.map(th => th.dataset.col || null);
+    const desired = order.filter(k => keys.includes(k));
+    const unknownCols = keys.filter(k => k && !order.includes(k));
+    const finalDataCols = [...desired, ...unknownCols];
+    if(!finalDataCols.length) return;
+
+    const indices = finalDataCols.map(k => keys.indexOf(k));
+    const extras  = keys.map((k, i) => k ? -1 : i).filter(i => i >= 0);
+    const finalIndices = [...indices, ...extras];
+    if(finalIndices.length !== keys.length) return;
+    if(finalIndices.every((idx, i) => idx === i)) return;  // لا تغيير
+
+    table.querySelectorAll('tr').forEach(row => {
+      const cells = [...row.children];
+      if(cells.length !== keys.length) return;
+      const newCells = finalIndices.map(i => cells[i]);
+      cells.forEach(c => c.remove());
+      newCells.forEach(c => row.appendChild(c));
+    });
+  });
+}
+
+/* ─── 6) غلّف render() لتشغيل التزيين بعد كل رسم ─── */
+const _origRender = window.render;
+window.render = function(){
+  const result = _origRender.apply(this, arguments);
+  setTimeout(patchHeadersAndOrder, 0);
+  return result;
+};
+
+/* ─── 7) غلّف customHeadHTML لإضافة data-col للأعمدة المخصصة ─── */
+const _origCustomHead = window.customHeadHTML;
+if(typeof _origCustomHead === 'function'){
+  window.customHeadHTML = function(tableId){
+    const cols = window.customCols ? window.customCols(tableId) : [];
+    return cols.map(c => `<th data-col="${esc(c.id)}">${esc(c.label)}</th>`).join('');
+  };
+}
+
+/* ─── 8) ترقيع نافذة إدارة الجداول: جعل الصفوف الافتراضية قابلة للتعديل والتحريك ─── */
+const _origOTM = window.openTableManager;
+if(typeof _origOTM === 'function'){
+  window.openTableManager = function(tableId){
+    _origOTM.call(this, tableId);
+    setTimeout(()=> enhanceTableManagerModal(tableId), 60);
+  };
+}
+
+function enhanceTableManagerModal(tableId){
+  const modal = document.querySelector('#modalRoot .modal');
+  if(!modal) return;
+  const body = modal.querySelector('#tmBody');
+  if(!body) return;
+
+  /* 8.1: حسّن الصفوف الافتراضية */
+  body.querySelectorAll('tr[data-col-locked]').forEach(tr => {
+    const key = tr.dataset.colKey;
+    const inp = tr.querySelector('input');
+    if(!inp) return;
+    const defaultLabel = inp.value;                 // النص الافتراضي الحالي
+    const currentLabel = hdr(tableId, key, defaultLabel);
+    inp.value = currentLabel;
+    inp.readOnly = false;
+    inp.dataset.colLabel = '';
+    inp.dataset.defaultLabel = defaultLabel;
+    inp.placeholder = 'اكتب اسماً مخصصاً…';
+
+    /* غيّر شارة "افتراضية" لتوضيح أنها قابلة للتعديل */
+    const chip = tr.querySelector('.chip.gray');
+    if(chip) chip.innerHTML = '✏️ ' + (t('col_builtin') || 'قابلة للتعديل');
+
+    /* استبدل عمود الإجراءات (كان —) بأزرار التحريك والاستعادة */
+    const actionsCell = tr.children[2];
+    if(actionsCell){
+      actionsCell.innerHTML = `
+        <div class="tbl-actions" style="justify-content:center">
+          <button type="button" class="btn btn-ghost btn-sm" data-col-up title="أعلى">⬆️</button>
+          <button type="button" class="btn btn-ghost btn-sm" data-col-down title="أسفل">⬇️</button>
+          <button type="button" class="btn btn-ghost btn-sm" data-col-reset
+                  style="color:var(--amber)" title="${t('col_reset')||'استعادة الافتراضي'}">↺</button>
+        </div>`;
+    }
+
+    /* اجعله قابلاً للسحب */
+    tr.draggable = true;
+  });
+
+  /* 8.2: أضف data-col-key للصفوف المخصصة أيضاً (لحفظ الترتيب) */
+  body.querySelectorAll('tr[data-col-custom]').forEach(tr => {
+    if(!tr.dataset.colKey) tr.dataset.colKey = tr.dataset.colId;
+  });
+
+  /* 8.3: أعد ربط جميع الأزرار */
+  bindTableManagerActions(body, modal, tableId);
+}
+
+function bindTableManagerActions(body, modal, tableId){
+  /* حرّك لأعلى */
+  body.querySelectorAll('[data-col-up]').forEach(btn => {
+    if(btn.dataset.bound) return; btn.dataset.bound = '1';
+    btn.onclick = () => {
+      const tr = btn.closest('tr');
+      const prev = tr.previousElementSibling;
+      if(prev) body.insertBefore(tr, prev);
+    };
+  });
+
+  /* حرّك لأسفل */
+  body.querySelectorAll('[data-col-down]').forEach(btn => {
+    if(btn.dataset.bound) return; btn.dataset.bound = '1';
+    btn.onclick = () => {
+      const tr = btn.closest('tr');
+      const next = tr.nextElementSibling;
+      if(next) body.insertBefore(next, tr);
+    };
+  });
+
+  /* استعادة الافتراضي */
+  body.querySelectorAll('[data-col-reset]').forEach(btn => {
+    if(btn.dataset.bound) return; btn.dataset.bound = '1';
+    btn.onclick = () => {
+      const tr = btn.closest('tr');
+      const inp = tr.querySelector('input');
+      if(inp && inp.dataset.defaultLabel) inp.value = inp.dataset.defaultLabel;
+    };
+  });
+
+  /* السحب والإفلات */
+  body.querySelectorAll('tr[draggable="true"]').forEach(tr => {
+    if(tr.dataset.dragBound) return; tr.dataset.dragBound = '1';
+    tr.ondragstart = e => {
+      window.state._tmDragSrc = tr;
+      e.dataTransfer.effectAllowed = 'move';
+      try{ e.dataTransfer.setData('text/plain', tr.dataset.colKey || 'x'); }catch(_){}
+      tr.style.opacity = '0.5';
+    };
+    tr.ondragend = () => { tr.style.opacity = ''; window.state._tmDragSrc = null; };
+    tr.ondragover = e => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; };
+    tr.ondrop = e => {
+      e.preventDefault();
+      const src = window.state._tmDragSrc;
+      if(!src || src === tr) return;
+      const rect = tr.getBoundingClientRect();
+      const after = (e.clientY - rect.top) > rect.height / 2;
+      body.insertBefore(src, after ? tr.nextSibling : tr);
+      body.querySelectorAll('tr').forEach(x => x.classList.remove('drop-target'));
+      tr.classList.add('drop-target');
+      setTimeout(() => tr.classList.remove('drop-target'), 600);
+    };
+  });
+
+  /* استبدل زر الحفظ تماماً */
+  const saveBtn = modal.querySelector('#mSave');
+  if(saveBtn && !saveBtn.dataset.patched){
+    saveBtn.dataset.patched = '1';
+    saveBtn.onclick = () => {
+      const fullOrder = [];
+      const customHeaders = {};
+
+      body.querySelectorAll('tr').forEach(tr => {
+        const key = tr.dataset.colKey;
+        const inp = tr.querySelector('input');
+        const label = (inp?.value || '').trim();
+        const defaultLabel = inp?.dataset.defaultLabel || '';
+
+        if(tr.dataset.colCustom === '1'){
+          if(!label) return;
+          fullOrder.push({ type:'custom', id:key, label });
+        } else if(tr.dataset.colLocked === '1'){
+          fullOrder.push({ type:'builtin', key });
+          if(label && defaultLabel && label !== defaultLabel){
+            customHeaders[key] = label;
+          }
+        }
+      });
+
+      if(!window.db.settings.customColumns) window.db.settings.customColumns = {};
+      if(!window.db.settings.customHeaders) window.db.settings.customHeaders = {};
+      if(!window.db.settings.columnOrder)  window.db.settings.columnOrder  = {};
+
+      window.db.settings.customColumns[tableId] = fullOrder
+        .filter(x => x.type === 'custom')
+        .map(x => ({ id:x.id, label:x.label }));
+      window.db.settings.customHeaders[tableId] = customHeaders;
+      window.db.settings.columnOrder[tableId]   = fullOrder.map(x => x.type==='custom' ? x.id : x.key);
+
+      window.saveDB();
+      window.render();
+      document.querySelector('#modalRoot').innerHTML = '';
+      window.toast(t('col_saved') || 'تم حفظ التغييرات', 'ok');
+      try{ window.autoSyncAfterSave && window.autoSyncAfterSave(); }catch(e){}
+    };
+  }
+}
+
+/* ─── 9) ملاءمة الطباعة تلقائياً ─── */
+function autoFitPrint(){
+  const view = document.getElementById('view');
+  if(!view) return;
+  const naturalWidth = view.getBoundingClientRect().width;
+  const A4_WIDTH_PX = 718;                          // A4 ناقص هوامش 10mm
+  const z = Math.min(1, A4_WIDTH_PX / Math.max(naturalWidth, A4_WIDTH_PX));
+  document.documentElement.style.setProperty('--print-zoom', String(Math.max(0.3, z)));
+}
+window.addEventListener('beforeprint', autoFitPrint);
+window.addEventListener('afterprint', () => {
+  document.documentElement.style.removeProperty('--print-zoom');
+});
+
+console.log('%c[PATCH] ✅ تعديل الرؤوس + ترتيب الأعمدة + الطباعة التلقائية جاهز','color:#10b981;font-weight:bold;');
+})();
+</script>
 </body>
 </html>
