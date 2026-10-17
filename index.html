@@ -7,6 +7,8 @@
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>">
 <meta name="theme-color" content="#6366f1">
 <meta name="description" content="نظام تحليل أداء السائقين — لوحة تحكم متكاملة مع مزامنة سحابية">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
 :root{
   --primary:#6366f1;--primary-2:#8b5cf6;--primary-3:#06b6d4;
@@ -43,6 +45,7 @@ body{
     radial-gradient(900px 500px at 0% 100%,rgba(6,182,212,.05),transparent 60%);
   color:var(--text);font-size:var(--fs);line-height:1.55;
   -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
+  transform-origin:top right;
 }
 button,input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
 button{cursor:pointer;border:0;background:none;padding:0}
@@ -157,6 +160,7 @@ tbody td{padding:14px 16px;border-bottom:1px solid var(--border-2);vertical-alig
 tbody tr{transition:background .15s}
 tbody tr:last-child td{border-bottom:0}
 tbody tr:hover{background:linear-gradient(90deg,var(--primary-soft),transparent 60%)}
+tfoot td{padding:14px 16px;border-top:2px solid var(--border);color:var(--text)}
 .tbl-actions{display:flex;gap:4px;justify-content:flex-end}
 .cards-grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fill,minmax(280px,1fr))}
 .item-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:18px;transition:all .25s;box-shadow:var(--shadow-xs);position:relative;overflow:hidden}
@@ -388,76 +392,61 @@ textarea{resize:vertical;min-height:70px}
 .goal-row-actions{display:flex;gap:4px}
 .goal-sup-row td{padding:10px 8px!important}
 .goal-sup-row select,.goal-sup-row input{padding:8px 10px!important;border-radius:9px!important;font-size:13px!important}
-
-/* ============ جدول الصلاحيات الجديد (أقسام + فروع) ============ */
-.perm-card{
-  border:1px solid var(--border);border-radius:16px;padding:16px 18px;
-  background:var(--card);margin-bottom:14px;box-shadow:var(--shadow-xs);
-}
-.perm-card-head{
-  display:flex;align-items:center;gap:12px;margin-bottom:14px;
-  padding-bottom:12px;border-bottom:1px solid var(--border-2);
-}
+.perm-card{border:1px solid var(--border);border-radius:16px;padding:16px 18px;background:var(--card);margin-bottom:14px;box-shadow:var(--shadow-xs)}
+.perm-card-head{display:flex;align-items:center;gap:12px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border-2)}
 .perm-card-title{font-weight:800;font-size:14px;color:var(--text)}
 .perm-table{width:100%;border-collapse:collapse}
-.perm-table th{
-  text-align:start;padding:9px 12px;font-size:11px;font-weight:700;
-  color:var(--muted);text-transform:uppercase;letter-spacing:.5px;
-  border-bottom:1px solid var(--border);background:var(--bg-2);
-}
-.perm-table th:nth-child(2),
-.perm-table th:nth-child(3){text-align:center;width:90px}
-.perm-table td{
-  padding:9px 12px;border-bottom:1px solid var(--border-2);
-  font-size:13px;color:var(--text-2);
-}
+.perm-table th{text-align:start;padding:9px 12px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border);background:var(--bg-2)}
+.perm-table th:nth-child(2),.perm-table th:nth-child(3){text-align:center;width:90px}
+.perm-table td{padding:9px 12px;border-bottom:1px solid var(--border-2);font-size:13px;color:var(--text-2)}
 .perm-table tr:last-child td{border-bottom:0}
 .perm-table tr:hover{background:linear-gradient(90deg,var(--primary-soft),transparent 60%)}
-.perm-table tr.branch td:first-child{
-  padding-inline-start:38px;font-size:12.5px;color:var(--muted);
-  font-weight:500;position:relative;
-}
-.perm-table tr.branch td:first-child::before{
-  content:'↳';position:absolute;inset-inline-start:18px;
-  color:var(--muted-2);font-weight:700;
-}
+.perm-table tr.branch td:first-child{padding-inline-start:38px;font-size:12.5px;color:var(--muted);font-weight:500;position:relative}
+.perm-table tr.branch td:first-child::before{content:'↳';position:absolute;inset-inline-start:18px;color:var(--muted-2);font-weight:700}
 .perm-table .chk-cell{text-align:center}
-.perm-table .chk-cell input[type=checkbox]{
-  width:18px;height:18px;accent-color:var(--primary);cursor:pointer;
-  margin:0;padding:0;vertical-align:middle;
-}
+.perm-table .chk-cell input[type=checkbox]{width:18px;height:18px;accent-color:var(--primary);cursor:pointer;margin:0;padding:0;vertical-align:middle}
 .perm-table .section-icon{display:inline-block;margin-inline-end:6px;font-size:15px}
-
-/* ============ زر إضافة عنصر داخل القوائم المنسدلة ============ */
 .select-add-wrap{display:flex;gap:6px;align-items:stretch;width:100%}
 .select-add-wrap select{flex:1;min-width:0}
-.btn-add-inline{
-  flex:0 0 44px;display:grid;place-items:center;padding:0;line-height:1;
-  border:1px solid var(--border);background:var(--card);border-radius:11px;
-  font-size:20px;font-weight:800;color:var(--primary);
-  transition:all .18s cubic-bezier(.4,0,.2,1);cursor:pointer;
-}
-.btn-add-inline:hover{
-  background:var(--primary-soft);border-color:var(--primary);
-  transform:scale(1.06);box-shadow:0 6px 14px -6px var(--primary);
-}
+.btn-add-inline{flex:0 0 44px;display:grid;place-items:center;padding:0;line-height:1;border:1px solid var(--border);background:var(--card);border-radius:11px;font-size:20px;font-weight:800;color:var(--primary);transition:all .18s cubic-bezier(.4,0,.2,1);cursor:pointer}
+.btn-add-inline:hover{background:var(--primary-soft);border-color:var(--primary);transform:scale(1.06);box-shadow:0 6px 14px -6px var(--primary)}
 .btn-add-inline:active{transform:scale(.95)}
 .btn-add-inline:focus-visible{outline:0;box-shadow:var(--focus)}
-
-/* ============ الاستجابة للشاشات ============ */
 img,svg,table{max-width:100%}
-
+#printHeader{display:none;text-align:center;padding:16px 20px;margin-bottom:14px;border-bottom:2px solid var(--primary);background:linear-gradient(180deg,#f8fafc,#fff)}
+#printHeader .ph-name{font-size:20px;font-weight:800;color:#0b1220;letter-spacing:-.3px}
+#printHeader .ph-meta{display:flex;justify-content:center;gap:24px;flex-wrap:wrap;margin-top:8px;font-size:12.5px;color:#334155;font-weight:600}
+#printHeader .ph-meta span{display:inline-flex;align-items:center;gap:6px}
+#printHeader .ph-logo{max-height:60px;max-width:180px;object-fit:contain;display:block;margin:0 auto 8px}
+.tbl-wrap input.editing, input.editing{
+  background: var(--primary-soft) !important;
+  border-color: var(--primary) !important;
+  font-weight: 700;
+  box-shadow: var(--focus);
+}
+.perm-card.collapsed .perm-table-wrap{display:none}
+.perm-card-head .perm-toggle{
+  width:34px;height:34px;border-radius:10px;border:1px solid var(--border);
+  background:var(--card);display:grid;place-items:center;font-size:15px;transition:.18s;flex:0 0 34px;
+}
+.perm-card-head .perm-toggle:hover{background:var(--primary-soft);border-color:var(--primary)}
+.dgm-inputs{display:inline-flex;gap:6px;align-items:center;flex-wrap:wrap}
+.dgm-inputs input[type=date]{padding:7px 10px;border-radius:9px;font-size:12.5px;max-width:150px}
+/* ==== إدارة الأعمدة - تأثيرات السحب ==== */
+#tmBody tr[data-col-custom]{cursor:default;transition:background .2s,box-shadow .2s}
+#tmBody tr[data-col-custom]:hover{background:var(--primary-soft)}
+#tmBody tr[data-col-custom]:hover span[title="اسحب للتحريك"]{color:var(--primary)}
+#tmBody tr.drop-target{background:var(--green-soft)!important;box-shadow:inset 3px 0 0 var(--green)}
+#tmBody tr[data-col-custom][draggable="true"]:active{cursor:grabbing}
 @media(min-width:1500px){
   .view{padding:32px;gap:24px}
   .g4{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
 }
-
 @media(max-width:1200px){
   .view{padding:20px;gap:18px}
   .g2{grid-template-columns:1fr}
   .g3{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
 }
-
 @media(max-width:980px){
   .sidebar{position:fixed;inset-inline-start:0;top:0;transform:translateX(100%);visibility:hidden}
   [dir=ltr] .sidebar{transform:translateX(-100%)}
@@ -468,7 +457,6 @@ img,svg,table{max-width:100%}
   .perf-hero-stats{justify-content:center}
   .grades-grid{grid-template-columns:repeat(3,1fr)}
 }
-
 @media(max-width:768px){
   .topbar{padding:10px 12px}
   .topbar-actions{gap:4px}
@@ -478,7 +466,6 @@ img,svg,table{max-width:100%}
   .card-body{padding:16px}
   .card-head{padding:14px 16px;font-size:13.5px}
 }
-
 @media(max-width:600px){
   .kpi-value{font-size:22px}
   .topbar h1{font-size:15px}
@@ -493,19 +480,30 @@ img,svg,table{max-width:100%}
   .perf-hero{padding:24px}
   .perf-subs{max-width:100%}
 }
-
 @media print{
   .sidebar,.topbar,.toolbar,.day-picker,#toast,.notif-panel,.icon-btn,.btn,.card-collapse,.tabs,.view-toggle,.chart-type-selector{display:none!important}
   .app{display:block!important;width:100%!important}
-  body{background:#fff!important;font-size:11px}
+  body{background:#fff!important;font-size:11px;zoom:1!important}
   .view{padding:8px;gap:10px;max-width:100%}
   .card{break-inside:avoid;box-shadow:none!important;border:1px solid #ddd!important;margin-bottom:10px}
   .perf-hero{box-shadow:none!important;border-radius:0}
   .card.collapsed > *:not(.card-head){display:block!important}
+  #printHeader{display:block!important}
+  @page{size:A4;margin:14mm}
 }
 </style>
 </head>
 <body>
+
+<div id="printHeader">
+  <img id="printHeaderLogo" class="ph-logo" style="display:none" alt="logo">
+  <div class="ph-name" id="printCompanyName"></div>
+  <div class="ph-meta">
+    <span>📋 <span id="printCR"></span></span>
+    <span>📞 <span id="printPhone"></span></span>
+    <span>📅 <span id="printDate"></span></span>
+  </div>
+</div>
 
 <div class="app" id="app" style="display:none">
   <aside class="sidebar" id="sidebar">
@@ -604,6 +602,7 @@ const I18N = {
   ar:{
     nav_dashboard:'لوحة التحكم', nav_daily:'التقارير اليومية', nav_reps:'السائقين',
     nav_supervisors:'المشرفين', nav_cars:'السيارات', nav_analytics:'التقارير', nav_goals:'الأهداف',
+    nav_internet:'الإنترنت', nav_settlement:'التصفية',
     btn_add:'إضافة', btn_edit:'تعديل', btn_save:'حفظ', btn_cancel:'إلغاء', btn_close:'إغلاق',
     btn_search:'بحث', btn_export:'تصدير', btn_import:'استيراد',
     btn_sync:'مزامنة', btn_reset:'إعادة تعيين', btn_refresh:'تحديث', btn_language:'اللغة',
@@ -635,10 +634,16 @@ const I18N = {
     fld_delivered_orders:'الطلبات الموصلة', fld_system_rejected:'مرفوضة من النظام',
     fld_driver_rejected:'مرفوضة من السائق', fld_total_orders:'إجمالي الطلبات',
     fld_delivery_rate:'نسبة التسليم',
+    fld_prev_renewal:'وقت التجديد السابق', fld_next_renewal:'وقت التجديد القادم',
+    fld_days_left:'الأيام المتبقية', fld_price:'السعر', fld_actual_duration:'المدة الفعلية',
+    fld_from:'من', fld_to:'إلى', fld_rental_days:'أيام الإيجار',
+    fld_settlement_amount:'مبلغ التصفية', fld_bank_account:'الحساب البنكي',
+    fld_responsible:'المسئول', fld_reg_time:'وقت التسجيل', fld_grand_total:'الإجمالي',
     actual_drivers:'السائقون الفعليون', total_drivers:'إجمالي السائقين',
     t_daily:'التقرير اليومي', t_reps:'سجل السائقين', t_sups:'سجل المشرفين',
     t_cars:'سجل المركبات', t_offices:'مكاتب التأجير', t_maint:'الصيانة والأعطال', t_usage:'استخدام المركبات',
     t_oil:'جدول تغيير الزيت', t_top:'الأفضل أداءً',
+    t_internet:'جدول الإنترنت', t_settlement:'جدول التصفية',
     t_orders_rep:'الطلبات لكل سائق', t_hours_rep:'ساعات العمل لكل سائق',
     t_viol:'توزيع المخالفات', t_trend:'اتجاه الطلبات (7 أيام)',
     t_sup_perf:'أداء المشرفين', t_compare:'المقارنة بين اليومين',
@@ -694,7 +699,7 @@ const I18N = {
     login_id:'البريد الإلكتروني أو رقم الجوال', login_pwd:'كلمة المرور',
     welcome:'مرحباً',
     perf_score:'مؤشر الأداء العام', perf_score_sub:'نظرة شاملة على أداء الفريق',
-    perf_desc:'يُحسب المؤشر من الطلبات، الالتزام بالساعات، ونسبة قبول المخالفات.',
+    perf_desc:'يُحسب المؤشر من الطلبات المحققة مقابل الهدف المحدد من المالك.',
     perf_excellent:'ممتاز', perf_good:'جيد', perf_fair:'مقبول', perf_poor:'يحتاج تحسين',
     perf_avg_orders:'متوسط الطلبات اليومية', perf_avg_hours:'متوسط ساعات العمل',
     perf_accept_rate:'نسبة قبول المخالفات', perf_total_reps:'عدد السائقين',
@@ -803,11 +808,76 @@ const I18N = {
     perm_view_col:'عرض', perm_edit_col:'تعديل',
     perm_intro:'حدد لكل مشرف الأقسام المسموح بعرضها، ويمكن منح صلاحية التعديل لكل قسم أو فرع بشكل مستقل. خانة "عرض" = قراءة فقط، وخانة "تعديل" = إضافة/حذف/تعديل.',
     perm_owner_note:'تنبيه: المالك يملك كل الصلاحيات بشكل افتراضي.',
-    perm_branches:'الفروع'
+    perm_branches:'الفروع',
+    msg_custom_category_required:'يرجى كتابة التصنيف',
+    msg_conn_ok:'الاتصال ناجح ✓',
+    msg_conn_fail:'فشل الاتصال',
+    msg_all_read:'تم تحديد الكل كمقروء',
+    msg_loading_cloud:'جاري تحميل البيانات من السحابة…',
+    msg_please_wait:'يرجى الانتظار لحظات',
+    msg_fs_unsupported:'المتصفح لا يدعم ملء الشاشة',
+    msg_fs_failed:'تعذّر تفعيل ملء الشاشة',
+    msg_fs_exit:'إنهاء ملء الشاشة',
+    msg_fs_enter:'ملء الشاشة',
+    msg_creds_shown:'بيانات الدخول ظاهرة',
+    msg_creds_hidden:'تم إخفاء بيانات الدخول',
+    msg_img_too_large:'حجم الصورة يجب أن يكون أقل من 500KB',
+    msg_logo_selected:'تم اختيار الشعار، اضغط حفظ الهوية',
+    msg_logo_removed:'تم إزالة الشعار',
+    msg_pick_image:'📁 اختر صورة',
+    msg_complete_relations:'أكمل إضافة المركبة/السائق/المشرف أولاً',
+    msg_no_assigned_reps:'لا يوجد سائقون مسندون إليك',
+    msg_add_rep_first:'أضف سائقاً أولاً',
+    msg_active_now:'جاري',
+    msg_status_done:'✔ منتهية',
+    msg_status_progress:'⏳ جارية',
+    oil_status_urgent:'🛢️ تغيير فوري',
+    oil_status_soon:'⚠️ قريباً',
+    oil_status_ok:'✔ جيد',
+    msg_now:'الآن',
+    msg_min_short:'د',
+    msg_hour_short:'س',
+    msg_day_short:'ي',
+    msg_import_file:'📥 استيراد من ملف',
+    msg_import_hint:'يدعم Excel (.xlsx/.xls/.csv) و PDF. الترتيب: [اسم السائق أو الكود] | الطلبات | مرفوضة نظام | مرفوضة سائق | الساعات | بداية كم | نهاية كم | مقبولة | مرفوضة | ملاحظات',
+    msg_import_success:'تم استيراد البيانات بنجاح',
+    msg_import_failed:'تعذّر استيراد الملف',
+    msg_import_no_match:'لم يتم مطابقة أي سائق',
+    msg_import_parsing:'جاري تحليل الملف…',
+    msg_perm_denied_manual:'المزامنة في الوضع اليدوي — اضغط زر الرفع أو السحب',
+    msg_sync_manual_only:'الوضع اليدوي مفعّل — لا يوجد رفع تلقائي',
+    net_add:'إضافة اشتراك', set_add:'إضافة تصفية',
+    msg_internet_1day:'🌐 اشتراك ينتهي غداً', msg_internet_2day:'🌐 اشتراك ينتهي بعد يومين',
+    msg_internet_expired:'🌐 انتهى الاشتراك',
+    msg_settlement_added:'تم إضافة التصفية', msg_settlement_saved:'تم حفظ التصفية',
+    company_section:'🏢 بيانات الشركة', company_name:'اسم الشركة',
+    company_cr:'السجل التجاري', company_phone:'رقم التواصل',
+    save_company:'💾 حفظ بيانات الشركة',
+    headers_editor:'📋 رؤوس الجداول', dropdowns_editor:'🔽 القوائم المنسدلة',
+    headers_editor_hint:'يمكنك تعديل النص الظاهر لكل رأس جدول',
+    dropdowns_editor_hint:'يمكنك تعديل القوائم المنسدلة (البنوك، المناطق)',
+    save_headers:'حفظ الرؤوس', save_dropdowns:'حفظ القوائم',
+    print_settlement:'🖨️ طباعة التصفية',
+    ddl_apps:'التطبيقات', ddl_maint_cats:'تصنيفات الصيانة',
+    ddl_fault_cats:'تصنيفات الأعطال', ddl_regions:'المناطق', ddl_banks:'الحسابات البنكية',
+    msg_bank_text_hint:'اكتب اسم الحساب البنكي يدوياً',
+    msg_open_table_mgr:'📋 إدارة الجداول',
+    msg_open_ddl_mgr:'🔽 إدارة القوائم المنسدلة',
+    msg_select_table:'اختر الجدول',
+    msg_choose_table:'— اختر جدولاً —',
+    manage_data:'🗂️ إدارة البيانات',
+    msg_table_manager:'إدارة الجداول',
+    msg_ddl_manager:'إدارة القوائم المنسدلة',
+    col_header_name:'اسم الخانة (رأس الجدول)', col_type:'النوع',
+    col_builtin:'افتراضية', col_custom:'مضافة', col_add:'إضافة خانة',
+    col_saved:'تم حفظ رؤوس الجداول', btn_delete_col:'حذف الخانة',
+    col_manager_hint:'هنا يتم التحكم في أعمدة (رؤوس) الجدول فقط: يمكنك إضافة خانة جديدة، تعديل مسمّاها، حذف الخانات المضافة، أو تحريكها لأعلى/أسفل. أما بيانات الجدول نفسها فلا يتم تعديلها من هنا.',
+    msg_font_size_hint:'حجم الخط يُطبَّق على كامل الواجهة'
   },
   en:{
     nav_dashboard:'Dashboard', nav_daily:'Daily Reports', nav_reps:'Drivers',
     nav_supervisors:'Supervisors', nav_cars:'Vehicles', nav_analytics:'Reports', nav_goals:'Goals',
+    nav_internet:'Internet', nav_settlement:'Settlement',
     btn_add:'Add', btn_edit:'Edit', btn_save:'Save', btn_cancel:'Cancel', btn_close:'Close',
     btn_search:'Search', btn_export:'Export', btn_import:'Import',
     btn_sync:'Sync', btn_reset:'Reset', btn_refresh:'Refresh', btn_language:'Language',
@@ -839,10 +909,16 @@ const I18N = {
     fld_delivered_orders:'Delivered Orders', fld_system_rejected:'System Rejected',
     fld_driver_rejected:'Driver Rejected', fld_total_orders:'Total Orders',
     fld_delivery_rate:'Delivery Rate',
+    fld_prev_renewal:'Previous Renewal', fld_next_renewal:'Next Renewal',
+    fld_days_left:'Days Left', fld_price:'Price', fld_actual_duration:'Actual Duration',
+    fld_from:'From', fld_to:'To', fld_rental_days:'Rental Days',
+    fld_settlement_amount:'Settlement Amount', fld_bank_account:'Bank Account',
+    fld_responsible:'Responsible', fld_reg_time:'Registration Time', fld_grand_total:'Grand Total',
     actual_drivers:'Actual Drivers', total_drivers:'Total Drivers',
     t_daily:'Daily Report', t_reps:'Drivers List', t_sups:'Supervisors List',
     t_cars:'Vehicles List', t_offices:'Rental Offices', t_maint:'Maintenance & Faults', t_usage:'Vehicle Usage',
     t_oil:'Oil Change Schedule', t_top:'Top Performers',
+    t_internet:'Internet Table', t_settlement:'Settlement Table',
     t_orders_rep:'Orders per Driver', t_hours_rep:'Work Hours per Driver',
     t_viol:'Violations Distribution', t_trend:'Orders Trend (7 days)',
     t_sup_perf:'Supervisors Performance', t_compare:'Two-Day Comparison',
@@ -897,7 +973,7 @@ const I18N = {
     login_id:'Email or Phone', login_pwd:'Password',
     welcome:'Welcome',
     perf_score:'Overall Performance Score', perf_score_sub:'Team performance at a glance',
-    perf_desc:'Score computed from orders, hours adherence, and violation acceptance.',
+    perf_desc:'Score computed from orders achieved vs the target set by the owner.',
     perf_excellent:'Excellent', perf_good:'Good', perf_fair:'Fair', perf_poor:'Needs Improvement',
     perf_avg_orders:'Avg daily orders', perf_avg_hours:'Avg daily hours',
     perf_accept_rate:'Violation acceptance', perf_total_reps:'Active drivers',
@@ -947,7 +1023,7 @@ const I18N = {
     grades_save:'Save Driver Grades',
     grades_hint:'Minimum daily orders to earn this grade',
     daily_grades_section:'📅 Daily Grades (A-D)',
-    daily_grades_desc:'Set minimum average orders per driver for the day to earn each grade. Table appears in Dashboard and Analytics.',
+    daily_grades_desc:'Set minimum average orders per driver for the day to earn each grade.',
     daily_grades_save:'Save Daily Grades',
     daily_grades_hint:'Min avg orders/driver/day',
     daily_grades_table:'Daily Grades Table', avg_per_driver:'Avg/Driver',
@@ -1004,9 +1080,73 @@ const I18N = {
     msg_no_reps:'No drivers available', msg_no_cars:'No vehicles available',
     msg_no_sups:'No supervisors', msg_no_offices:'No rental offices',
     perm_view_col:'View', perm_edit_col:'Edit',
-    perm_intro:'Choose what each supervisor can view, and separately grant edit permission per section or branch. "View" = read-only, "Edit" = add/delete/modify.',
+    perm_intro:'Choose what each supervisor can view, and separately grant edit permission per section or branch.',
     perm_owner_note:'Note: The owner has all permissions by default.',
-    perm_branches:'Branches'
+    perm_branches:'Branches',
+    msg_custom_category_required:'Please enter the category',
+    msg_conn_ok:'Connected successfully ✓',
+    msg_conn_fail:'Connection failed',
+    msg_all_read:'All marked as read',
+    msg_loading_cloud:'Loading data from cloud…',
+    msg_please_wait:'Please wait a moment',
+    msg_fs_unsupported:'Browser does not support fullscreen',
+    msg_fs_failed:'Failed to enable fullscreen',
+    msg_fs_exit:'Exit fullscreen',
+    msg_fs_enter:'Fullscreen',
+    msg_creds_shown:'Credentials shown',
+    msg_creds_hidden:'Credentials hidden',
+    msg_img_too_large:'Image size must be less than 500KB',
+    msg_logo_selected:'Logo selected, press Save Branding',
+    msg_logo_removed:'Logo removed',
+    msg_pick_image:'📁 Choose Image',
+    msg_complete_relations:'Complete vehicle/driver/supervisor first',
+    msg_no_assigned_reps:'No drivers assigned to you',
+    msg_add_rep_first:'Add a driver first',
+    msg_active_now:'Active',
+    msg_status_done:'✔ Done',
+    msg_status_progress:'⏳ In progress',
+    oil_status_urgent:'🛢️ Change now',
+    oil_status_soon:'⚠️ Soon',
+    oil_status_ok:'✔ Good',
+    msg_now:'now',
+    msg_min_short:'m',
+    msg_hour_short:'h',
+    msg_day_short:'d',
+    msg_import_file:'📥 Import from File',
+    msg_import_hint:'Supports Excel (.xlsx/.xls/.csv) and PDF.',
+    msg_import_success:'Data imported successfully',
+    msg_import_failed:'Failed to import file',
+    msg_import_no_match:'No drivers matched',
+    msg_import_parsing:'Parsing file…',
+    msg_perm_denied_manual:'Manual sync mode — use the push or pull button',
+    msg_sync_manual_only:'Manual mode enabled — no auto-upload',
+    net_add:'Add Subscription', set_add:'Add Settlement',
+    msg_internet_1day:'🌐 Subscription ends tomorrow', msg_internet_2day:'🌐 Ends in 2 days',
+    msg_internet_expired:'🌐 Subscription expired',
+    msg_settlement_added:'Settlement added', msg_settlement_saved:'Settlement saved',
+    company_section:'🏢 Company Info', company_name:'Company Name',
+    company_cr:'Commercial Registration', company_phone:'Contact Number',
+    save_company:'💾 Save Company', headers_editor:'📋 Table Headers',
+    dropdowns_editor:'🔽 Dropdown Menus',
+    headers_editor_hint:'Edit the displayed text for each table header',
+    dropdowns_editor_hint:'Edit dropdown menus (banks, regions)',
+    save_headers:'Save Headers', save_dropdowns:'Save Dropdowns',
+    print_settlement:'🖨️ Print Settlement',
+    ddl_apps:'Apps', ddl_maint_cats:'Maintenance Categories',
+    ddl_fault_cats:'Fault Categories', ddl_regions:'Regions', ddl_banks:'Bank Accounts',
+    msg_bank_text_hint:'Type the bank account name manually',
+    msg_open_table_mgr:'📋 Manage Tables',
+    msg_open_ddl_mgr:'🔽 Manage Dropdowns',
+    msg_select_table:'Select Table',
+    msg_choose_table:'— Choose a table —',
+    manage_data:'🗂️ Manage Data',
+    msg_table_manager:'Table Manager',
+    msg_ddl_manager:'Dropdown Manager',
+    col_header_name:'Column name (table header)', col_type:'Type',
+    col_builtin:'Built-in', col_custom:'Added', col_add:'Add column',
+    col_saved:'Table headers saved', btn_delete_col:'Delete column',
+    col_manager_hint:'Here you manage the table columns (headers) only: add a new column, rename it, delete added ones, or move them up/down. The table data itself is not edited here.',
+    msg_font_size_hint:'Font size applies to the whole interface'
   }
 };
 const t = k => (I18N[state.lang] && I18N[state.lang][k]) || I18N.ar[k] || k;
@@ -1057,15 +1197,11 @@ function toast(msg,type=''){
 }
 function timeAgo(iso){
   const d = (Date.now() - new Date(iso).getTime())/1000;
-  if(d < 60) return 'الآن';
-  if(d < 3600) return Math.floor(d/60) + ' د';
-  if(d < 86400) return Math.floor(d/3600) + ' س';
-  return Math.floor(d/86400) + ' ي';
+  if(d < 60) return t('msg_now');
+  if(d < 3600) return Math.floor(d/60) + ' ' + t('msg_min_short');
+  if(d < 86400) return Math.floor(d/3600) + ' ' + t('msg_hour_short');
+  return Math.floor(d/86400) + ' ' + t('msg_day_short');
 }
-
-/* ═══════════════════════════════════════════════════════════════════
-   🎯 مؤشر الأداء العام (يعمل بعدد الطلبات فقط - بدون مخالفات/ساعات)
-   ═══════════════════════════════════════════════════════════════════ */
 function calcPerfScore(days=7, refDate){
   const ref = refDate || todayStr();
   const cutoff = new Date(ref+'T00:00:00');
@@ -1076,8 +1212,7 @@ function calcPerfScore(days=7, refDate){
   if(!rs.length || !reps.length) return 0;
   const totalOrders = sum(rs,'orders');
   const avgOrders = totalOrders / reps.length;
-  // 🎯 مؤشر الأداء العام: الطلبات فقط (المقياس المرجعي 25 طلب/سائق)
-  return Math.round(Math.min(avgOrders/25, 1) * 100);
+  return Math.round((avgOrders/25) * 100);
 }
 function periodRange(refDate, period){
   let start, end;
@@ -1112,22 +1247,18 @@ function periodLabelText(refDate, period){
   }
   return refDate.slice(0,7);
 }
-/* 🎯 مؤشر الأداء من الأهداف - الطلبات فقط */
 function calcPerfScoreFromGoals(refDate, period){
   const g = (db.goals && db.goals[period]) || {};
   const { start, end } = periodRange(refDate, period);
   const rs = visibleReports().filter(r => r.date >= start && r.date <= end);
   const totalOrders = sum(rs,'orders');
   const target = num(g.orders);
-
-  // 🎯 المؤشر العام = نسبة الطلبات المحققة من الهدف المحدد فقط
   if(target > 0){
-    return Math.round(Math.min(totalOrders/target, 1) * 100);
+    return Math.round((totalOrders / target) * 100);
   }
-  // في حال عدم وجود هدف: القياس على متوسط الطلبات لكل سائق
   const reps = visibleReps().length || 1;
   const avgOrders = totalOrders / reps;
-  return Math.round(Math.min(avgOrders/25, 1) * 100);
+  return Math.round((avgOrders / 25) * 100);
 }
 function perfLabel(score){
   if(score >= 80) return { txt: t('perf_excellent') };
@@ -1170,6 +1301,62 @@ function sparkline(values, color){
 }
 const lang = (obj) => state.lang==='ar' ? obj.ar : (obj.en||obj.ar);
 
+/* ====== الأعمدة المخصّصة (رؤوس الجداول المضافة) ====== */
+function customCols(tableId){
+  db.settings.customColumns = db.settings.customColumns || {};
+  if(!Array.isArray(db.settings.customColumns[tableId])) db.settings.customColumns[tableId] = [];
+  return db.settings.customColumns[tableId];
+}
+function customHeadHTML(tableId){
+  return customCols(tableId).map(c=>`<th>${esc(c.label)}</th>`).join('');
+}
+function customCellsHTML(tableId, rec){
+  return customCols(tableId).map(c=>{
+    const v = (rec && rec.custom && rec.custom[c.id] !== undefined && rec.custom[c.id] !== null) ? rec.custom[c.id] : '';
+    return `<td>${v === '' ? '<span class="muted small">—</span>' : esc(v)}</td>`;
+  }).join('');
+}
+function customCardRows(tableId, rec){
+  return customCols(tableId).map(c=>{
+    const v = (rec && rec.custom && rec.custom[c.id] !== undefined && rec.custom[c.id] !== null) ? rec.custom[c.id] : '';
+    return `<div><span class="k">${esc(c.label)}</span><span class="v">${v === '' ? '—' : esc(v)}</span></div>`;
+  }).join('');
+}
+function customFormFieldsHTML(tableId, rec){
+  const cols = customCols(tableId);
+  if(!cols.length) return '';
+  return cols.map(c=>{
+    const v = (rec && rec.custom && rec.custom[c.id] !== undefined && rec.custom[c.id] !== null) ? rec.custom[c.id] : '';
+    return `<div class="field"><label>${esc(c.label)}</label>
+      <input name="cf_${esc(c.id)}" value="${esc(v)}" placeholder="${t('fld_optional')}"></div>`;
+  }).join('');
+}
+function readCustomValues(root){
+  const out = {};
+  root.querySelectorAll('input[name^="cf_"]').forEach(inp=>{ out[inp.name.slice(3)] = inp.value; });
+  return out;
+}
+/* ==== نظام ترتيب الأعمدة الموحد ==== */
+function getColumnOrder(tableId, builtinKeys){
+  db.settings.columnOrder = db.settings.columnOrder || {};
+  const customs = customCols(tableId).map(c => c.id);
+  let order = db.settings.columnOrder[tableId];
+  if(!Array.isArray(order)){
+    order = [...builtinKeys, ...customs];
+  } else {
+    const valid = new Set([...builtinKeys, ...customs]);
+    order = order.filter(k => valid.has(k));
+    builtinKeys.forEach(k => { if(!order.includes(k)) order.push(k); });
+    customs.forEach(k => { if(!order.includes(k)) order.push(k); });
+  }
+  db.settings.columnOrder[tableId] = order;
+  return order;
+}
+function setColumnOrder(tableId, order){
+  db.settings.columnOrder = db.settings.columnOrder || {};
+  db.settings.columnOrder[tableId] = order;
+}
+
 const MAINT_CATEGORIES = [
   {id:'oil',       ar:'تغيير زيت',   en:'Oil Change'},
   {id:'filters',   ar:'الفلاتر',     en:'Filters'},
@@ -1189,6 +1376,29 @@ const FAULT_CATEGORIES = [
   {id:'body',         ar:'الهيكل',       en:'Body'},
   {id:'other',        ar:'أخرى',         en:'Other'}
 ];
+
+/* ==== القوائم المنسدلة الفعلية (تعتمد على تخصيص المالك) ==== */
+function getAppsList(){
+  const c = db?.settings?.customDropdowns?.apps;
+  return (Array.isArray(c) && c.length) ? c : APP_OPTIONS.map(a=>a.ar);
+}
+function getRegionsList(){
+  const c = db?.settings?.customDropdowns?.regions;
+  return (Array.isArray(c) && c.length) ? c : ['الرياض','جدة','الدمام','مكة','المدينة'];
+}
+function getBanksList(){
+  const c = db?.settings?.customDropdowns?.banks;
+  return (Array.isArray(c) && c.length) ? c : ['الراجحي','الأهلي','الإنماء','الرياض','البلاد'];
+}
+function getMaintCatsOptionsFor(type){
+  const custom = db?.settings?.customDropdowns?.[type==='fault' ? 'faultCats' : 'maintCats'];
+  const builtin = type === 'fault' ? FAULT_CATEGORIES : MAINT_CATEGORIES;
+  const list = (Array.isArray(custom) && custom.length) ? custom : builtin.map(x=>x.ar);
+  return list.map(lbl => {
+    const b = builtin.find(x => x.ar === lbl || x.en === lbl);
+    return { value: b ? b.id : lbl, label: lbl };
+  });
+}
 
 /* ==========================================================================
    3) قاعدة البيانات
@@ -1215,13 +1425,19 @@ const state = {
   },
   goalPeriod:'monthly',
   goalTarget:'owner',
+  dailyGradesMode:'single',
+  dailyGradesD1:'',
+  dailyGradesD2:'',
+  dailyGradesW1:'',
+  dailyGradesW2:'',
+  dailyGradesR1:'',
+  dailyGradesR2:'',
   carsTab:'vehicles', user:null, cloudBusy:false, cloudMode:false,
   cloudEdit:false,
   pendingReopen: null,
   viewModes:{ reps:'table', supervisors:'table', cars:'table', reports:'table' }
 };
 
-/* ============ الخروج التلقائي بعد 30 دقيقة من عدم النشاط ============ */
 let inactivityTimer = null;
 const INACTIVITY_MS = 30 * 60 * 1000;
 function resetInactivity(){
@@ -1235,7 +1451,6 @@ function resetInactivity(){
 }
 function clearInactivity(){ clearTimeout(inactivityTimer); inactivityTimer = null; }
 
-/* ============ قائمة منسدلة + زر إضافة عنصر بجانبها ============ */
 function selectWithAdd(opts){
   const optionsHTML = (opts.options||[]).map(o =>
     `<option value="${esc(o.value)}" ${opts.selected===o.value?'selected':''} ${
@@ -1259,8 +1474,6 @@ function selectWithAdd(opts){
             title="${esc(opts.addLabel||t('btn_add'))}">＋</button>` : ''}
   </div>`;
 }
-
-/* ============ مساعدات القوائم المنسدلة الفارغة ============ */
 function emptySelectHTML(message, addType, addLabel){
   const allowed = {
     rep:    () => canEditSection('reps') || isOwner(),
@@ -1292,14 +1505,25 @@ function bindQuickAdd(root, reopenFn){
 
 const DEFAULT_GRADES = { A:35, B:30, C:25, D:20, E:15, F:0 };
 const DEFAULT_DAILY_GRADES = { A:30, B:22, C:15, D:0 };
-const APP_OPTIONS = ['كيتا','جاهز','هنقرستيشن','نينجا','تويو','ذاشيفز'];
+
+const APP_OPTIONS = [
+  {ar:'كيتا',         en:'Keeta'},
+  {ar:'جاهز',         en:'Jahez'},
+  {ar:'هنقرستيشن',    en:'HungerStation'},
+  {ar:'نينجا',        en:'Ninja'},
+  {ar:'تويو',         en:'Toyou'},
+  {ar:'ذاشيفز',       en:'The Chefs'}
+];
+const appLabel = (val) => {
+  const o = APP_OPTIONS.find(x=> x.ar===val || x.en===val);
+  return o ? (state.lang==='ar'?o.ar:o.en) : (val||'—');
+};
 
 const EXTRA_PERMS = [
   {id:'edit_cars',  icon:'🚗', key:'perm_edit_cars'},
   {id:'edit_goals', icon:'🎯', key:'perm_edit_goals'}
 ];
 
-/* ═══════════════ شجرة الصلاحيات (أقسام + فروع) ═══════════════ */
 const PERM_TREE = [
   { id:'dashboard',   icon:'🏠', key:'nav_dashboard',   branches:[] },
   { id:'daily',       icon:'📅', key:'nav_daily',       branches:[] },
@@ -1313,10 +1537,11 @@ const PERM_TREE = [
       { id:'oil',         icon:'🛢️', key:'t_oil' }
   ]},
   { id:'analytics',   icon:'📈', key:'nav_analytics',   branches:[] },
-  { id:'goals',       icon:'🎯', key:'nav_goals',       branches:[] }
+  { id:'goals',       icon:'🎯', key:'nav_goals',       branches:[] },
+  { id:'internet',    icon:'🌐', key:'nav_internet',    branches:[] },
+  { id:'settlement',  icon:'💰', key:'nav_settlement',  branches:[] }
 ];
 
-/* التحقق من صلاحية العرض */
 function permHasView(perms, secId, branchId){
   if(!perms) return false;
   if(branchId){
@@ -1330,8 +1555,6 @@ function permHasView(perms, secId, branchId){
          (secId === 'goals' && perms.includes('edit_goals')) ||
          (secId === 'cars'  && perms.some(x => x.startsWith('cars.')));
 }
-
-/* التحقق من صلاحية التعديل */
 function permHasEdit(perms, secId, branchId){
   if(!perms) return false;
   if(secId === 'supervisors') return false;
@@ -1343,7 +1566,6 @@ function permHasEdit(perms, secId, branchId){
          (secId === 'cars'  && perms.includes('edit_cars')) ||
          (secId === 'goals' && perms.includes('edit_goals'));
 }
-
 function defaultGoals(){
   return {
     daily:   { orders:0, hours:0, maxViolations:0, minAcceptRate:0, perRepDaily:0 },
@@ -1351,10 +1573,10 @@ function defaultGoals(){
     monthly: { orders:0, hours:0, maxViolations:0, minAcceptRate:0, perRepDaily:0 }
   };
 }
-
 function emptyDB(){
   return {
     supervisors:[], reps:[], cars:[], rentalOffices:[], maintenance:[], usage:[], oil:[], reports:[],
+    internet:[], settlements:[],
     notifications:[],
     auth: { owner:{ email:'admin@drivers.local', phone:'0000000000', password:hashPwd('ChangeMe@2026') } },
     settings:{
@@ -1364,13 +1586,21 @@ function emptyDB(){
       showCredentials:false,
       supervisorSyncMode:'auto',
       activeGoalPeriod:'monthly',
-      whatsapp:{ number:'', message:'مرحباً، أرغب بالاستفسار عن أداء الفريق.' }
+      whatsapp:{ number:'', message:'مرحباً، أرغب بالاستفسار عن أداء الفريق.' },
+      company:{ name:'', cr:'', phone:'' },
+      customHeaders:{},
+      customColumns:{},
+      columnOrder:{},
+      customDropdowns:{
+        banks:['الراجحي','الأهلي','الإنماء','الرياض','البلاد'],
+        regions:['الرياض','جدة','الدمام','مكة','المدينة']
+      }
     },
     branding:{ title:'تحليل أداء السائقين', subtitle:'نظام المتابعة والتقارير', logo:null },
     goals: defaultGoals(),
     grades: { ...DEFAULT_GRADES },
     dailyGrades: { ...DEFAULT_DAILY_GRADES },
-    meta:{ createdAt:new Date().toISOString(), version:13 }
+    meta:{ createdAt:new Date().toISOString(), version:15 }
   };
 }
 function normalizeDB(d){
@@ -1382,6 +1612,8 @@ function normalizeDB(d){
   if(!d.grades) d.grades = { ...DEFAULT_GRADES };
   if(!d.dailyGrades) d.dailyGrades = { ...DEFAULT_DAILY_GRADES };
   if(!d.rentalOffices) d.rentalOffices = [];
+  if(!d.internet) d.internet = [];
+  if(!d.settlements) d.settlements = [];
 
   if(!d.goals){
     d.goals = defaultGoals();
@@ -1407,6 +1639,12 @@ function normalizeDB(d){
   if(!d.settings.activeGoalPeriod) d.settings.activeGoalPeriod = 'monthly';
   d.settings.chartTypes = Object.assign(defaults.settings.chartTypes, d.settings.chartTypes || {});
   d.settings.whatsapp = Object.assign(defaults.settings.whatsapp, d.settings.whatsapp || {});
+  if(!d.settings.company) d.settings.company = { name:'', cr:'', phone:'' };
+  if(!d.settings.customHeaders) d.settings.customHeaders = {};
+  if(!d.settings.customColumns || typeof d.settings.customColumns !== 'object') d.settings.customColumns = {};
+  if(!d.settings.columnOrder || typeof d.settings.columnOrder !== 'object') d.settings.columnOrder = {};
+  if(!d.settings.customDropdowns) d.settings.customDropdowns = defaults.settings.customDropdowns;
+
   if(d.auth?.owner?.password && !String(d.auth.owner.password).startsWith('h')){
     d.auth.owner.password = hashPwd(d.auth.owner.password);
   }
@@ -1460,8 +1698,12 @@ function normalizeDB(d){
     if(o.notifiedDue === undefined) o.notifiedDue = false;
     if(o.notifiedSoon === undefined) o.notifiedSoon = false;
   });
+  (d.internet||[]).forEach(x=>{
+    if(x.notified1day === undefined) x.notified1day = false;
+    if(x.notified2day === undefined) x.notified2day = false;
+    if(x.notifiedExpired === undefined) x.notifiedExpired = false;
+  });
 
-  /* 🛡️ ترحيل الإصدار القديم من الصلاحيات إلى نموذج الأقسام + الفروع */
   if(num(d.meta && d.meta.version) < 13){
     (d.supervisors||[]).forEach(s=>{
       if(!s.permissions) return;
@@ -1478,6 +1720,19 @@ function normalizeDB(d){
     });
     d.meta = d.meta || {};
     d.meta.version = 13;
+  }
+  if(num(d.meta && d.meta.version) < 14){
+    (d.settlements||[]).forEach((x, i)=>{
+      if(!x.code) x.code = 'ST-' + (x.id ? x.id.slice(-6).toUpperCase() : (i+1).toString().padStart(4,'0'));
+    });
+    d.meta = d.meta || {};
+    d.meta.version = 14;
+  }
+  if(num(d.meta && d.meta.version) < 15){
+    d.settings.customColumns = d.settings.customColumns || {};
+    d.settings.columnOrder = d.settings.columnOrder || {};
+    d.meta = d.meta || {};
+    d.meta.version = 15;
   }
   return d;
 }
@@ -1534,9 +1789,101 @@ function dailyGradeForDate(dateStr){
   const totalDrivers = visibleReps().length;
   return { date:dateStr, orders, avg, count:rs.length, totalDrivers, grade };
 }
-function dailyGradesTableHTML(daysCount){
+function aggregateWeek(startStr){
+  const reports = visibleReports().filter(r => r.date >= startStr && r.date <= addDaysStr(startStr, 6));
+  const totalOrders = sum(reports, 'orders');
+  const reps = visibleReps().length || 0;
+  const avgPerDriver = reps ? round1(totalOrders / reps / 7) : 0;
+  const grade = reps ? computeDailyGrade(avgPerDriver) : null;
+  return { totalOrders, avgPerDriver, totalDrivers: reps, grade, countDays: 7 };
+}
+function aggregateRange(startStr, endStr){
+  if(!startStr || !endStr) return { totalOrders:0, avgPerDriver:0, totalDrivers:0, grade:null, days:0, reportsCount:0, from:'', to:'' };
+  const from = startStr <= endStr ? startStr : endStr;
+  const to = startStr <= endStr ? endStr : startStr;
+  const reports = visibleReports().filter(r => r.date >= from && r.date <= to);
+  const totalOrders = sum(reports, 'orders');
+  const days = Math.max(1, Math.round((new Date(to) - new Date(from))/86400000) + 1);
+  const reps = visibleReps().length || 0;
+  const avgPerDriver = reps ? round1(totalOrders / reps / days) : 0;
+  const grade = reps ? computeDailyGrade(avgPerDriver) : null;
+  return { totalOrders, avgPerDriver, totalDrivers: reps, grade, days, reportsCount: reports.length, from, to };
+}
+function renderCompareRows(rows, l1, l2){
+  const cell = (v, isGrade)=>{
+    if(isGrade){
+      if(!v || v === '—') return '<span class="chip gray">—</span>';
+      return `<span class="chip grade ${v}">${v}</span>`;
+    }
+    return `<b>${esc(String(v ?? '—'))}</b>`;
+  };
+  return `<div class="tbl-wrap" style="border:0"><table><thead><tr>
+    <th style="text-align:start">${t('filter_type')}</th>
+    <th style="text-align:center">${esc(l1)}</th>
+    <th style="text-align:center">${esc(l2)}</th>
+  </tr></thead><tbody>
+    ${rows.map(r=>`<tr>
+      <td class="muted small"><b>${r.label}</b></td>
+      <td style="text-align:center">${cell(r.v1, r.isGrade)}</td>
+      <td style="text-align:center">${cell(r.v2, r.isGrade)}</td>
+    </tr>`).join('')}
+  </tbody></table></div>`;
+}
+function dailyGradesComparisonHTML(mode, opts){
+  mode = mode || 'single';
+  opts = opts || {};
+  if(mode === 'range_days'){
+    const r1 = state.dailyGradesR1 || addDaysStr(todayStr(), -6);
+    const r2 = state.dailyGradesR2 || todayStr();
+    const a = aggregateRange(r1, r2);
+    const label = `${a.from} → ${a.to}`;
+    return `<div class="tbl-wrap" style="border:0"><table><thead><tr>
+      <th>${t('filter_period')}</th>
+      <th>${t('fld_delivered_orders')}</th>
+      <th>${t('avg_per_driver')}</th>
+      <th>${t('perf_total_reps')}</th>
+      <th>${t('fld_rating')}</th>
+    </tr></thead><tbody><tr>
+      <td><b>${esc(label)}</b><div class="small muted">${a.days} ${t('msg_day_short')} · ${a.reportsCount} ${t('t_daily')}</div></td>
+      <td><b>${a.totalOrders}</b></td>
+      <td><b>${a.avgPerDriver}</b></td>
+      <td>${a.totalDrivers}</td>
+      <td>${a.grade ? `<span class="chip grade ${a.grade}">${a.grade}</span>` : '<span class="chip gray">—</span>'}</td>
+    </tr></tbody></table></div>`;
+  }
+  if(mode === 'compare_days'){
+    const d1 = state.dailyGradesD1 || todayStr();
+    const d2 = state.dailyGradesD2 || addDaysStr(todayStr(), -1);
+    const r1 = dailyGradeForDate(d1);
+    const r2 = dailyGradeForDate(d2);
+    const rows = [
+      { label: t('fld_date'),          v1: r1.date, v2: r2.date },
+      { label: t('fld_day'),           v1: dayName(r1.date), v2: dayName(r2.date) },
+      { label: t('fld_delivered_orders'), v1: r1.orders, v2: r2.orders },
+      { label: t('avg_per_driver'),    v1: r1.avg, v2: r2.avg },
+      { label: t('actual_drivers'),    v1: `${r1.count} / ${r1.totalDrivers}`, v2: `${r2.count} / ${r2.totalDrivers}` },
+      { label: t('fld_rating'),        v1: r1.grade || '—', v2: r2.grade || '—', isGrade: true }
+    ];
+    return renderCompareRows(rows, d1, d2);
+  }
+  if(mode === 'compare_weeks'){
+    const today = todayStr();
+    const w1 = state.dailyGradesW1 || weekStartOf(today);
+    const w2 = state.dailyGradesW2 || addDaysStr(weekStartOf(today), -7);
+    const a1 = aggregateWeek(w1);
+    const a2 = aggregateWeek(w2);
+    const rows = [
+      { label: t('filter_period'), v1: `${w1} → ${addDaysStr(w1,6)}`, v2: `${w2} → ${addDaysStr(w2,6)}` },
+      { label: t('total') + ' · ' + t('fld_delivered_orders'), v1: a1.totalOrders, v2: a2.totalOrders },
+      { label: t('avg_per_driver') + ' / ' + t('fld_day'), v1: a1.avgPerDriver, v2: a2.avgPerDriver },
+      { label: t('perf_total_reps'), v1: a1.totalDrivers, v2: a2.totalDrivers },
+      { label: t('fld_rating'), v1: a1.grade || '—', v2: a2.grade || '—', isGrade: true }
+    ];
+    return renderCompareRows(rows, w1, w2);
+  }
+  const days = opts.days || 7;
   const rows = [];
-  for(let i=0;i<daysCount;i++){
+  for(let i=0;i<days;i++){
     const d = new Date(); d.setDate(d.getDate()-i);
     rows.push(dailyGradeForDate(d.toISOString().slice(0,10)));
   }
@@ -1564,6 +1911,61 @@ function dailyGradesTableHTML(daysCount){
     }).join('')}
   </tbody></table></div>`;
 }
+function dailyGradesTableHTML(daysCount){
+  return dailyGradesComparisonHTML(state.dailyGradesMode || 'single', { days: daysCount });
+}
+function dailyGradesHeaderHTML(){
+  const mode = state.dailyGradesMode || 'single';
+  const d1 = state.dailyGradesD1 || todayStr();
+  const d2 = state.dailyGradesD2 || addDaysStr(todayStr(), -1);
+  const w1 = state.dailyGradesW1 || weekStartOf(todayStr());
+  const w2 = state.dailyGradesW2 || addDaysStr(weekStartOf(todayStr()), -7);
+  const r1 = state.dailyGradesR1 || addDaysStr(todayStr(), -6);
+  const r2 = state.dailyGradesR2 || todayStr();
+  return `
+    <div class="view-toggle">
+      <button type="button" data-dgm="single" class="${mode==='single'?'active':''}">📅 ${t('all_days')}</button>
+      <button type="button" data-dgm="compare_days" class="${mode==='compare_days'?'active':''}">⚖️ ${t('date1')} / ${t('date2')}</button>
+      <button type="button" data-dgm="compare_weeks" class="${mode==='compare_weeks'?'active':''}">📆 ${t('filter_range_weeks')}</button>
+      <button type="button" data-dgm="range_days" class="${mode==='range_days'?'active':''}">🗓️ ${t('from_date')} - ${t('to_date')}</button>
+    </div>
+    ${mode==='compare_days' ? `
+      <div class="dgm-inputs">
+        <input type="date" id="dgmD1" value="${d1}">
+        <input type="date" id="dgmD2" value="${d2}">
+      </div>
+    ` : ''}
+    ${mode==='compare_weeks' ? `
+      <div class="dgm-inputs">
+        <input type="date" id="dgmW1" value="${w1}" title="${t('from_week')}">
+        <input type="date" id="dgmW2" value="${w2}" title="${t('to_week')}">
+      </div>
+    ` : ''}
+    ${mode==='range_days' ? `
+      <div class="dgm-inputs">
+        <input type="date" id="dgmR1" value="${r1}" title="${t('from_date')}">
+        <span style="align-self:center;color:var(--muted);font-weight:800">→</span>
+        <input type="date" id="dgmR2" value="${r2}" title="${t('to_date')}">
+      </div>
+    ` : ''}
+  `;
+}
+function bindDailyGradesHeader(root){
+  root = root || document;
+  root.querySelectorAll('[data-dgm]').forEach(b=>{
+    b.onclick = ()=>{
+      state.dailyGradesMode = b.dataset.dgm;
+      render();
+    };
+  });
+  root.querySelector('#dgmD1')?.addEventListener('change', e=>{ state.dailyGradesD1 = e.target.value; render(); });
+  root.querySelector('#dgmD2')?.addEventListener('change', e=>{ state.dailyGradesD2 = e.target.value; render(); });
+  root.querySelector('#dgmW1')?.addEventListener('change', e=>{ state.dailyGradesW1 = e.target.value; render(); });
+  root.querySelector('#dgmW2')?.addEventListener('change', e=>{ state.dailyGradesW2 = e.target.value; render(); });
+  root.querySelector('#dgmR1')?.addEventListener('change', e=>{ state.dailyGradesR1 = e.target.value; render(); });
+  root.querySelector('#dgmR2')?.addEventListener('change', e=>{ state.dailyGradesR2 = e.target.value; render(); });
+}
+
 function computeGradeMap(reports, reps){
   const map = {A:[],B:[],C:[],D:[],E:[],F:[]};
   reps.forEach(r=>{
@@ -1669,6 +2071,7 @@ function seedDB(){
     weekly:  { orders: 150, hours: 0, maxViolations: 0, minAcceptRate: 0, perRepDaily: 0 },
     monthly: { orders: 600, hours: 0, maxViolations: 0, minAcceptRate: 0, perRepDaily: 0 }
   };
+  d.settings.company = { name:'شركة النخبة للتوصيل', cr:'1010234567', phone:'0551000001' };
   d.notifications.push({
     id:uid(), title:'مرحباً بك', body:'تم تهيئة النظام ببيانات تجريبية.',
     type:'info', date:new Date().toISOString(), read:false
@@ -1690,12 +2093,26 @@ function setCloudStatus(mode){
                   : t('msg_cloud_off');
 }
 function isCloudReady(){ return !!(cloudCfg.key && cloudCfg.binId); }
+function shouldAutoSync(){
+  return (db?.settings?.supervisorSyncMode || 'auto') === 'auto';
+}
+function isSupervisorAutoSync(){
+  if(!isSupervisor()) return true;
+  return shouldAutoSync();
+}
+/* ✅ منع المزامنة التلقائية في الوضع اليدوي — تحقق صريح */
+function autoSyncAfterSave(){
+  if(!isCloudReady()) return;
+  const mode = (db.settings && db.settings.supervisorSyncMode) || 'auto';
+  if(mode === 'manual') return;
+  pushToCloud(true);
+}
 
 function mergeCloudData(local, remote){
   if(!remote) return local;
   if(!local) return remote;
   const merged = JSON.parse(JSON.stringify(local));
-  const arrayKeys = ['supervisors','reps','cars','maintenance','usage','oil','reports','notifications','rentalOffices'];
+  const arrayKeys = ['supervisors','reps','cars','maintenance','usage','oil','reports','notifications','rentalOffices','internet','settlements'];
   arrayKeys.forEach(k=>{
     const localArr = local[k] || [];
     const remoteArr = remote[k] || [];
@@ -1908,10 +2325,11 @@ const NAV = [
   {id:'supervisors', icon:'👔', key:'nav_supervisors'},
   {id:'cars',        icon:'🚙', key:'nav_cars'},
   {id:'analytics',   icon:'📈', key:'nav_analytics'},
-  {id:'goals',       icon:'🎯', key:'nav_goals'}
+  {id:'goals',       icon:'🎯', key:'nav_goals'},
+  {id:'internet',    icon:'🌐', key:'nav_internet'},
+  {id:'settlement',  icon:'💰', key:'nav_settlement'}
 ];
 function navLabel(id){ const n = NAV.find(x=>x.id===id); return n ? t(n.key) : id; }
-
 function allowedSections(){
   if(!state.user) return [];
   if(state.user.role === 'owner') return NAV.map(n=>n.id);
@@ -1922,7 +2340,6 @@ function allowedSections(){
 function isOwner(){ return state.user && state.user.role === 'owner'; }
 function isSupervisor(){ return state.user && state.user.role === 'supervisor'; }
 function getMySupervisor(){ return isSupervisor() ? db.supervisors.find(s=>s.id===state.user.id) : null; }
-
 function canEditSection(section){
   if(!state.user) return false;
   if(isOwner()) return true;
@@ -1943,7 +2360,6 @@ function hasExtraPerm(id){
   if(id === 'edit_goals') return permHasEdit(p, 'goals');
   return p.includes(id);
 }
-
 function visibleReps(){
   if(!state.user) return [];
   if(isOwner()) return db.reps;
@@ -1966,11 +2382,6 @@ function reportsForSupervisor(supId){
   return db.reports.filter(r=> repIds.has(r.repId));
 }
 function repsForSupervisor(supId){ return db.reps.filter(r=>r.supervisorId===supId); }
-
-function isSupervisorAutoSync(){
-  if(!isSupervisor()) return true;
-  return (db.settings.supervisorSyncMode || 'auto') === 'auto';
-}
 
 /* ==========================================================================
    7) المصادقة
@@ -2054,6 +2465,24 @@ function applyBranding(){
   document.title = b.title || 'لوحة تحليل أداء السائقين';
   $('#lgTitle').textContent = t('login_title');
   $('#lgSub').textContent = b.title || t('login_sub');
+  updatePrintHeader();
+}
+function updatePrintHeader(){
+  const c = db.settings.company || {};
+  const nameEl = $('#printCompanyName');
+  if(!nameEl) return;
+  nameEl.textContent = c.name || db.branding?.title || '';
+  const crEl = $('#printCR');
+  const phEl = $('#printPhone');
+  if(crEl) crEl.textContent = c.cr ? `${t('company_cr')}: ${c.cr}` : '';
+  if(phEl) phEl.textContent = c.phone ? `${t('company_phone')}: ${c.phone}` : '';
+  const dateEl = $('#printDate');
+  if(dateEl) dateEl.textContent = new Date().toLocaleDateString(state.lang==='ar'?'ar-SA':'en-US');
+  const logoEl = $('#printHeaderLogo');
+  if(logoEl){
+    if(db.branding?.logo){ logoEl.src = db.branding.logo; logoEl.style.display='block'; }
+    else logoEl.style.display = 'none';
+  }
 }
 function showLogin(){
   $('#app').style.display = 'none';
@@ -2084,7 +2513,9 @@ function renderNav(){
   $('#nav').innerHTML = items.map(n=>{
     const count = n.id==='reps' ? repsCount
                 : n.id==='supervisors' ? (isOwner()?db.supervisors.length:1)
-                : n.id==='cars' ? db.cars.length : '';
+                : n.id==='cars' ? db.cars.length
+                : n.id==='internet' ? (db.internet||[]).length
+                : n.id==='settlement' ? (db.settlements||[]).length : '';
     return `<button class="nav-item ${state.section===n.id?'active':''}" data-go="${n.id}">
       <span class="ic">${n.icon}</span><span>${t(n.key)}</span>
       ${count!==''?`<span class="badge">${count}</span>`:''}
@@ -2121,17 +2552,19 @@ function render(){
   const view = $('#view');
   view.innerHTML = ({
     dashboard: viewDashboard, daily: viewDaily, reps: viewReps,
-    supervisors: viewSupervisors, cars: viewCars, analytics: viewAnalytics, goals: viewGoals
+    supervisors: viewSupervisors, cars: viewCars, analytics: viewAnalytics, goals: viewGoals,
+    internet: viewInternet, settlement: viewSettlement
   })[state.section]();
   ({ dashboard: afterDashboard, daily: afterDaily, reps: afterReps,
      supervisors: afterSupervisors, cars: afterCars, analytics: afterAnalytics,
-     goals: afterGoals })[state.section]();
+     goals: afterGoals, internet: afterInternet, settlement: afterSettlement })[state.section]();
   applySettings();
   attachCollapseButtons();
   updateNotifBadge();
   setCloudStatus(isCloudReady() ? 'on' : 'off');
 }
 
+/* ✅ دالة تطبيق الإعدادات مع التحجيم الشامل لحجم الخط */
 function applySettings(){
   const s = db.settings;
   document.documentElement.style.setProperty('--primary', s.color);
@@ -2142,8 +2575,15 @@ function applySettings(){
     `linear-gradient(135deg,${s.color} 0%,${shade(s.color,22)} 55%,#06b6d4 100%)`);
   document.documentElement.style.setProperty('--grad-hero',
     `linear-gradient(135deg,#0f172a 0%,#1e1b4b 45%,${shade(s.color,-25)} 100%)`);
-  const fs = num(s.fontSize) || 14.5;
+  const fs = num(s.fontSize) || 15;
+  // الإطار المرجعي: 15px = 100%
+  const scale = Math.max(0.75, Math.min(1.45, fs / 15));
   document.documentElement.style.setProperty('--fs', fs + 'px');
+  document.body.style.fontSize = fs + 'px';
+  // تطبيق التحجيم الشامل لكل عناصر الواجهة
+  document.body.style.zoom = scale !== 1 ? String(scale) : '';
+  // إصلاح ارتفاع الشاشة عند التحجيم لمنع فراغ أسفل الصفحة
+  document.documentElement.style.height = scale !== 1 ? (100 / scale) + '%' : '';
 }
 function attachCollapseButtons(){
   $$('#view .card').forEach(card=>{
@@ -2210,6 +2650,7 @@ function cleanupRelations(){
   db.usage = db.usage.filter(x=>carIds.has(x.carId) && repIds.has(x.repId));
   db.maintenance = db.maintenance.filter(x=>carIds.has(x.carId));
   db.oil = db.oil.filter(x=>carIds.has(x.carId));
+  db.internet = (db.internet||[]).filter(x => repIds.has(x.repId));
   db.reps.forEach(r=>{ if(!supIds.has(r.supervisorId)) r.supervisorId=''; if(r.carId && !carIds.has(r.carId)) r.carId=''; });
   db.cars.forEach(c=>{ if(c.rentalOfficeId && !offIds.has(c.rentalOfficeId)) c.rentalOfficeId=''; if(c.assignedRepId && !repIds.has(c.assignedRepId)) c.assignedRepId=''; });
 }
@@ -2353,7 +2794,6 @@ function kpiCard(icon,label,value,color,delta,sparkData,progress){
   </div>`;
 }
 function emptyRow(cols, msg){ return `<tr><td colspan="${cols}" class="empty">${esc(msg||t('no_data'))}</td></tr>`; }
-
 function driverGradesPanelHTML(reports, reps, showHint){
   const gradeMap = computeGradeMap(reports, reps);
   const gradeDist = {};
@@ -2408,11 +2848,11 @@ function viewDashboard(){
     last7Labels.push({label:dayName(ds), value:sum(rs,'orders')});
   }
 
-  // 🎯 مؤشر الأداء العام - يعمل بعدد الطلبات فقط
   const perfScore = calcPerfScoreFromGoals(refDate, period);
   const perfLbl = perfLabel(perfScore);
   const ringCircumference = 2 * Math.PI * 62;
-  const ringOffset = ringCircumference * (1 - perfScore/100);
+  const ringPct = Math.min(100, perfScore);
+  const ringOffset = ringCircumference * (1 - ringPct/100);
 
   const avgOrders = allReps.length ? round1(ordersToday/allReps.length) : 0;
   const avgHours  = allReps.length ? round1(hoursToday/allReps.length) : 0;
@@ -2430,13 +2870,12 @@ function viewDashboard(){
   const actualViol   = violToday;
 
   const dailyOrderTarget  = num(dailyG.orders) || 0;
-  const achievedPct       = dailyOrderTarget ? Math.min(100, Math.round((actualOrders/dailyOrderTarget)*100)) : null;
+  const achievedPct       = dailyOrderTarget ? Math.round((actualOrders/dailyOrderTarget)*100) : null;
   const ordersTodayGoalPct = dailyG.orders ? Math.min(100, Math.round((actualOrders/dailyG.orders)*100)) : null;
   const hoursTodayGoalPct  = dailyG.hours  ? Math.min(100, Math.round((actualHours/dailyG.hours)*100))  : null;
   const violTodayGoalPct   = dailyG.maxViolations ? Math.min(100, Math.round((actualViol/Math.max(dailyG.maxViolations,1))*100)) : null;
   const accRatePct         = dailyG.minAcceptRate ? Math.min(100, Math.round((accRate/dailyG.minAcceptRate)*100)) : null;
 
-  // 📊 المؤشرات الفرعية (للعرض فقط — لا تؤثر على مؤشر الأداء العام)
   const ordersScore = dailyG.orders ? Math.min((actualOrders/dailyG.orders),1)*100 : Math.min((avgOrders/25),1)*100;
   const hoursScore  = dailyG.hours  ? Math.min((actualHours/dailyG.hours),1)*100  : Math.min((avgHours/8),1)*100;
   const accScore    = accRate;
@@ -2483,7 +2922,7 @@ function viewDashboard(){
         <circle class="pr-bg" cx="80" cy="80" r="62"/>
         <circle class="pr-fg" cx="80" cy="80" r="62" stroke-dasharray="${ringCircumference}" stroke-dashoffset="${ringOffset}"/>
       </svg>
-      <div class="pr-center"><div><div class="pr-num">${perfScore}</div><div class="pr-lbl">${esc(perfLbl.txt)}</div></div></div>
+      <div class="pr-center"><div><div class="pr-num">${perfScore}%</div><div class="pr-lbl">${esc(perfLbl.txt)}</div></div></div>
     </div>
     <div class="perf-hero-info">
       <div class="ph-sub">📊 ${t('perf_score_sub')}${isSupervisor()?' · '+t('my_reps'):''} · ${periodLabelText(refDate, period)}</div>
@@ -2584,12 +3023,15 @@ function viewDashboard(){
   </div>
   <div class="card">
     <div class="card-head">📅 ${t('daily_grades_table')} <span class="spacer"></span>
-      <span class="chip gray">A–D</span></div>
-    ${dailyGradesTableHTML(7)}
+      <span class="chip gray">A–D</span>
+      ${dailyGradesHeaderHTML()}
+    </div>
+    ${dailyGradesComparisonHTML(state.dailyGradesMode || 'single', {days:7})}
   </div>`;
 }
 function afterDashboard(){
   bindChartTypeButtons();
+  bindDailyGradesHeader();
   $('#dashPeriod')?.addEventListener('change', e=>{
     state.dashboardPeriod = e.target.value;
     render();
@@ -2612,7 +3054,7 @@ function afterDashboard(){
 }
 
 /* ==========================================================================
-   12) التقارير اليومية
+   12) التقارير اليومية + استيراد ملفات
    ========================================================================== */
 function viewDaily(){
   const d1 = state.daily.d1 || todayStr();
@@ -2852,15 +3294,110 @@ function bindReportActions(){
     db.reports = db.reports.filter(x=>x.id!==b.dataset.delReport);
     saveDB(); render(); toast(t('msg_deleted'),'ok');
     if(rec) addNotif('حذف تقرير', `${repName(rec.repId)} — ${rec.date}`, 'err');
-    if(isCloudReady() && isSupervisorAutoSync()) pushToCloud(true);
-    else if(isCloudReady()) fullSync(true);
+    autoSyncAfterSave();
   });
 }
+
+async function handleReportFileImport(file, rowsContainer, recompute){
+  const name = file.name.toLowerCase();
+  if(name.endsWith('.xlsx') || name.endsWith('.xls') || name.endsWith('.csv')){
+    await importExcelReport(file, rowsContainer, recompute);
+  } else if(name.endsWith('.pdf')){
+    await importPDFReport(file, rowsContainer, recompute);
+  } else {
+    throw new Error('Unsupported file type');
+  }
+}
+async function importExcelReport(file, rowsContainer, recompute){
+  if(typeof XLSX === 'undefined') throw new Error('XLSX library not loaded');
+  const buf = await file.arrayBuffer();
+  const wb = XLSX.read(buf, {type:'array'});
+  const sheet = wb.Sheets[wb.SheetNames[0]];
+  const rows = XLSX.utils.sheet_to_json(sheet, {header:1, defval:''});
+  if(!rows.length) throw new Error('Empty file');
+  let startIdx = 0;
+  const first = rows[0].map(c => String(c||'').toLowerCase()).join(' ');
+  if(/name|driver|rep|سائق|الاسم|orders|طلبات/.test(first)) startIdx = 1;
+  const reps = visibleReps();
+  let matched = 0;
+  for(let i=startIdx; i<rows.length; i++){
+    const row = rows[i];
+    if(!row || !row.length) continue;
+    const firstCell = String(row[0]||'').trim();
+    if(!firstCell) continue;
+    const rep = reps.find(r =>
+      r.name === firstCell || r.code === firstCell ||
+      r.name.includes(firstCell) || firstCell.includes(r.name) ||
+      String(r.code).toLowerCase() === firstCell.toLowerCase()
+    );
+    if(!rep) continue;
+    const tr = rowsContainer.querySelector(`[data-rep-row="${rep.id}"]`);
+    if(!tr) continue;
+    const setVal = (field, val)=>{
+      const inp = tr.querySelector(`[data-f="${field}"]`);
+      if(inp && val !== undefined && val !== '') inp.value = num(val) || 0;
+    };
+    setVal('orders', row[1]); setVal('systemRejected', row[2]); setVal('driverRejected', row[3]);
+    setVal('hours', row[4]); setVal('startKm', row[5]); setVal('endKm', row[6]);
+    setVal('accepted', row[7]); setVal('rejected', row[8]);
+    const notesInp = tr.querySelector('[data-f="notes"]');
+    if(notesInp && row[9] !== undefined) notesInp.value = String(row[9]||'');
+    matched++;
+  }
+  recompute();
+  if(!matched) throw new Error(t('msg_import_no_match'));
+}
+async function importPDFReport(file, rowsContainer, recompute){
+  if(typeof pdfjsLib === 'undefined') throw new Error('PDF library not loaded');
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  const buf = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({data: buf}).promise;
+  let fullText = '';
+  for(let i=1; i<=pdf.numPages; i++){
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    const lines = {};
+    content.items.forEach(item=>{
+      const y = Math.round(item.transform[5]);
+      if(!lines[y]) lines[y] = [];
+      lines[y].push(item.str);
+    });
+    const sortedY = Object.keys(lines).sort((a,b)=> b - a);
+    sortedY.forEach(y=>{ fullText += lines[y].join(' ') + '\n'; });
+  }
+  const reps = visibleReps();
+  let matched = 0;
+  const lines = fullText.split('\n');
+  lines.forEach(line=>{
+    const trimmed = line.trim();
+    if(!trimmed) return;
+    const rep = reps.find(r => trimmed.includes(r.name) || (r.code && trimmed.includes(r.code)));
+    if(!rep) return;
+    const tr = rowsContainer.querySelector(`[data-rep-row="${rep.id}"]`);
+    if(!tr) return;
+    const afterName = trimmed.split(rep.name).pop() || trimmed;
+    const nums = (afterName.match(/\d+(?:\.\d+)?/g) || []).map(Number);
+    if(nums.length >= 4){
+      tr.querySelector('[data-f="orders"]').value = nums[0] || 0;
+      tr.querySelector('[data-f="systemRejected"]').value = nums[1] || 0;
+      tr.querySelector('[data-f="driverRejected"]').value = nums[2] || 0;
+      tr.querySelector('[data-f="hours"]').value = nums[3] || 0;
+      if(nums.length >= 5) tr.querySelector('[data-f="startKm"]').value = nums[4] || 0;
+      if(nums.length >= 6) tr.querySelector('[data-f="endKm"]').value = nums[5] || 0;
+      if(nums.length >= 7) tr.querySelector('[data-f="accepted"]').value = nums[6] || 0;
+      if(nums.length >= 8) tr.querySelector('[data-f="rejected"]').value = nums[7] || 0;
+    }
+    matched++;
+  });
+  recompute();
+  if(!matched) throw new Error(t('msg_import_no_match'));
+}
+
 function dailyReportModal(){
   if(!state.user) return;
   const reps = visibleReps();
   if(!reps.length){
-    toast(isSupervisor()?'لا يوجد سائقون مسندون إليك':'أضف سائقاً أولاً','warn');
+    toast(isSupervisor()?t('msg_no_assigned_reps'):t('msg_add_rep_first'),'warn');
     return;
   }
   const initDate = state.daily.d1 || todayStr();
@@ -2875,10 +3412,7 @@ function dailyReportModal(){
     const totalOrders = (delivered==='' ? 0 : delivered) + sysRej + drvRej;
     const delivRate = totalOrders>0 ? Math.round(((delivered||0)/totalOrders)*100) : 0;
     return `<tr data-rep-row="${r.id}">
-      <td>
-        <div class="rep-name">${esc(r.name)}</div>
-        <div class="rep-sub">${esc(supName(r.supervisorId))} · ${esc(r.code)}</div>
-      </td>
+      <td><div class="rep-name">${esc(r.name)}</div><div class="rep-sub">${esc(supName(r.supervisorId))} · ${esc(r.code)}</div></td>
       <td><input type="number" min="0" step="1" data-f="orders" value="${delivered}" placeholder="0"></td>
       <td><input type="number" min="0" step="1" data-f="systemRejected" value="${sysRej}" placeholder="0"></td>
       <td><input type="number" min="0" step="1" data-f="driverRejected" value="${drvRej}" placeholder="0"></td>
@@ -2897,13 +3431,14 @@ function dailyReportModal(){
   const buildBody = (dateStr)=> `
     <form id="drForm" novalidate>
       <div class="form-grid" style="margin-bottom:16px">
-        <div class="field">
-          <label>${t('fld_date')} <span class="req">*</span></label>
-          <input type="date" id="bulkDate" required value="${dateStr}">
-        </div>
-        <div class="field">
-          <label>🕒 ${t('fld_created')} <span class="small muted">${t('fld_auto_total')}</span></label>
-          <input type="text" id="regTime" readonly value="${formatDateTime(new Date().toISOString())}">
+        <div class="field"><label>${t('fld_date')} <span class="req">*</span></label>
+          <input type="date" id="bulkDate" required value="${dateStr}"></div>
+        <div class="field"><label>🕒 ${t('fld_created')} <span class="small muted">${t('fld_auto_total')}</span></label>
+          <input type="text" id="regTime" readonly value="${formatDateTime(new Date().toISOString())}"></div>
+        <div class="field"><label>&nbsp;</label>
+          <button type="button" class="btn btn-primary" id="importReportFileBtn">${t('msg_import_file')}</button>
+          <input type="file" id="reportFileInput" accept=".xlsx,.xls,.csv,.pdf" hidden>
+          <div class="hint" style="margin-top:6px">${t('msg_import_hint')}</div>
         </div>
       </div>
       <div class="tbl-wrap" style="max-height:52vh;overflow-y:auto">
@@ -2950,9 +3485,7 @@ function dailyReportModal(){
           const totEl = row.querySelector('[data-f=totalKm]');
           if(sKm !== '' && eKm !== ''){
             totEl.textContent = Math.max(0, num(eKm) - num(sKm));
-          } else {
-            totEl.textContent = '—';
-          }
+          } else { totEl.textContent = '—'; }
           const delivered = num(row.querySelector('[data-f=orders]').value);
           const sysRej = num(row.querySelector('[data-f=systemRejected]').value);
           const drvRej = num(row.querySelector('[data-f=driverRejected]').value);
@@ -2977,6 +3510,28 @@ function dailyReportModal(){
         if(rt) rt.value = formatDateTime(new Date().toISOString());
       });
       recompute();
+      const importBtn = root.querySelector('#importReportFileBtn');
+      const fileInput = root.querySelector('#reportFileInput');
+      if(importBtn && fileInput){
+        importBtn.addEventListener('click', ()=> fileInput.click());
+        fileInput.addEventListener('change', async (e)=>{
+          const file = e.target.files[0];
+          if(!file) return;
+          importBtn.disabled = true;
+          importBtn.textContent = '⏳ ' + t('msg_import_parsing');
+          try{
+            await handleReportFileImport(file, rowsContainer, recompute);
+            toast(t('msg_import_success'), 'ok');
+          }catch(err){
+            console.error(err);
+            toast(t('msg_import_failed') + ': ' + err.message, 'err');
+          }finally{
+            importBtn.disabled = false;
+            importBtn.textContent = t('msg_import_file');
+            fileInput.value = '';
+          }
+        });
+      }
     },
     onSubmit(root){
       const date = root.querySelector('#bulkDate').value;
@@ -2996,8 +3551,7 @@ function dailyReportModal(){
         const rejected = num(row.querySelector('[data-f=rejected]').value);
         const notes = row.querySelector('[data-f=notes]').value.trim();
         const isEmpty = ordersRaw === '' && hoursRaw === '' && !accepted && !rejected &&
-                        startKmRaw === '' && endKmRaw === '' && !notes &&
-                        sysRejRaw === '' && drvRejRaw === '';
+                        startKmRaw === '' && endKmRaw === '' && !notes && sysRejRaw === '' && drvRejRaw === '';
         if(isEmpty) return;
         const orders = num(ordersRaw);
         const systemRejected = num(sysRejRaw);
@@ -3031,12 +3585,13 @@ function dailyReportModal(){
       if(!saved){
         err.textContent = t('msg_bulk_empty'); err.style.display='block'; return false;
       }
-      // 🛢️ فحص مواعيد تغيير الزيت لكل سيارة بعد حفظ التقارير
       db.cars.forEach(c => checkOilForCar(c.id));
       saveDB(); render();
       addNotif('تقرير يومي', `${saved} ${t('nav_reps')} — ${date}`, 'ok');
       toast(t('msg_saved_local'), 'ok');
-      if(isCloudReady()){
+      // ✅ تحقق صريح من الوضع اليدوي
+      const mode = (db.settings && db.settings.supervisorSyncMode) || 'auto';
+      if(isCloudReady() && mode === 'auto'){
         pushToCloud(true).then(ok => {
           if(ok){
             const syncNow = new Date().toISOString();
@@ -3049,6 +3604,8 @@ function dailyReportModal(){
             });
           }
         });
+      } else if(isCloudReady() && mode === 'manual'){
+        toast(t('msg_sync_manual_only'), 'warn');
       }
       return true;
     }
@@ -3132,9 +3689,7 @@ function reportModal(id){
         if(chip){ chip.className = 'chip grade ' + l; chip.textContent = l; }
         if(sKm.value !== '' && eKm.value !== ''){
           tKm.value = Math.max(0, num(eKm.value) - num(sKm.value));
-        } else {
-          tKm.value = '';
-        }
+        } else { tKm.value = ''; }
         const delivered = num(ordersInp.value);
         const sysR = num(sysRejInp.value);
         const drvR = num(drvRejInp.value);
@@ -3199,10 +3754,11 @@ function reportModal(id){
         addNotif('تقرير جديد', `${repName(data.repId)} — ${data.orders} طلب (${rating})`, 'ok');
         toast(t('msg_saved_local'),'ok');
       }
-      // 🛢️ فحص موعد تغيير الزيت بعد حفظ التقرير
       db.cars.forEach(c => checkOilForCar(c.id));
       saveDB(); render();
-      if(isCloudReady()){
+      // ✅ تحقق صريح من الوضع اليدوي
+      const mode = (db.settings && db.settings.supervisorSyncMode) || 'auto';
+      if(isCloudReady() && mode === 'auto'){
         pushToCloud(true).then(ok => {
           if(ok){
             const syncNow = new Date().toISOString();
@@ -3215,6 +3771,8 @@ function reportModal(id){
             toast(t('msg_report_sent'), 'ok');
           }
         });
+      } else if(isCloudReady() && mode === 'manual'){
+        toast(t('msg_sync_manual_only'), 'warn');
       }
       return true;
     }
@@ -3258,19 +3816,21 @@ function viewReps(){
       <th>${t('fld_app')}</th><th>${t('fld_car_assigned')}</th>
       <th>${t('fld_supervisor')}</th><th>${t('fld_region')}</th>
       <th>${t('fld_delivered_orders')}</th>
+      ${customHeadHTML('reps')}
       ${canEdit?`<th></th>`:''}
     </tr></thead><tbody>
       ${rows.length ? rows.map(r=>`<tr>
         <td><b>${esc(r.name)}</b></td>
         <td><span class="chip gray">${esc(r.code)}</span></td>
         <td class="small" dir="ltr">${esc(r.phone)}</td>
-        <td class="small"><span class="chip blue">${esc(r.app||'—')}</span></td>
+        <td class="small"><span class="chip blue">${esc(appLabel(r.app))}</span></td>
         <td class="small">${carCell(r)}</td>
         <td>${r.supervisorId?`<span class="chip violet">${esc(supName(r.supervisorId))}</span>`:'<span class="chip red">—</span>'}</td>
         <td class="small">${esc(r.region)}</td>
         <td><b>${dayRepOrders(r.id)}</b> ${deltaChip(dayRepOrders(r.id), prevDayRepOrders(r.id))}</td>
+        ${customCellsHTML('reps', r)}
         ${canEdit?`<td>${actionsCell(r)}</td>`:''}
-      </tr>`).join('') : emptyRow(canEdit?9:8)}
+      </tr>`).join('') : emptyRow((canEdit?9:8)+customCols('reps').length)}
     </tbody></table></div>`;
   const cardsHTML = `
     <div class="cards-grid">
@@ -3285,11 +3845,12 @@ function viewReps(){
           </div>
           <div class="ic-rows">
             <div><span class="k">${t('fld_code')}</span><span class="v">${esc(r.code)}</span></div>
-            <div><span class="k">${t('fld_app')}</span><span class="v"><span class="chip blue">${esc(r.app||'—')}</span></span></div>
+            <div><span class="k">${t('fld_app')}</span><span class="v"><span class="chip blue">${esc(appLabel(r.app))}</span></span></div>
             <div><span class="k">${t('fld_car_assigned')}</span><span class="v">${r.carId?esc(carName(r.carId)):'—'}</span></div>
             <div><span class="k">${t('fld_supervisor')}</span><span class="v">${esc(supName(r.supervisorId))}</span></div>
             <div><span class="k">${t('fld_region')}</span><span class="v">${esc(r.region)}</span></div>
             <div><span class="k">${t('fld_delivered_orders')}</span><span class="v">${dayRepOrders(r.id)} ${deltaChip(dayRepOrders(r.id), prevDayRepOrders(r.id))}</span></div>
+            ${customCardRows('reps', r)}
           </div>
           ${canEdit?`<div class="ic-actions">
             <button class="btn btn-ghost btn-sm" data-edit-rep="${r.id}">✏️</button>
@@ -3338,14 +3899,14 @@ function afterReps(){
     cleanupRelations(); saveDB(); render();
     addNotif('حذف سائق', nm, 'err');
     toast(t('msg_deleted'),'ok');
-    if(isCloudReady()){
-      if(isSupervisorAutoSync()) pushToCloud(true); else fullSync(true);
-    }
+    autoSyncAfterSave();
   });
 }
 function repModal(id){
   if(!canEditSection('reps')){ toast(t('msg_no_perm'),'warn'); return; }
   const rec = id ? getRep(id) : null;
+  const appsList = getAppsList();
+  const regionsList = getRegionsList();
   const body = `<form id="repForm" class="form-grid" novalidate>
     <div class="field"><label>${t('fld_name')} <span class="req">*</span></label>
       <input name="name" required value="${esc(rec?.name||'')}"></div>
@@ -3356,7 +3917,7 @@ function repModal(id){
     <div class="field"><label>${t('fld_app')} <span class="req">*</span></label>
       <select name="app" required>
         <option value="">${t('fld_none')}</option>
-        ${APP_OPTIONS.map(o=>`<option value="${o}" ${rec&&rec.app===o?'selected':''}>${o}</option>`).join('')}
+        ${appsList.map(v=>`<option value="${esc(v)}" ${rec&&rec.app===v?'selected':''}>${esc(v)}</option>`).join('')}
       </select></div>
     <div class="field" style="grid-column:1/-1">
       <label>${t('fld_car_assigned')} <span class="small muted">${t('fld_optional')}</span></label>
@@ -3383,14 +3944,18 @@ function repModal(id){
       }) : emptySelectHTML(t('msg_no_sups'),'sup',t('add_sup_quick'))}
     </div>
     <div class="field"><label>${t('fld_region')} <span class="req">*</span></label>
-      <input name="region" required value="${esc(rec?.region||'')}"></div>
+      <input name="region" required list="regionsDatalist" value="${esc(rec?.region||'')}">
+      <datalist id="regionsDatalist">
+        ${regionsList.map(v=>`<option value="${esc(v)}"></option>`).join('')}
+      </datalist>
+    </div>
     <div class="field" style="grid-column:1/-1"><label>${t('fld_created')}</label>
       <input type="text" readonly dir="ltr" value="${rec?esc(rec.createdAt||''):new Date().toISOString()}"></div>
     <div id="repErr" class="err" style="grid-column:1/-1;display:none"></div>
   </form>`;
   openModal({
     title: rec ? `${t('btn_edit')} — ${t('nav_reps')}` : `${t('btn_add')} — ${t('nav_reps')}`,
-    body,
+    body, tableId:'reps', record: rec,
     onMount(root){
       bindQuickAdd(root, () => repModal(id));
       const search = root.querySelector('#carSearchInput');
@@ -3422,6 +3987,7 @@ function repModal(id){
         startKm: rec ? rec.startKm : 0,
         carId: d.carId || '',
         supervisorId:d.supervisorId, region:d.region,
+        custom: readCustomValues(root),
         updatedAt: new Date().toISOString()
       };
       if(rec && rec.carId && rec.carId !== payload.carId){
@@ -3460,9 +4026,7 @@ function repModal(id){
         addNotif('سائق جديد', d.name, 'ok'); toast(t('msg_saved'),'ok');
       }
       saveDB(); render();
-      if(isCloudReady()){
-        if(isSupervisorAutoSync()) pushToCloud(true); else fullSync(true);
-      }
+      autoSyncAfterSave();
       return true;
     }
   });
@@ -3525,7 +4089,9 @@ function viewSupervisors(){
       <th>${t('fld_name')}</th><th>${t('fld_code')}</th>
       ${isOwner()?`<th>${t('fld_email')}</th>`:''}
       <th>${t('nav_reps')}</th><th>${t('fld_orders')} (7d)</th><th>${t('fld_hours')} (7d)</th>
-      <th>${t('fld_permissions')}</th><th></th>
+      <th>${t('fld_permissions')}</th>
+      ${customHeadHTML('supervisors')}
+      <th></th>
     </tr></thead><tbody>
       ${sups.length ? sups.map(s=>{
         const reps = db.reps.filter(r=>r.supervisorId===s.id);
@@ -3539,9 +4105,10 @@ function viewSupervisors(){
           <td><b>${cw.orders}</b> ${deltaChip(cw.orders, pw.orders)}</td>
           <td>${cw.hours} ${deltaChip(cw.hours, pw.hours)}</td>
           <td>${permChips(s)}</td>
+          ${customCellsHTML('supervisors', s)}
           <td>${actionsCell(s)}</td>
         </tr>`;
-      }).join('') : emptyRow(isOwner()?8:7)}
+      }).join('') : emptyRow((isOwner()?8:7)+customCols('supervisors').length)}
     </tbody></table></div>`;
   const cardsHTML = `
     <div class="cards-grid">
@@ -3562,6 +4129,7 @@ function viewSupervisors(){
             <div><span class="k">${t('nav_reps')}</span><span class="v">${reps.length}</span></div>
             <div><span class="k">${t('fld_orders')} (7d)</span><span class="v">${cw.orders} ${deltaChip(cw.orders, pw.orders)}</span></div>
             <div><span class="k">${t('fld_hours')} (7d)</span><span class="v">${cw.hours} ${deltaChip(cw.hours, pw.hours)}</span></div>
+            ${customCardRows('supervisors', s)}
           </div>
           ${isOwner()?`<div class="ic-actions">
             <button class="btn btn-ghost btn-sm" data-assign="${s.id}" title="إسناد السائقين">🔗</button>
@@ -3608,7 +4176,7 @@ function afterSupervisors(){
   $('#toggleCreds') && ($('#toggleCreds').onclick = ()=>{
     db.settings.showCredentials = !db.settings.showCredentials;
     saveDB(); render();
-    toast(db.settings.showCredentials?'بيانات الدخول ظاهرة':'تم إخفاء بيانات الدخول','ok');
+    toast(db.settings.showCredentials?t('msg_creds_shown'):t('msg_creds_hidden'),'ok');
   });
   $('#addSup') && ($('#addSup').onclick = ()=> supModal());
   $('#permBtn2') && ($('#permBtn2').onclick = ()=> permModal());
@@ -3621,7 +4189,7 @@ function afterSupervisors(){
     cleanupRelations(); saveDB(); render();
     addNotif('حذف مشرف', s?.name||'', 'err');
     toast(t('msg_deleted'),'ok');
-    if(isCloudReady()) pushToCloud(true);
+    autoSyncAfterSave();
   });
   $$('[data-assign]').forEach(b=> b.onclick = ()=> assignModal(b.dataset.assign));
   $$('[data-quick-sup]').forEach(sel=> sel.onchange = ()=>{
@@ -3630,7 +4198,7 @@ function afterSupervisors(){
       r.supervisorId = sel.value; saveDB();
       addNotif('تغيير مشرف', `${r.name} → ${r.supervisorId?supName(r.supervisorId):'بدون'}`, 'info');
       toast(t('msg_updated'),'ok'); render();
-      if(isCloudReady()) pushToCloud(true);
+      autoSyncAfterSave();
     }
   });
 }
@@ -3660,7 +4228,7 @@ function supModal(id){
   </form>`;
   openModal({
     title: rec ? `${t('btn_edit')} — ${t('nav_supervisors')}` : `${t('btn_add')} — ${t('nav_supervisors')}`,
-    body,
+    body, tableId:'supervisors', record: rec,
     onSubmit(root){
       const form = $('#supForm', root), err = $('#supErr', root);
       const d = Object.fromEntries(new FormData(form));
@@ -3668,7 +4236,8 @@ function supModal(id){
         err.textContent = t('msg_required'); err.style.display='block'; return false;
       }
       if(rec){
-        const patch = {name:d.name, phone:d.phone, code:d.code, email:d.email, updatedAt:new Date().toISOString()};
+        const patch = {name:d.name, phone:d.phone, code:d.code, email:d.email,
+          custom: readCustomValues(root), updatedAt:new Date().toISOString()};
         if(d.password) patch.password = hashPwd(d.password);
         Object.assign(rec, patch);
         addNotif('تعديل مشرف', d.name, 'warn'); toast(t('msg_updated'),'ok');
@@ -3678,12 +4247,13 @@ function supModal(id){
           id:uid(), name:d.name, phone:d.phone, code:d.code, email:d.email,
           password:hashPwd(d.password),
           permissions:['dashboard','daily','daily_edit','reps','reps_edit','analytics','goals'],
+          custom: readCustomValues(root),
           goals: defaultGoals(), createdAt:new Date().toISOString()
         });
         addNotif('مشرف جديد', d.name, 'ok'); toast(t('msg_saved'),'ok');
       }
       saveDB(); render();
-      if(isCloudReady()) pushToCloud(true);
+      autoSyncAfterSave();
       return true;
     }
   });
@@ -3714,7 +4284,7 @@ function assignModal(supId){
       saveDB(); render();
       if(changed) addNotif('إسناد سائقين', `${changed} سائق → ${sup.name}`, 'info');
       toast(t('msg_updated'),'ok');
-      if(isCloudReady() && changed) pushToCloud(true);
+      if(changed) autoSyncAfterSave();
       return true;
     }
   });
@@ -3738,7 +4308,9 @@ function viewCars(){
     const tableHTML = `<div class="tbl-wrap" style="border:0"><table><thead><tr>
       <th>${t('fld_brand')}</th><th>${t('fld_model')}</th><th>${t('fld_plate')}</th>
       <th>${t('fld_year')}</th><th>${t('fld_rental_office')}</th><th>${t('fld_status')}</th><th>${t('fld_rep')}</th>
-      <th>${t('t_oil')}</th>${canEdit?`<th></th>`:''}
+      <th>${t('t_oil')}</th>
+      ${customHeadHTML('cars')}
+      ${canEdit?`<th></th>`:''}
     </tr></thead><tbody>
       ${db.cars.length ? db.cars.map(c=>{
         const u = db.usage.find(x=>x.carId===c.id && !x.endDate);
@@ -3752,12 +4324,13 @@ function viewCars(){
           <td>${statusChip(c.status)}</td>
           <td>${rep?`<span class="chip violet">${esc(rep.name)}</span>`:(u?`<span class="chip blue">${esc(repName(u.repId))}</span>`:'<span class="muted small">—</span>')}</td>
           <td>${oil?`<span class="chip amber">${oil.km} / ${oil.nextKm||'—'}</span>`:'<span class="muted small">—</span>'}</td>
+          ${customCellsHTML('cars', c)}
           ${canEdit?`<td><div class="tbl-actions">
             <button class="btn btn-ghost btn-sm" data-edit-car="${c.id}">✏️</button>
             <button class="btn btn-ghost btn-sm" data-del-car="${c.id}">🗑️</button>
           </div></td>`:''}
         </tr>`;
-      }).join('') : emptyRow(canEdit?9:8)}
+      }).join('') : emptyRow((canEdit?9:8)+customCols('cars').length)}
     </tbody></table></div>`;
     const cardsHTML = `<div class="cards-grid">
       ${db.cars.length ? db.cars.map(c=>{
@@ -3772,6 +4345,7 @@ function viewCars(){
             <div><span class="k">${t('fld_rental_office')}</span><span class="v">${c.rentalOfficeId?esc(officeName(c.rentalOfficeId)):'—'}</span></div>
             <div><span class="k">${t('fld_status')}</span><span class="v">${statusChip(c.status)}</span></div>
             <div><span class="k">${t('fld_rep')}</span><span class="v">${rep?esc(rep.name):(u?esc(repName(u.repId)):'—')}</span></div>
+            ${customCardRows('cars', c)}
           </div>
           ${canEdit?`<div class="ic-actions">
             <button class="btn btn-ghost btn-sm" data-edit-car="${c.id}">✏️</button>
@@ -3798,6 +4372,7 @@ function viewCars(){
         <th>${t('office_name')}</th><th>${t('office_phone')}</th>
         <th>${t('office_contact')}</th><th>${t('office_address')}</th>
         <th>${t('kpi_cars')}</th>
+        ${customHeadHTML('offices')}
         ${canEdit?`<th></th>`:''}
       </tr></thead><tbody>
         ${(db.rentalOffices||[]).length ? db.rentalOffices.map(o=>{
@@ -3808,12 +4383,13 @@ function viewCars(){
             <td>${esc(o.contact||'—')}</td>
             <td class="small">${esc(o.address||'—')}</td>
             <td><span class="chip blue">${cars.length}</span></td>
+            ${customCellsHTML('offices', o)}
             ${canEdit?`<td><div class="tbl-actions">
               <button class="btn btn-ghost btn-sm" data-edit-office="${o.id}">✏️</button>
               <button class="btn btn-ghost btn-sm" data-del-office="${o.id}">🗑️</button>
             </div></td>`:''}
           </tr>`;
-        }).join('') : emptyRow(canEdit?6:5)}
+        }).join('') : emptyRow((canEdit?6:5)+customCols('offices').length)}
       </tbody></table></div>
     </div>`;
   } else if(tab==='maintenance'){
@@ -3823,25 +4399,32 @@ function viewCars(){
         ${canEdit?`<button class="btn btn-primary btn-sm" id="addMaint">➕ ${t('btn_add')}</button>`:''}</div>
       <div class="tbl-wrap" style="border:0"><table><thead><tr>
         <th>${t('fld_car')}</th><th>${t('fld_type')}</th><th>${t('fld_category')}</th><th>${t('fld_date')}</th>
-        <th>${t('fld_cost')}</th><th>${t('fld_desc')}</th><th>${t('fld_status')}</th>${canEdit?`<th></th>`:''}
+        <th>${t('fld_cost')}</th><th>${t('fld_desc')}</th><th>${t('fld_status')}</th>
+        ${customHeadHTML('maintenance')}
+        ${canEdit?`<th></th>`:''}
       </tr></thead><tbody>
         ${db.maintenance.length ? db.maintenance.map(m=>{
           const catList = m.type==='fault' ? FAULT_CATEGORIES : MAINT_CATEGORIES;
           const cat = catList.find(x=>x.id===m.category);
-          const catLabel = m.category === 'other' ? (m.customCategory || t('ft_other')) : (cat ? lang(cat) : '—');
+          let catLabel;
+          if(m.category === 'other') catLabel = m.customCategory || t('ft_other');
+          else if(cat) catLabel = lang(cat);
+          else if(m.category) catLabel = m.category;
+          else catLabel = '—';
           return `<tr>
             <td><b>${esc(carName(m.carId))}</b></td>
             <td><span class="chip ${m.type==='fault'?'red':'amber'}">${m.type==='fault'?t('mt_fault'):t('mt_maint')}</span></td>
             <td><span class="chip gray">${esc(catLabel)}</span></td>
             <td>${esc(m.date)}</td><td>${esc(m.cost)} ر.س</td>
             <td class="small">${esc(m.desc)}</td>
-            <td>${m.status==='done'?'<span class="chip green">✔ منتهية</span>':'<span class="chip amber">⏳ جارية</span>'}</td>
+            <td>${m.status==='done'?`<span class="chip green">${t('msg_status_done')}</span>`:`<span class="chip amber">${t('msg_status_progress')}</span>`}</td>
+            ${customCellsHTML('maintenance', m)}
             ${canEdit?`<td><div class="tbl-actions">
               <button class="btn btn-ghost btn-sm" data-edit-maint="${m.id}">✏️</button>
               <button class="btn btn-ghost btn-sm" data-del-maint="${m.id}">🗑️</button>
             </div></td>`:''}
           </tr>`;
-        }).join('') : emptyRow(canEdit?8:7)}
+        }).join('') : emptyRow((canEdit?8:7)+customCols('maintenance').length)}
       </tbody></table></div>
     </div>`;
   } else if(tab==='usage'){
@@ -3853,7 +4436,9 @@ function viewCars(){
         <th>${t('fld_username')}</th>
         <th>${t('fld_car')}</th><th>${t('fld_rep')}</th><th>${t('fld_supervisor')}</th>
         <th>${t('fld_start_date')}</th><th>${t('fld_end_date')}</th>
-        <th>${t('fld_start_km')}</th><th>${t('fld_end_km')}</th><th>${t('fld_km')}</th>${canEdit?`<th></th>`:''}
+        <th>${t('fld_start_km')}</th><th>${t('fld_end_km')}</th><th>${t('fld_km')}</th>
+        ${customHeadHTML('usage')}
+        ${canEdit?`<th></th>`:''}
       </tr></thead><tbody>
         ${db.usage.length ? db.usage.map(u=>{
           const dist = (u.endKm && u.startKm) ? (num(u.endKm)-num(u.startKm)) : '';
@@ -3863,15 +4448,16 @@ function viewCars(){
             <td>${esc(repName(u.repId))}</td>
             <td class="muted small">${esc(supName(u.supervisorId))}</td>
             <td>${esc(u.startDate)}</td>
-            <td>${u.endDate?esc(u.endDate):'<span class="chip green">جاري</span>'}</td>
+            <td>${u.endDate?esc(u.endDate):`<span class="chip green">${t('msg_active_now')}</span>`}</td>
             <td>${esc(u.startKm)}</td><td>${esc(u.endKm||'—')}</td>
             <td>${dist!==''?`<span class="chip blue">${dist}</span>`:'—'}</td>
+            ${customCellsHTML('usage', u)}
             ${canEdit?`<td><div class="tbl-actions">
               <button class="btn btn-ghost btn-sm" data-edit-usage="${u.id}">✏️</button>
               <button class="btn btn-ghost btn-sm" data-del-usage="${u.id}">🗑️</button>
             </div></td>`:''}
           </tr>`;
-        }).join('') : emptyRow(canEdit?10:9)}
+        }).join('') : emptyRow((canEdit?10:9)+customCols('usage').length)}
       </tbody></table></div>
     </div>`;
   } else {
@@ -3882,27 +4468,30 @@ function viewCars(){
       <div class="tbl-wrap" style="border:0"><table><thead><tr>
         <th>${t('fld_car')}</th><th>${t('fld_date')}</th><th>${t('fld_km')}</th>
         <th>${t('fld_next_km')}</th><th>${t('fld_next_date')}</th><th>${t('fld_cost')}</th>
-        <th>${t('fld_status')}</th>${canEdit?`<th></th>`:''}
+        <th>${t('fld_status')}</th>
+        ${customHeadHTML('oil')}
+        ${canEdit?`<th></th>`:''}
       </tr></thead><tbody>
         ${db.oil.length ? db.oil.map(o=>{
           const cur = currentKm(o.carId);
           const remain = o.nextKm ? num(o.nextKm) - cur : null;
           const st = remain===null ? '<span class="chip gray">—</span>'
-                   : remain<=0 ? '<span class="chip red">🛢️ تغيير فوري</span>'
-                   : remain<=500 ? '<span class="chip amber">⚠️ قريباً</span>'
-                   : '<span class="chip green">✔ جيد</span>';
+                   : remain<=0 ? `<span class="chip red">${t('oil_status_urgent')}</span>`
+                   : remain<=500 ? `<span class="chip amber">${t('oil_status_soon')}</span>`
+                   : `<span class="chip green">${t('oil_status_ok')}</span>`;
           return `<tr>
             <td><b>${esc(carName(o.carId))}</b></td>
             <td>${esc(o.date)}</td><td>${esc(o.km)}</td>
             <td>${esc(o.nextKm||'—')}</td><td>${esc(o.nextDate||'—')}</td>
             <td>${esc(o.cost||0)} ر.س</td>
             <td>${st}${remain!==null?`<div class="small muted">قراءة حالية ${cur} • متبقي ${remain} كم</div>`:''}</td>
+            ${customCellsHTML('oil', o)}
             ${canEdit?`<td><div class="tbl-actions">
               <button class="btn btn-ghost btn-sm" data-edit-oil="${o.id}">✏️</button>
               <button class="btn btn-ghost btn-sm" data-del-oil="${o.id}">🗑️</button>
             </div></td>`:''}
           </tr>`;
-        }).join('') : emptyRow(canEdit?8:7)}
+        }).join('') : emptyRow((canEdit?8:7)+customCols('oil').length)}
       </tbody></table></div>
     </div>`;
   }
@@ -3914,18 +4503,10 @@ function statusChip(s){
   const [c,k] = map[s] || ['gray','st_inactive'];
   return `<span class="chip ${c}">${t(k)}</span>`;
 }
-
-/* ═══════════════════════════════════════════════════════════════════
-   🛢️ ربط الكيلومترات تلقائياً مع جدول تغيير الزيت
-   ═══════════════════════════════════════════════════════════════════ */
-
-/* استخراج أحدث قراءة عداد لسيارة (من التقارير + سجلات الاستخدام) */
 function latestKmForCar(carId){
   const car = getCar(carId);
   if(!car) return 0;
   let maxKm = 0;
-
-  // 1) من تقارير السائق المسند إليه (بداية/نهاية العمل)
   if(car.assignedRepId){
     db.reports.forEach(r => {
       if(r.repId !== car.assignedRepId) return;
@@ -3935,64 +4516,40 @@ function latestKmForCar(carId){
       if(km > maxKm) maxKm = km;
     });
   }
-
-  // 2) من سجلات استخدام المركبة
   db.usage.filter(u => u.carId === carId).forEach(u => {
     const eK = (u.endKm !== '' && u.endKm !== undefined) ? num(u.endKm) : 0;
     const sK = (u.startKm !== '' && u.startKm !== undefined) ? num(u.startKm) : 0;
     const km = Math.max(eK, sK);
     if(km > maxKm) maxKm = km;
   });
-
   return maxKm;
 }
-
-function currentKm(carId){
-  return latestKmForCar(carId);
-}
-
-/* فحص موعد تغيير الزيت وإصدار إشعار */
+function currentKm(carId){ return latestKmForCar(carId); }
 function checkOilForCar(carId){
   const car = getCar(carId);
   if(!car) return;
-
-  // نبحث عن أحدث سجل تغيير زيت يحتوي على "التغيير القادم"
   const oils = db.oil.filter(o => o.carId === carId && num(o.nextKm) > 0);
   if(!oils.length) return;
-
   const latest = oils.slice().sort((a,b) => num(b.km) - num(a.km))[0];
   const nextKm = num(latest.nextKm);
   const currentKmv = latestKmForCar(carId);
   if(!currentKmv) return;
-
   const remain = nextKm - currentKmv;
-
-  // 🔔 إشعار عند الوصول أو التجاوز (القراءة = الموعد أو أكبر)
   if(remain <= 0 && !latest.notifiedDue){
     latest.notifiedDue = true;
-    addNotif(
-      '🛢️ موعد تغيير الزيت',
-      `${carName(carId)} — القراءة الحالية ${currentKmv} كم (الموعد المحدد: ${nextKm} كم)`,
-      'warn'
-    );
-  }
-  // 🔔 إشعار عند الاقتراب (500 كم أو أقل متبقية)
-  else if(remain > 0 && remain <= 500 && !latest.notifiedSoon){
+    addNotif('🛢️ موعد تغيير الزيت',
+      `${carName(carId)} — القراءة الحالية ${currentKmv} كم (الموعد المحدد: ${nextKm} كم)`, 'warn');
+  } else if(remain > 0 && remain <= 500 && !latest.notifiedSoon){
     latest.notifiedSoon = true;
-    addNotif(
-      '🛢️ تغيير زيت قريب',
-      `${carName(carId)} — متبقٍ ${remain} كم لتغيير الزيت (القراءة: ${currentKmv} كم)`,
-      'info'
-    );
+    addNotif('🛢️ تغيير زيت قريب',
+      `${carName(carId)} — متبقٍ ${remain} كم لتغيير الزيت (القراءة: ${currentKmv} كم)`, 'info');
   }
 }
-
 function afterCars(){
   $$('[data-tab]').forEach(b=> b.onclick = ()=>{ state.carsTab = b.dataset.tab; render(); });
   bindViewToggles();
   const permP = isOwner() ? null : ((getMySupervisor()?.permissions)||[]);
   const canEditTab = (tabId) => isOwner() || permHasEdit(permP, 'cars', tabId);
-
   if(canEditTab('vehicles')){
     $('#addCar')?.addEventListener('click', ()=> carModal());
     $$('[data-edit-car]').forEach(b=> b.onclick = ()=> carModal(b.dataset.editCar));
@@ -4000,7 +4557,7 @@ function afterCars(){
       if(!confirm(t('msg_confirm_del'))) return;
       db.cars = db.cars.filter(x=>x.id!==b.dataset.delCar);
       cleanupRelations(); saveDB(); render(); toast(t('msg_deleted'),'ok');
-      if(isCloudReady()) pushToCloud(true);
+      autoSyncAfterSave();
     });
   }
   if(canEditTab('offices')){
@@ -4010,7 +4567,7 @@ function afterCars(){
       if(!confirm(t('msg_confirm_del'))) return;
       db.rentalOffices = (db.rentalOffices||[]).filter(x=>x.id!==b.dataset.delOffice);
       cleanupRelations(); saveDB(); render(); toast(t('msg_deleted'),'ok');
-      if(isCloudReady()) pushToCloud(true);
+      autoSyncAfterSave();
     });
   }
   if(canEditTab('maintenance')){
@@ -4020,7 +4577,7 @@ function afterCars(){
       if(!confirm(t('msg_confirm_del'))) return;
       db.maintenance = db.maintenance.filter(x=>x.id!==b.dataset.delMaint);
       saveDB(); render(); toast(t('msg_deleted'),'ok');
-      if(isCloudReady()) pushToCloud(true);
+      autoSyncAfterSave();
     });
   }
   if(canEditTab('usage')){
@@ -4030,7 +4587,7 @@ function afterCars(){
       if(!confirm(t('msg_confirm_del'))) return;
       db.usage = db.usage.filter(x=>x.id!==b.dataset.delUsage);
       saveDB(); render(); toast(t('msg_deleted'),'ok');
-      if(isCloudReady()) pushToCloud(true);
+      autoSyncAfterSave();
     });
   }
   if(canEditTab('oil')){
@@ -4040,7 +4597,7 @@ function afterCars(){
       if(!confirm(t('msg_confirm_del'))) return;
       db.oil = db.oil.filter(x=>x.id!==b.dataset.delOil);
       saveDB(); render(); toast(t('msg_deleted'),'ok');
-      if(isCloudReady()) pushToCloud(true);
+      autoSyncAfterSave();
     });
   }
 }
@@ -4086,7 +4643,7 @@ function carModal(id){
   </form>`;
   openModal({
     title: rec ? `${t('btn_edit')} — ${t('nav_cars')}` : `${t('btn_add')} — ${t('nav_cars')}`,
-    body,
+    body, tableId:'cars', record: rec,
     onMount(root){
       bindQuickAdd(root, () => carModal(id));
       const search = root.querySelector('#drvSearchInp');
@@ -4113,6 +4670,7 @@ function carModal(id){
         brand:d.brand, model:d.model, plate:d.plate, year:d.year, status:d.status,
         rentalOfficeId: d.rentalOfficeId || '',
         assignedRepId: d.assignedRepId || '',
+        custom: readCustomValues(root),
         updatedAt: new Date().toISOString()
       };
       if(rec && rec.assignedRepId && rec.assignedRepId !== payload.assignedRepId){
@@ -4136,9 +4694,7 @@ function carModal(id){
         toast(t('msg_saved'),'ok');
       }
       saveDB(); render();
-      if(isCloudReady()){
-        if(isSupervisorAutoSync()) pushToCloud(true); else fullSync(true);
-      }
+      autoSyncAfterSave();
       return true;
     }
   });
@@ -4161,17 +4717,20 @@ function officeModal(id){
   </form>`;
   openModal({
     title: rec ? `${t('btn_edit')} — ${t('t_offices')}` : `${t('btn_add')} — ${t('t_offices')}`,
-    body,
+    body, tableId:'offices', record: rec,
     onSubmit(root){
       const d = Object.fromEntries(new FormData($('#offForm', root)));
       const err = $('#offErr', root);
       if(!d.name){ err.textContent=t('msg_required'); err.style.display='block'; return false; }
-      if(rec){ Object.assign(rec, d, {updatedAt:new Date().toISOString()}); toast(t('msg_updated'),'ok'); }
-      else { db.rentalOffices = db.rentalOffices||[]; db.rentalOffices.push({id:uid(), ...d, createdAt:new Date().toISOString()}); toast(t('msg_saved'),'ok'); }
+      const payload = {
+        name:d.name, phone:d.phone||'', contact:d.contact||'',
+        address:d.address||'', notes:d.notes||'',
+        custom: readCustomValues(root)
+      };
+      if(rec){ Object.assign(rec, payload, {updatedAt:new Date().toISOString()}); toast(t('msg_updated'),'ok'); }
+      else { db.rentalOffices = db.rentalOffices||[]; db.rentalOffices.push({id:uid(), ...payload, createdAt:new Date().toISOString()}); toast(t('msg_saved'),'ok'); }
       saveDB(); render();
-      if(isCloudReady()){
-        if(isSupervisorAutoSync()) pushToCloud(true); else fullSync(true);
-      }
+      autoSyncAfterSave();
       return true;
     }
   });
@@ -4180,7 +4739,7 @@ function maintModal(id){
   if(!canEditSection('cars')){ toast(t('msg_no_perm'),'warn'); return; }
   const rec = id ? db.maintenance.find(x=>x.id===id) : null;
   const type = rec?.type || 'maint';
-  const cats = type === 'fault' ? FAULT_CATEGORIES : MAINT_CATEGORIES;
+  const catOptions = getMaintCatsOptionsFor(type);
   const body = `<form id="mForm" class="form-grid" novalidate>
     <div class="field"><label>${t('fld_car')} <span class="req">*</span></label>
       ${db.cars.length ? selectWithAdd({
@@ -4196,7 +4755,7 @@ function maintModal(id){
       </select></div>
     <div class="field"><label>${t('fld_category')} <span class="req">*</span></label>
       <select name="category" id="mCatSel" required>
-        ${cats.map(c=>`<option value="${c.id}" ${rec?.category===c.id?'selected':''}>${esc(lang(c))}</option>`).join('')}
+        ${catOptions.map(c=>`<option value="${esc(c.value)}" ${rec?.category===c.value?'selected':''}>${esc(c.label)}</option>`).join('')}
       </select></div>
     <div class="field" id="customCatWrap" style="display:${rec?.category==='other'?'flex':'none'}">
       <label>${t('fld_custom_category')}</label>
@@ -4208,8 +4767,8 @@ function maintModal(id){
       <input type="number" name="cost" min="0" step="0.01" required value="${rec?rec.cost:''}"></div>
     <div class="field"><label>${t('fld_status')} <span class="req">*</span></label>
       <select name="status" required>
-        <option value="in_progress" ${rec&&rec.status==='in_progress'?'selected':''}>⏳ جارية</option>
-        <option value="done" ${rec&&rec.status==='done'?'selected':''}>✔ منتهية</option>
+        <option value="in_progress" ${rec&&rec.status==='in_progress'?'selected':''}>${t('msg_status_progress')}</option>
+        <option value="done" ${rec&&rec.status==='done'?'selected':''}>${t('msg_status_done')}</option>
       </select></div>
     <div class="field" style="grid-column:1/-1"><label>${t('fld_desc')} <span class="req">*</span></label>
       <textarea name="desc" rows="2" required>${esc(rec?.desc||'')}</textarea></div>
@@ -4217,7 +4776,7 @@ function maintModal(id){
   </form>`;
   openModal({
     title: rec ? t('btn_edit') : `${t('btn_add')} — ${t('t_maint')}`,
-    body,
+    body, tableId:'maintenance', record: rec,
     onMount(root){
       bindQuickAdd(root, () => maintModal(id));
       const typeSel = root.querySelector('#mTypeSel');
@@ -4226,9 +4785,9 @@ function maintModal(id){
       if(!typeSel || !catSel || !wrap) return;
       const curCat = rec?.category || '';
       const rebuildCats = (newType, keep)=>{
-        const list = newType === 'fault' ? FAULT_CATEGORIES : MAINT_CATEGORIES;
-        catSel.innerHTML = list.map(c=>`<option value="${c.id}" ${keep===c.id?'selected':''}>${esc(lang(c))}</option>`).join('');
-        if(!keep) catSel.value = list[0].id;
+        const list = getMaintCatsOptionsFor(newType);
+        catSel.innerHTML = list.map(c=>`<option value="${esc(c.value)}" ${keep===c.value?'selected':''}>${esc(c.label)}</option>`).join('');
+        if(!keep && list.length) catSel.value = list[0].value;
         wrap.style.display = catSel.value === 'other' ? 'flex' : 'none';
       };
       rebuildCats(typeSel.value, curCat);
@@ -4240,19 +4799,18 @@ function maintModal(id){
       const err = $('#mErr', root);
       if(!db.cars.length){ err.textContent = t('msg_no_cars'); err.style.display='block'; return false; }
       if(['carId','type','category','date','cost','desc','status'].some(k=>!d[k])){ err.textContent=t('msg_required'); err.style.display='block'; return false; }
-      if(d.category === 'other' && !d.customCategory.trim()){ err.textContent='يرجى كتابة التصنيف'; err.style.display='block'; return false; }
+      if(d.category === 'other' && !d.customCategory.trim()){ err.textContent=t('msg_custom_category_required'); err.style.display='block'; return false; }
       const payload = {
         carId:d.carId, type:d.type, category:d.category,
         customCategory: d.category==='other' ? d.customCategory.trim() : '',
         date:d.date, cost:d.cost, desc:d.desc, status:d.status,
+        custom: readCustomValues(root),
         updatedAt:new Date().toISOString()
       };
       if(rec){ Object.assign(rec, payload); toast(t('msg_updated'),'ok'); }
       else { db.maintenance.push({id:uid(), ...payload}); toast(t('msg_saved'),'ok'); }
       saveDB(); render();
-      if(isCloudReady()){
-        if(isSupervisorAutoSync()) pushToCloud(true); else fullSync(true);
-      }
+      autoSyncAfterSave();
       return true;
     }
   });
@@ -4300,7 +4858,7 @@ function usageModal(id){
   </form>`;
   openModal({
     title: rec ? t('btn_edit') : `${t('btn_add')} — ${t('t_usage')}`,
-    body,
+    body, tableId:'usage', record: rec,
     onMount(root){
       bindQuickAdd(root, () => usageModal(id));
       const search = root.querySelector('#usageDrvSearch');
@@ -4323,7 +4881,7 @@ function usageModal(id){
       const d = Object.fromEntries(new FormData($('#uForm', root)));
       const err = $('#uErr', root);
       if(!db.cars.length || !db.reps.length || !db.supervisors.length){
-        err.textContent = 'أكمل إضافة المركبة/السائق/المشرف أولاً'; err.style.display='block'; return false;
+        err.textContent = t('msg_complete_relations'); err.style.display='block'; return false;
       }
       if(!d.username || !d.carId || !d.repId || !d.supervisorId || !d.startDate || d.startKm===''){
         err.textContent=t('msg_required'); err.style.display='block'; return false;
@@ -4332,6 +4890,7 @@ function usageModal(id){
         username:d.username, carId:d.carId, repId:d.repId, supervisorId:d.supervisorId,
         startDate:d.startDate, endDate:d.endDate||'', startKm:num(d.startKm),
         endKm: d.endKm!=='' ? num(d.endKm) : '',
+        custom: readCustomValues(root),
         updatedAt:new Date().toISOString()
       };
       if(rec){ Object.assign(rec, payload); toast(t('msg_updated'),'ok'); }
@@ -4339,12 +4898,9 @@ function usageModal(id){
         db.usage.push({id:uid(), ...payload, createdAt:new Date().toISOString()});
         toast(t('msg_saved'),'ok');
       }
-      // 🛢️ فحص الزيت بعد تحديث قراءة العداد
       if(payload.endKm !== '') checkOilForCar(payload.carId);
       saveDB(); render();
-      if(isCloudReady()){
-        if(isSupervisorAutoSync()) pushToCloud(true); else fullSync(true);
-      }
+      autoSyncAfterSave();
       return true;
     }
   });
@@ -4374,7 +4930,7 @@ function oilModal(id){
   </form>`;
   openModal({
     title: rec ? t('btn_edit') : `${t('btn_add')} — ${t('t_oil')}`,
-    body,
+    body, tableId:'oil', record: rec,
     onMount(root){
       bindQuickAdd(root, () => oilModal(id));
     },
@@ -4383,15 +4939,17 @@ function oilModal(id){
       const err = $('#oErr', root);
       if(!db.cars.length){ err.textContent = t('msg_no_cars'); err.style.display='block'; return false; }
       if(['carId','date','km'].some(k=>!d[k])){ err.textContent=t('msg_required'); err.style.display='block'; return false; }
-      const payload = { ...d, notifiedDue:false, notifiedSoon:false, updatedAt:new Date().toISOString() };
+      const payload = {
+        carId:d.carId, date:d.date, km:d.km,
+        nextKm: d.nextKm || '', nextDate: d.nextDate || '', cost: d.cost || '',
+        custom: readCustomValues(root),
+        notifiedDue:false, notifiedSoon:false, updatedAt:new Date().toISOString()
+      };
       if(rec){ Object.assign(rec, payload); toast(t('msg_updated'),'ok'); }
       else { db.oil.push({id:uid(), ...payload}); toast(t('msg_saved'),'ok'); }
-      // 🛢️ فحص الزيت بعد الحفظ
       checkOilForCar(d.carId);
       saveDB(); render();
-      if(isCloudReady()){
-        if(isSupervisorAutoSync()) pushToCloud(true); else fullSync(true);
-      }
+      autoSyncAfterSave();
       return true;
     }
   });
@@ -4560,10 +5118,8 @@ function viewAnalytics(){
     <div class="kpi" style="--k:#6366f1">
       <div class="kpi-top">
         <div class="kpi-icon">📦</div>
-        <div class="kpi-body">
-          <div class="kpi-label">${t('fld_delivered_orders')}</div>
-          <div class="kpi-value">${totalOrders}</div>
-        </div>
+        <div class="kpi-body"><div class="kpi-label">${t('fld_delivered_orders')}</div>
+          <div class="kpi-value">${totalOrders}</div></div>
       </div>
       <div class="kpi-foot">
         ${deltaOrdersPct!=null ? `<span class="kpi-delta ${deltaOrdersPct>=0?'up':'down'}">${deltaOrdersPct>=0?'▲':'▼'} ${Math.abs(deltaOrdersPct)}%</span><span class="small muted">${t('vs_prev')} (${pOrders})</span>` : ''}
@@ -4572,10 +5128,8 @@ function viewAnalytics(){
     <div class="kpi" style="--k:#10b981">
       <div class="kpi-top">
         <div class="kpi-icon">⏱️</div>
-        <div class="kpi-body">
-          <div class="kpi-label">${t('kpi_hours')}</div>
-          <div class="kpi-value">${totalHours}</div>
-        </div>
+        <div class="kpi-body"><div class="kpi-label">${t('kpi_hours')}</div>
+          <div class="kpi-value">${totalHours}</div></div>
       </div>
       <div class="kpi-foot">
         ${deltaHoursPct!=null ? `<span class="kpi-delta ${deltaHoursPct>=0?'up':'down'}">${deltaHoursPct>=0?'▲':'▼'} ${Math.abs(deltaHoursPct)}%</span><span class="small muted">${t('vs_prev')} (${pHours})</span>` : ''}
@@ -4584,10 +5138,8 @@ function viewAnalytics(){
     <div class="kpi" style="--k:#f59e0b">
       <div class="kpi-top">
         <div class="kpi-icon">⚠️</div>
-        <div class="kpi-body">
-          <div class="kpi-label">${t('kpi_violations')}</div>
-          <div class="kpi-value">${totalViol}</div>
-        </div>
+        <div class="kpi-body"><div class="kpi-label">${t('kpi_violations')}</div>
+          <div class="kpi-value">${totalViol}</div></div>
       </div>
       <div class="kpi-foot">
         ${deltaViolPct!=null ? `<span class="kpi-delta ${deltaViolPct<=0?'up':'down'}">${deltaViolPct>=0?'▲':'▼'} ${Math.abs(deltaViolPct)}%</span><span class="small muted">${t('vs_prev')} (${pViol})</span>` : ''}
@@ -4596,10 +5148,8 @@ function viewAnalytics(){
     <div class="kpi" style="--k:#8b5cf6">
       <div class="kpi-top">
         <div class="kpi-icon">🏆</div>
-        <div class="kpi-body">
-          <div class="kpi-label">${t('top_rep')}</div>
-          <div class="kpi-value" style="font-size:18px">${bestRep ? esc(bestRep.label) : '—'}</div>
-        </div>
+        <div class="kpi-body"><div class="kpi-label">${t('top_rep')}</div>
+          <div class="kpi-value" style="font-size:18px">${bestRep ? esc(bestRep.label) : '—'}</div></div>
       </div>
       <div class="kpi-foot">
         <span class="chip blue">${bestRep ? bestRep.value + ' ' + t('fld_delivered_orders') : '—'}</span>
@@ -4627,8 +5177,10 @@ function viewAnalytics(){
   </div>
   <div class="card">
     <div class="card-head">📅 ${t('daily_grades_table')} <span class="spacer"></span>
-      <span class="chip gray">A–D</span></div>
-    ${dailyGradesTableHTML(14)}
+      <span class="chip gray">A–D</span>
+      ${dailyGradesHeaderHTML()}
+    </div>
+    ${dailyGradesComparisonHTML(state.dailyGradesMode || 'single', {days:14})}
   </div>
   ${c.orders ? `<div class="card">
       <div class="card-head">📦 ${t('t_orders_rep')}<span class="spacer"></span>
@@ -4706,6 +5258,7 @@ function afterAnalytics(){
     ['mousemove','mouseenter','click','focusin','touchstart'].forEach(ev=> tb.addEventListener(ev, resetIdle, {passive:true}));
   }
   bindChartTypeButtons();
+  bindDailyGradesHeader();
   $$('[data-chart]').forEach(cb=> cb.onchange = ()=>{
     db.settings.charts[cb.dataset.chart] = cb.checked;
     saveDB(); render();
@@ -4749,22 +5302,22 @@ function computeGoalActuals(period, supId){
   };
 }
 function goalCard({icon,label,target,actual,unit='',inverse=false}){
-  if(!target){ return `<div class="goal-card" style="opacity:.7">
-    <div class="goal-title">${icon} ${label}</div>
-    <div class="small muted">${t('goals_no_goal')}</div>
-  </div>`; }
-  const pct = target ? Math.round((actual/target)*100) : 0;
-  const exceed = inverse ? (actual <= target) : (actual >= target);
+  if(!target || num(target) === 0) return '';
+  const pct = inverse
+    ? Math.round((num(target) / Math.max(num(actual), 1)) * 100)
+    : Math.round((num(actual) / num(target)) * 100);
+  const exceed = inverse ? (num(actual) <= num(target)) : (num(actual) >= num(target));
   const status = exceed ? t('goals_exceeded') : (pct >= 70 ? t('goals_on_track') : t('goals_behind'));
-  const remaining = Math.max(0, target - actual);
+  const remaining = Math.max(0, num(target) - num(actual));
+  const barWidth = Math.min(100, pct);
   return `<div class="goal-card">
     <div class="goal-title">${icon} ${label}</div>
     <div class="goal-values">
       <div><div class="gv-l">${t('goals_actual')}</div><div class="gv-v">${actual}${unit}</div></div>
       <div style="text-align:center"><div class="gv-l">${t('goals_target')}</div><div class="gv-v">${target}${unit}</div></div>
-      <div style="text-align:end"><div class="gv-l">${t('goals_remaining')}</div><div class="gv-v">${inverse? Math.max(0,actual-target) : remaining}${unit}</div></div>
+      <div style="text-align:end"><div class="gv-l">${t('goals_remaining')}</div><div class="gv-v">${inverse? Math.max(0,num(actual)-num(target)) : remaining}${unit}</div></div>
     </div>
-    <div class="goal-bar ${exceed?'exceed':''}"><i style="width:${Math.min(100, pct)}%"></i></div>
+    <div class="goal-bar ${exceed?'exceed':''}"><i style="width:${barWidth}%"></i></div>
     <div class="goal-pct" style="color:${exceed?'#047857':pct>=70?'#1d4ed8':'#b45309'}">${pct}% · ${status}</div>
   </div>`;
 }
@@ -4783,23 +5336,23 @@ function viewGoals(){
   const actuals = computeGoalActuals(currentPeriod, targetId === 'owner' ? null : targetId);
   const pg = goalsObj[currentPeriod] || {};
   const periods = [['daily', t('goals_period_today')],['weekly', t('goals_period_week')],['monthly', t('goals_period_month')]];
+
   let goalScore = 0, goalsCount = 0;
   const evaluate = (target, actual, inverse=false)=>{
-    if(!target) return;
+    if(!target || num(target) === 0) return;
     goalsCount++;
-    const pct = inverse ? Math.min(100, (target/Math.max(actual,1))*100) : Math.min(100, (actual/target)*100);
+    const pct = inverse
+      ? (num(target) / Math.max(num(actual), 1)) * 100
+      : (num(actual) / num(target)) * 100;
     goalScore += pct;
   };
   ['daily','weekly','monthly'].forEach(per=>{
     const gp = goalsObj[per] || {};
     const ap = computeGoalActuals(per, targetId === 'owner' ? null : targetId);
     evaluate(gp.orders, ap.orders);
-    evaluate(gp.hours, ap.hours);
-    evaluate(gp.maxViolations, ap.violations, true);
-    evaluate(gp.minAcceptRate, ap.acceptRate);
-    evaluate(gp.perRepDaily, ap.perRepDaily);
   });
   const overallGoalScore = goalsCount ? Math.round(goalScore/goalsCount) : 0;
+
   const editAllowed = isOwner() || (targetId === state.user.id && canEditGoals());
   const supRows = sups.map(s=>{
     const gp = (s.goals && s.goals[currentPeriod]) || {};
@@ -4852,10 +5405,11 @@ function viewGoals(){
       </select>
     </div>`;
   const targetLabel = targetId === 'owner' ? t('goals_target_owner') : `${t('goals_for')} ${esc(supName(targetId))}`;
+  const hasAnyGoal = ['orders','hours','maxViolations','minAcceptRate','perRepDaily'].some(k => num(pg[k]) > 0);
 
   return `
   <div class="grid g4">
-    ${kpiCard('🎯', t('goals_overall'), overallGoalScore + '%', '#6366f1', null, null, overallGoalScore)}
+    ${kpiCard('🎯', t('goals_overall'), overallGoalScore + '%', '#6366f1', null, null, Math.min(100, overallGoalScore))}
     ${kpiCard('📦', t('goals_actual')+' '+t('kpi_orders'), actuals.orders, '#10b981')}
     ${kpiCard('⏱️', t('goals_actual')+' '+t('kpi_hours'), actuals.hours + 'h', '#06b6d4')}
     ${kpiCard('⚠️', t('goals_actual')+' '+t('kpi_violations'), actuals.violations, '#f59e0b')}
@@ -4870,11 +5424,13 @@ function viewGoals(){
     <div class="card-body">
       <div class="small muted" style="margin-bottom:14px">${t('goals_desc')}</div>
       <div class="grid g3">
-        ${goalCard({icon:'📦', label:t('goals_orders'), target:pg.orders, actual:actuals.orders})}
-        ${goalCard({icon:'⏱️', label:t('goals_hours'), target:pg.hours, actual:actuals.hours, unit:'h'})}
-        ${goalCard({icon:'⚠️', label:t('goals_max_violations'), target:pg.maxViolations, actual:actuals.violations, inverse:true})}
-        ${goalCard({icon:'✅', label:t('goals_min_accept_rate'), target:pg.minAcceptRate, actual:actuals.acceptRate, unit:'%'})}
-        ${goalCard({icon:'🚗', label:t('goals_per_rep_daily'), target:pg.perRepDaily, actual:actuals.perRepDaily})}
+        ${hasAnyGoal ? [
+          goalCard({icon:'📦', label:t('goals_orders'), target:pg.orders, actual:actuals.orders}),
+          goalCard({icon:'⏱️', label:t('goals_hours'), target:pg.hours, actual:actuals.hours, unit:'h'}),
+          goalCard({icon:'⚠️', label:t('goals_max_violations'), target:pg.maxViolations, actual:actuals.violations, inverse:true}),
+          goalCard({icon:'✅', label:t('goals_min_accept_rate'), target:pg.minAcceptRate, actual:actuals.acceptRate, unit:'%'}),
+          goalCard({icon:'🚗', label:t('goals_per_rep_daily'), target:pg.perRepDaily, actual:actuals.perRepDaily})
+        ].join('') : `<div class="empty" style="grid-column:1/-1">${t('goals_no_goal')}</div>`}
       </div>
     </div>
   </div>
@@ -4897,9 +5453,11 @@ function viewGoals(){
               const perLabel = per==='daily'?t('goals_period_today'):per==='weekly'?t('goals_period_week'):t('goals_period_month');
               const ap = computeGoalActuals(per, targetId === 'owner' ? null : targetId);
               const fmt = (tVal,aVal,inverse)=>{
-                if(!tVal) return '<span class="muted small">—</span>';
-                const pct = inverse ? Math.min(100, Math.round((tVal/Math.max(aVal,1))*100)) : Math.min(100, Math.round((aVal/tVal)*100));
-                const ok = inverse ? aVal <= tVal : aVal >= tVal;
+                if(!tVal || num(tVal)===0) return '<span class="muted small">—</span>';
+                const pct = inverse
+                  ? Math.round((num(tVal)/Math.max(num(aVal),1))*100)
+                  : Math.round((num(aVal)/num(tVal))*100);
+                const ok = inverse ? num(aVal) <= num(tVal) : num(aVal) >= num(tVal);
                 return `<b>${aVal}</b> / ${tVal} <span class="chip ${ok?'green':'amber'}" style="margin-inline-start:6px">${pct}%</span>`;
               };
               return `<tr>
@@ -4921,11 +5479,12 @@ function viewGoals(){
     <div class="card-body">
       ${supRows.map(s=>{
         const target = s.gp.orders || 0;
-        const pct = target ? Math.round((s.ap.orders/target)*100) : 0;
+        if(!target) return '';
+        const pct = Math.round((s.ap.orders/target)*100);
         return `<div style="margin-bottom:14px">
           <div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:13px">
             <b>${esc(s.name)}</b>
-            <span class="muted">${s.ap.orders} / ${target||'—'} ${target?`· ${pct}%`:''}</span>
+            <span class="muted">${s.ap.orders} / ${target} · ${pct}%</span>
           </div>
           <div class="goal-bar ${pct>=100?'exceed':''}"><i style="width:${Math.min(100,pct)}%"></i></div>
         </div>`;
@@ -4940,8 +5499,7 @@ function afterGoals(){
     saveDB();
     render();
     toast('🔗 تم ربط مؤشر الأداء العام بفترة: ' +
-      (e.target.value==='daily'?t('goals_period_today'):e.target.value==='weekly'?t('goals_period_week'):t('goals_period_month')),
-      'ok');
+      (e.target.value==='daily'?t('goals_period_today'):e.target.value==='weekly'?t('goals_period_week'):t('goals_period_month')), 'ok');
   });
   $('#goalTargetSel')?.addEventListener('change', e=>{
     state.goalTarget = e.target.value;
@@ -4951,25 +5509,25 @@ function afterGoals(){
 }
 function goalsModal(){
   if(!isOwner() && !canEditGoals()){ toast(t('msg_no_perm'),'warn'); return; }
-
   const sups = isOwner() ? db.supervisors : (isSupervisor() ? [getMySupervisor()].filter(Boolean) : []);
   const activePeriod = db.settings.activeGoalPeriod || 'monthly';
   const initPeriod = state.goalPeriod || activePeriod;
-
   const periods = [
     ['daily',   t('goals_period_today')],
     ['weekly',  t('goals_period_week')],
     ['monthly', t('goals_period_month')]
   ];
-
   const buildSupRow = (supId, period, orders)=>{
     return `
     <tr data-sup-target-row class="goal-sup-row">
       <td>
-        <select data-sf="supId" style="min-width:160px">
-          <option value="">${t('goals_select_sup')}</option>
-          ${sups.map(s=>`<option value="${s.id}" ${supId===s.id?'selected':''}>${esc(s.name)}</option>`).join('')}
-        </select>
+        <div class="select-add-wrap">
+          <select data-sf="supId" style="min-width:160px">
+            <option value="">${t('goals_select_sup')}</option>
+            ${sups.map(s=>`<option value="${s.id}" ${supId===s.id?'selected':''}>${esc(s.name)}</option>`).join('')}
+          </select>
+          ${isOwner() ? `<button type="button" class="btn-add-inline" data-quick-add="sup" title="${t('add_sup_quick')}">＋</button>` : ''}
+        </div>
       </td>
       <td>
         <select data-sf="period" style="min-width:130px">
@@ -4984,10 +5542,8 @@ function goalsModal(){
       </td>
     </tr>`;
   };
-
   const generalGoals = db.goals || defaultGoals();
   const initGeneralOrders = num(generalGoals[initPeriod]?.orders) || '';
-
   const body = `
     <form id="gForm" novalidate>
       <div style="margin-bottom:16px;padding:12px 16px;border-radius:12px;background:linear-gradient(135deg,rgba(99,102,241,.08),rgba(139,92,246,.05));border:1px solid var(--border)">
@@ -5002,7 +5558,6 @@ function goalsModal(){
           </select>
         </div>
       </div>
-
       <div style="margin-bottom:22px;padding:18px;border-radius:16px;background:var(--bg-2);border:1px solid var(--border)">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
           <span style="font-size:22px">🏢</span>
@@ -5021,14 +5576,12 @@ function goalsModal(){
           </div>
         </div>
       </div>
-
       <div style="padding:18px;border-radius:16px;background:var(--bg-2);border:1px solid var(--border)">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
           <span style="font-size:22px">👔</span>
           <div style="font-weight:800;font-size:15px;color:var(--text);flex:1;min-width:150px">${t('goals_sup_targets')}</div>
           <button type="button" class="btn btn-sm btn-primary" id="addSupTargetBtn">➕ ${t('goals_add_sup_target')}</button>
         </div>
-
         <div class="tbl-wrap" style="border-radius:12px;overflow:hidden;max-height:44vh;overflow-y:auto">
           <table style="min-width:600px">
             <thead><tr>
@@ -5040,38 +5593,32 @@ function goalsModal(){
             <tbody id="supTargetsBody"></tbody>
           </table>
         </div>
-
-        <div id="noSupTargetsMsg" class="small muted" style="text-align:center;padding:24px 12px">
-          ${t('goals_no_targets')}
-        </div>
+        <div id="noSupTargetsMsg" class="small muted" style="text-align:center;padding:24px 12px">${t('goals_no_targets')}</div>
       </div>
-
       <div class="small muted" style="margin-top:14px;padding:12px 16px;border-radius:12px;background:var(--primary-soft);border:1px solid var(--border)">
         ${t('goals_all_targets_hint')}
       </div>
       <div id="gErr" class="err" style="display:none;margin-top:10px"></div>
     </form>`;
-
   openModal({
     title: `🎯 ${t('goals_create')}`,
     body: body,
     wide: true,
     submitText: `📤 ${t('btn_send')}`,
     onMount(root){
+      bindQuickAdd(root, () => goalsModal());
       const bodyEl = root.querySelector('#supTargetsBody');
       const noMsg = root.querySelector('#noSupTargetsMsg');
-
       const updateNoMsg = ()=>{
         if(!noMsg) return;
         noMsg.style.display = bodyEl.querySelectorAll('[data-sup-target-row]').length ? 'none' : 'block';
       };
-
       const addRow = (supId='', period=initPeriod, orders='')=>{
         bodyEl.insertAdjacentHTML('beforeend', buildSupRow(supId, period, orders));
         updateNoMsg();
         bindRemove();
+        bindQuickAdd(root, () => goalsModal());
       };
-
       const bindRemove = ()=>{
         bodyEl.querySelectorAll('.remove-sup-row').forEach(btn=>{
           btn.onclick = ()=>{
@@ -5081,15 +5628,12 @@ function goalsModal(){
           };
         });
       };
-
       root.querySelector('#generalPeriod')?.addEventListener('change', (e)=>{
         const p = e.target.value;
         const g = db.goals || defaultGoals();
         root.querySelector('#generalOrders').value = num(g[p]?.orders) || '';
       });
-
       root.querySelector('#addSupTargetBtn')?.addEventListener('click', ()=> addRow());
-
       if(isOwner()){
         const existingRows = [];
         sups.forEach(s=>{
@@ -5098,9 +5642,7 @@ function goalsModal(){
             if(val > 0) existingRows.push({ supId:s.id, period:per, orders:val });
           });
         });
-        if(existingRows.length){
-          existingRows.forEach(r=> addRow(r.supId, r.period, r.orders));
-        }
+        if(existingRows.length){ existingRows.forEach(r=> addRow(r.supId, r.period, r.orders)); }
       } else {
         const me = getMySupervisor();
         if(me && me.goals){
@@ -5115,17 +5657,14 @@ function goalsModal(){
     },
     onSubmit(root){
       const err = root.querySelector('#gErr');
-
       const activePeriodNew = root.querySelector('#activePeriodSelect').value;
       db.settings.activeGoalPeriod = activePeriodNew;
       state.goalPeriod = activePeriodNew;
-
       const generalPeriod = root.querySelector('#generalPeriod').value;
       const generalOrders = num(root.querySelector('#generalOrders').value);
       if(!db.goals) db.goals = defaultGoals();
       const existing = db.goals[generalPeriod] || {};
       db.goals[generalPeriod] = Object.assign({}, existing, { orders: generalOrders });
-
       let savedCount = 0;
       root.querySelectorAll('[data-sup-target-row]').forEach(row=>{
         const supId = row.querySelector('[data-sf=supId]').value;
@@ -5140,14 +5679,338 @@ function goalsModal(){
         s.goals[period] = Object.assign({}, existingS, { orders });
         savedCount++;
       });
-
       saveDB(); render();
       addNotif('🎯 إنشاء هدف', `${t('goals_general_target')}: ${generalOrders} | ${savedCount} ${t('nav_supervisors')}`, 'ok');
       toast(t('msg_goal_sent'), 'ok');
-      if(isCloudReady()){
-        if(isSupervisorAutoSync()) pushToCloud(true);
-        else fullSync(true);
+      autoSyncAfterSave();
+      return true;
+    }
+  });
+}
+
+/* ==========================================================================
+   17.b) الإنترنت
+   ========================================================================== */
+function computeInternetRow(x){
+  const today = todayStr();
+  const prev = x.prevRenewal || '';
+  const next = x.nextRenewal || '';
+  let daysLeft = null, actualDuration = 28;
+  if(next){ daysLeft = Math.floor((new Date(next) - new Date(today))/86400000); }
+  if(prev){
+    const elapsed = Math.floor((new Date(today) - new Date(prev))/86400000);
+    actualDuration = Math.max(0, 28 - elapsed);
+  }
+  return { ...x, daysLeft, actualDuration };
+}
+function checkInternetExpiry(){
+  const today = todayStr();
+  (db.internet||[]).forEach(sub=>{
+    if(!sub.nextRenewal) return;
+    const days = Math.floor((new Date(sub.nextRenewal) - new Date(today))/86400000);
+    if(days <= 0 && !sub.notifiedExpired){
+      sub.notifiedExpired = true;
+      addNotif(t('msg_internet_expired'), `${repName(sub.repId)} — ${sub.nextRenewal}`, 'err');
+    } else if(days === 1 && !sub.notified1day){
+      sub.notified1day = true;
+      addNotif(t('msg_internet_1day'), `${repName(sub.repId)} — ${sub.nextRenewal}`, 'warn');
+    } else if(days === 2 && !sub.notified2day){
+      sub.notified2day = true;
+      addNotif(t('msg_internet_2day'), `${repName(sub.repId)} — ${sub.nextRenewal}`, 'info');
+    }
+  });
+  saveDB();
+}
+function viewInternet(){
+  const canEdit = isOwner() || canEditSection('internet');
+  const reps = visibleReps();
+  const repIds = new Set(reps.map(r=>r.id));
+  const rows = (db.internet||[]).filter(x=> repIds.has(x.repId)).map(computeInternetRow);
+  const totalPrice = sum(rows, 'price');
+  const daysBadge = (d)=>{
+    if(d === null) return '<span class="chip gray">—</span>';
+    if(d < 0) return `<span class="chip red">${d} يوم</span>`;
+    if(d === 0) return `<span class="chip red">اليوم</span>`;
+    if(d === 1) return `<span class="chip amber">غداً (${d})</span>`;
+    if(d === 2) return `<span class="chip amber">${d} أيام</span>`;
+    if(d <= 5) return `<span class="chip blue">${d} أيام</span>`;
+    return `<span class="chip green">${d} يوم</span>`;
+  };
+  const durBadge = (d)=>{
+    const pct = Math.round((d/28)*100);
+    const col = d > 14 ? 'green' : d > 5 ? 'amber' : 'red';
+    return `<span class="chip ${col}">${d}/28 (${pct}%)</span>`;
+  };
+  return `
+  <div class="card">
+    <div class="card-head">🌐 ${t('t_internet')} ${isSupervisor()?`<span class="chip violet">${t('my_reps')}</span>`:''}
+      <span class="spacer"></span>
+      <span class="chip blue">${rows.length}</span>
+      ${canEdit?`<button class="btn btn-primary btn-sm" id="addInternet">➕ ${t('net_add')}</button>`:''}
+    </div>
+    <div class="tbl-wrap" style="border:0">
+      <table>
+        <thead><tr>
+          <th>${t('fld_name')}</th>
+          <th>${t('fld_prev_renewal')}</th>
+          <th>${t('fld_next_renewal')}</th>
+          <th>${t('fld_days_left')}</th>
+          <th>${t('fld_price')}</th>
+          <th>${t('fld_actual_duration')}</th>
+          ${customHeadHTML('internet')}
+          ${canEdit?`<th></th>`:''}
+        </tr></thead>
+        <tbody>
+          ${rows.length ? rows.map(x=>`
+            <tr>
+              <td><b>${esc(repName(x.repId))}</b></td>
+              <td>${esc(x.prevRenewal||'—')}</td>
+              <td>${esc(x.nextRenewal||'—')}</td>
+              <td>${daysBadge(x.daysLeft)}</td>
+              <td><span class="chip violet">${num(x.price)} ر.س</span></td>
+              <td>${durBadge(x.actualDuration)}</td>
+              ${customCellsHTML('internet', x)}
+              ${canEdit?`<td><div class="tbl-actions">
+                <button class="btn btn-ghost btn-sm" data-edit-net="${x.id}">✏️</button>
+                <button class="btn btn-ghost btn-sm" data-del-net="${x.id}">🗑️</button>
+              </div></td>`:''}
+            </tr>`).join('')
+          : `<tr><td colspan="${(canEdit?7:6)+customCols('internet').length}" class="empty">${t('no_data')}</td></tr>`}
+        </tbody>
+        ${rows.length?`<tfoot><tr style="background:var(--bg-3);font-weight:800">
+          <td colspan="4" style="text-align:end">${t('fld_grand_total')}</td>
+          <td colspan="${3 + customCols('internet').length}"><span class="chip violet" style="font-size:14px">${totalPrice} ر.س</span></td>
+        </tr></tfoot>`:''}
+      </table>
+    </div>
+  </div>`;
+}
+function afterInternet(){
+  const canEdit = isOwner() || canEditSection('internet');
+  if(!canEdit) return;
+  $('#addInternet')?.addEventListener('click', ()=> internetModal());
+  $$('[data-edit-net]').forEach(b=> b.onclick = ()=> internetModal(b.dataset.editNet));
+  $$('[data-del-net]').forEach(b=> b.onclick = ()=>{
+    if(!confirm(t('msg_confirm_del'))) return;
+    db.internet = (db.internet||[]).filter(x=>x.id!==b.dataset.delNet);
+    saveDB(); render(); toast(t('msg_deleted'),'ok');
+    autoSyncAfterSave();
+  });
+}
+function internetModal(id){
+  if(!isOwner() && !canEditSection('internet')){ toast(t('msg_no_perm'),'warn'); return; }
+  const rec = id ? (db.internet||[]).find(x=>x.id===id) : null;
+  const reps = visibleReps();
+  const body = `
+    <form id="netForm" class="form-grid" novalidate>
+      <div class="field" style="grid-column:1/-1">
+        <label>${t('fld_name')} <span class="req">*</span></label>
+        ${reps.length ? selectWithAdd({
+          name:'repId', required:true, selected: rec?.repId,
+          addType:'rep', addLabel: t('add_rep_quick'),
+          options:[{value:'', label:t('fld_none')},
+            ...reps.map(r=>({value:r.id, label:r.name}))]
+        }) : emptySelectHTML(t('msg_no_reps'),'rep',t('add_rep_quick'))}
+      </div>
+      <div class="field"><label>${t('fld_prev_renewal')} <span class="req">*</span></label>
+        <input type="date" name="prevRenewal" required id="netPrev" value="${rec?rec.prevRenewal:todayStr()}"></div>
+      <div class="field"><label>${t('fld_next_renewal')} <span class="small muted">(${t('fld_auto_total')})</span></label>
+        <input type="date" name="nextRenewal" id="netNext" readonly value="${rec?rec.nextRenewal:addDaysStr(todayStr(),28)}"></div>
+      <div class="field"><label>${t('fld_price')} <span class="req">*</span></label>
+        <input type="number" name="price" min="0" step="0.01" required value="${rec?rec.price:''}"></div>
+      <div class="field" style="grid-column:1/-1">
+        <label>${t('fld_actual_duration')}</label>
+        <input type="text" readonly id="netDur" value="${rec ? 28 : 28} / 28">
+        <span class="hint">تتناقص تلقائياً من 28 بناءً على تاريخ التجديد السابق</span>
+      </div>
+      <div id="netErr" class="err" style="grid-column:1/-1;display:none"></div>
+    </form>`;
+  openModal({
+    title: rec ? t('btn_edit') : `${t('net_add')}`,
+    body, tableId:'internet', record: rec,
+    onMount(root){
+      bindQuickAdd(root, () => internetModal(id));
+      const prev = root.querySelector('#netPrev');
+      const next = root.querySelector('#netNext');
+      const dur = root.querySelector('#netDur');
+      const upd = ()=>{
+        if(prev.value){
+          next.value = addDaysStr(prev.value, 28);
+          const elapsed = Math.floor((new Date(todayStr()) - new Date(prev.value))/86400000);
+          const d = Math.max(0, 28 - elapsed);
+          dur.value = `${d} / 28`;
+        }
+      };
+      prev.addEventListener('change', upd);
+      upd();
+    },
+    onSubmit(root){
+      const d = Object.fromEntries(new FormData($('#netForm', root)));
+      const err = $('#netErr', root);
+      if(!d.repId || !d.prevRenewal || !d.price){ err.textContent=t('msg_required'); err.style.display='block'; return false; }
+      const payload = {
+        repId:d.repId, prevRenewal:d.prevRenewal,
+        nextRenewal: addDaysStr(d.prevRenewal, 28),
+        price: num(d.price),
+        custom: readCustomValues(root),
+        updatedAt: new Date().toISOString()
+      };
+      if(rec){
+        Object.assign(rec, payload, { notified1day:false, notified2day:false, notifiedExpired:false });
+        toast(t('msg_updated'),'ok');
+      } else {
+        db.internet = db.internet||[];
+        db.internet.push({ id:uid(), ...payload,
+          notified1day:false, notified2day:false, notifiedExpired:false,
+          createdAt:new Date().toISOString() });
+        toast(t('msg_saved'),'ok');
       }
+      checkInternetExpiry();
+      saveDB(); render();
+      autoSyncAfterSave();
+      return true;
+    }
+  });
+}
+
+/* ==========================================================================
+   17.c) التصفية
+   ========================================================================== */
+function viewSettlement(){
+  const canEdit = isOwner() || canEditSection('settlement');
+  const rows = (db.settlements||[]).slice().sort((a,b)=> (b.regTime||'').localeCompare(a.regTime||''));
+  const totalAmount = sum(rows, 'amount');
+  const totalDays = sum(rows, 'days');
+  return `
+  <div class="card">
+    <div class="card-head">💰 ${t('t_settlement')} <span class="spacer"></span>
+      <span class="chip blue">${rows.length}</span>
+      <button class="btn btn-sm" id="printSettlement">${t('print_settlement')}</button>
+      ${canEdit?`<button class="btn btn-primary btn-sm" id="addSettlement">➕ ${t('set_add')}</button>`:''}
+    </div>
+    <div class="tbl-wrap" style="border:0" id="settlementTable">
+      <table>
+        <thead><tr>
+          <th>ID</th>
+          <th>${t('fld_responsible')}</th>
+          <th>${t('fld_app')}</th>
+          <th>${t('fld_from')}</th>
+          <th>${t('fld_to')}</th>
+          <th>${t('fld_rental_days')}</th>
+          <th>${t('fld_settlement_amount')}</th>
+          <th>${t('fld_bank_account')}</th>
+          <th>${t('fld_reg_time')}</th>
+          ${customHeadHTML('settlements')}
+          ${canEdit?`<th></th>`:''}
+        </tr></thead>
+        <tbody>
+          ${rows.length ? rows.map(x=>`
+            <tr>
+              <td><span class="chip gray">${esc(x.code || (x.id ? x.id.slice(-6).toUpperCase() : '—'))}</span></td>
+              <td><b>${esc(x.responsible)}</b></td>
+              <td><span class="chip blue">${esc(appLabel(x.app))}</span></td>
+              <td>${esc(x.from||'—')}</td>
+              <td>${esc(x.to||'—')}</td>
+              <td><span class="chip violet">${num(x.days)}</span></td>
+              <td><b>${num(x.amount)}</b> ر.س</td>
+              <td><span class="chip gray">${esc(x.bank||'—')}</span></td>
+              <td><span class="chip gray" style="font-size:11px">${formatDateTime(x.regTime)}</span></td>
+              ${customCellsHTML('settlements', x)}
+              ${canEdit?`<td><div class="tbl-actions">
+                <button class="btn btn-ghost btn-sm" data-edit-set="${x.id}">✏️</button>
+                <button class="btn btn-ghost btn-sm" data-del-set="${x.id}">🗑️</button>
+              </div></td>`:''}
+            </tr>`).join('')
+          : `<tr><td colspan="${(canEdit?10:9)+customCols('settlements').length}" class="empty">${t('no_data')}</td></tr>`}
+        </tbody>
+        ${rows.length?`<tfoot><tr style="background:var(--bg-3);font-weight:800">
+          <td colspan="5" style="text-align:end">${t('fld_grand_total')}</td>
+          <td><span class="chip violet" style="font-size:14px">${totalDays}</span></td>
+          <td><span class="chip green" style="font-size:14px">${totalAmount} ر.س</span></td>
+          <td colspan="${3 + customCols('settlements').length}"></td>
+        </tr></tfoot>`:''}
+      </table>
+    </div>
+  </div>`;
+}
+function afterSettlement(){
+  const canEdit = isOwner() || canEditSection('settlement');
+  $('#printSettlement')?.addEventListener('click', ()=> window.print());
+  if(!canEdit) return;
+  $('#addSettlement')?.addEventListener('click', ()=> settlementModal());
+  $$('[data-edit-set]').forEach(b=> b.onclick = ()=> settlementModal(b.dataset.editSet));
+  $$('[data-del-set]').forEach(b=> b.onclick = ()=>{
+    if(!confirm(t('msg_confirm_del'))) return;
+    db.settlements = (db.settlements||[]).filter(x=>x.id!==b.dataset.delSet);
+    saveDB(); render(); toast(t('msg_deleted'),'ok');
+    autoSyncAfterSave();
+  });
+}
+function settlementModal(id){
+  if(!isOwner() && !canEditSection('settlement')){ toast(t('msg_no_perm'),'warn'); return; }
+  const rec = id ? (db.settlements||[]).find(x=>x.id===id) : null;
+  const autoCode = rec?.code || ('ST-' + Date.now().toString(36).toUpperCase().slice(-6));
+  const appsList = getAppsList();
+  const banksList = getBanksList();
+  const body = `
+    <form id="setForm" class="form-grid" novalidate>
+      <div class="field"><label>${t('fld_code')} (ID)</label>
+        <input name="code" readonly value="${esc(autoCode)}"></div>
+      <div class="field"><label>${t('fld_responsible')} <span class="req">*</span></label>
+        <input name="responsible" required value="${esc(rec?.responsible||'')}"></div>
+      <div class="field"><label>${t('fld_app')} <span class="req">*</span></label>
+        <select name="app" required>
+          <option value="">${t('fld_none')}</option>
+          ${appsList.map(v=>`<option value="${esc(v)}" ${rec&&rec.app===v?'selected':''}>${esc(v)}</option>`).join('')}
+        </select></div>
+      <div class="field"><label>${t('fld_from')} <span class="req">*</span></label>
+        <input type="date" name="from" required value="${rec?rec.from:todayStr()}" id="setFrom"></div>
+      <div class="field"><label>${t('fld_to')} <span class="req">*</span></label>
+        <input type="date" name="to" required value="${rec?rec.to:todayStr()}" id="setTo"></div>
+      <div class="field"><label>${t('fld_rental_days')} <span class="small muted">(${t('fld_auto_total')})</span></label>
+        <input type="number" name="days" readonly id="setDays" value="${rec?rec.days:0}"></div>
+      <div class="field"><label>${t('fld_settlement_amount')} <span class="req">*</span></label>
+        <input type="number" name="amount" min="0" step="0.01" required value="${rec?rec.amount:''}"></div>
+      <div class="field" style="grid-column:1/-1">
+        <label>${t('fld_bank_account')} <span class="req">*</span></label>
+        <input name="bank" required list="banksDatalist" value="${esc(rec?.bank||'')}" placeholder="${t('msg_bank_text_hint')}">
+        <datalist id="banksDatalist">
+          ${banksList.map(v=>`<option value="${esc(v)}"></option>`).join('')}
+        </datalist>
+        <span class="hint">${t('msg_bank_text_hint')}</span>
+      </div>
+      <div class="field"><label>${t('fld_reg_time')}</label>
+        <input type="text" readonly value="${rec?formatDateTime(rec.regTime):formatDateTime(new Date().toISOString())}"></div>
+      <div id="setErr" class="err" style="grid-column:1/-1;display:none"></div>
+    </form>`;
+  openModal({
+    title: rec ? t('btn_edit') : t('set_add'),
+    body, tableId:'settlements', record: rec,
+    onMount(root){
+      const f = root.querySelector('#setFrom'), t2 = root.querySelector('#setTo'), d = root.querySelector('#setDays');
+      const upd = ()=>{
+        if(f.value && t2.value){
+          const days = Math.max(0, Math.floor((new Date(t2.value)-new Date(f.value))/86400000)+1);
+          d.value = days;
+        }
+      };
+      f.addEventListener('change', upd); t2.addEventListener('change', upd); upd();
+    },
+    onSubmit(root){
+      const d = Object.fromEntries(new FormData($('#setForm', root)));
+      const err = $('#setErr', root);
+      if(['responsible','app','from','to','amount','bank'].some(k=>!d[k])){ err.textContent=t('msg_required'); err.style.display='block'; return false; }
+      const days = Math.max(0, Math.floor((new Date(d.to)-new Date(d.from))/86400000)+1);
+      const payload = { code:d.code, responsible:d.responsible, app:d.app, from:d.from, to:d.to,
+        days, amount:num(d.amount), bank:d.bank, custom: readCustomValues(root) };
+      if(rec){ Object.assign(rec, payload); toast(t('msg_settlement_saved'),'ok'); }
+      else {
+        db.settlements = db.settlements||[];
+        db.settlements.push({ id:uid(), ...payload, regTime:new Date().toISOString() });
+        toast(t('msg_settlement_added'),'ok');
+      }
+      saveDB(); render();
+      autoSyncAfterSave();
       return true;
     }
   });
@@ -5177,7 +6040,7 @@ function toolAction(act){
       if(confirm(t('msg_confirm_reset'))){
         db = seedDB(); saveDB(); state.section='dashboard'; render();
         toast(t('msg_reset'),'ok');
-        if(isCloudReady()) pushToCloud(true);
+        autoSyncAfterSave();
       } break;
     case 'refresh':
       if(isCloudReady()){ fullSync().then(ok => { if(ok) render(); }); }
@@ -5207,9 +6070,7 @@ function openImportDialog(){
         db = normalizeDB(data);
         cleanupRelations(); saveDB(); render();
         toast(t('msg_imported'),'ok');
-        if(isCloudReady()){
-          if(isSupervisorAutoSync()) pushToCloud(true); else fullSync(true);
-        }
+        autoSyncAfterSave();
       }catch(err){ toast(t('msg_import_err'),'err'); }
     };
     rd.readAsText(f);
@@ -5218,11 +6079,345 @@ function openImportDialog(){
 }
 
 /* ==========================================================================
+   18.b) إدارة الجداول (إدارة رؤوس الجداول + تحريك الأعمدة)
+   ========================================================================== */
+function openTableManager(tableId){
+  if(!isOwner()){ toast(t('msg_no_perm'),'warn'); return; }
+  const TABLE_DEFS = [
+    {id:'reps', icon:'🚗', name:()=>t('t_reps'),
+     builtin:[['name',()=>t('fld_name')],['code',()=>t('fld_code')],['phone',()=>t('fld_phone')],
+              ['app',()=>t('fld_app')],['carId',()=>t('fld_car_assigned')],['supervisorId',()=>t('fld_supervisor')],
+              ['region',()=>t('fld_region')],['status',()=>t('fld_status')]]},
+    {id:'supervisors', icon:'👔', name:()=>t('t_sups'),
+     builtin:[['name',()=>t('fld_name')],['code',()=>t('fld_code')],['email',()=>t('fld_email')],
+              ['reps',()=>t('nav_reps')],['orders',()=>t('fld_orders')],['hours',()=>t('fld_hours')]]},
+    {id:'cars', icon:'🚙', name:()=>t('t_cars'),
+     builtin:[['brand',()=>t('fld_brand')],['model',()=>t('fld_model')],['plate',()=>t('fld_plate')],
+              ['year',()=>t('fld_year')],['rentalOfficeId',()=>t('fld_rental_office')],['status',()=>t('fld_status')],
+              ['assignedRepId',()=>t('fld_rep')]]},
+    {id:'offices', icon:'🏢', name:()=>t('t_offices'),
+     builtin:[['name',()=>t('office_name')],['phone',()=>t('office_phone')],['contact',()=>t('office_contact')],
+              ['address',()=>t('office_address')],['notes',()=>t('office_notes')]]},
+    {id:'maintenance', icon:'🔧', name:()=>t('t_maint'),
+     builtin:[['carId',()=>t('fld_car')],['type',()=>t('fld_type')],['category',()=>t('fld_category')],
+              ['date',()=>t('fld_date')],['cost',()=>t('fld_cost')],['desc',()=>t('fld_desc')],['status',()=>t('fld_status')]]},
+    {id:'usage', icon:'🧭', name:()=>t('t_usage'),
+     builtin:[['username',()=>t('fld_username')],['carId',()=>t('fld_car')],['repId',()=>t('fld_rep')],
+              ['supervisorId',()=>t('fld_supervisor')],['startDate',()=>t('fld_start_date')],['endDate',()=>t('fld_end_date')],
+              ['startKm',()=>t('fld_start_km')],['endKm',()=>t('fld_end_km')]]},
+    {id:'oil', icon:'🛢️', name:()=>t('t_oil'),
+     builtin:[['carId',()=>t('fld_car')],['date',()=>t('fld_date')],['km',()=>t('fld_km')],
+              ['nextKm',()=>t('fld_next_km')],['nextDate',()=>t('fld_next_date')],['cost',()=>t('fld_cost')]]},
+    {id:'internet', icon:'🌐', name:()=>t('t_internet'),
+     builtin:[['repId',()=>t('fld_name')],['prevRenewal',()=>t('fld_prev_renewal')],['nextRenewal',()=>t('fld_next_renewal')],
+              ['price',()=>t('fld_price')]]},
+    {id:'settlements', icon:'💰', name:()=>t('t_settlement'),
+     builtin:[['code',()=>t('fld_code')],['responsible',()=>t('fld_responsible')],['app',()=>t('fld_app')],
+              ['from',()=>t('fld_from')],['to',()=>t('fld_to')],['days',()=>t('fld_rental_days')],
+              ['amount',()=>t('fld_settlement_amount')],['bank',()=>t('fld_bank_account')]]}
+  ];
+  const current = tableId || 'reps';
+  const def = TABLE_DEFS.find(x=>x.id===current) || TABLE_DEFS[0];
+  const builtinKeys = def.builtin.map(([k])=>k);
+  const order = getColumnOrder(current, builtinKeys);
+  const customsMap = Object.fromEntries(customCols(current).map(c=>[c.id, c]));
+
+  const buildRowFor = (key)=>{
+    const custom = customsMap[key];
+    const bt = def.builtin.find(([k])=>k===key);
+    if(custom){
+      return `<tr data-col-custom="1" data-col-id="${esc(custom.id)}" draggable="true">
+        <td style="padding-inline-start:10px">
+          <span class="muted" style="cursor:grab;margin-inline-end:6px;font-size:14px" title="اسحب للتحريك">⋮⋮</span>
+          <input data-col-label value="${esc(custom.label)}" placeholder="${t('fld_name')}" style="display:inline-block;width:calc(100% - 40px)">
+        </td>
+        <td style="text-align:center"><span class="chip violet">${t('col_custom')}</span></td>
+        <td style="text-align:center">
+          <div class="tbl-actions" style="justify-content:center">
+            <button type="button" class="btn btn-ghost btn-sm" data-col-up title="⬆️">⬆️</button>
+            <button type="button" class="btn btn-ghost btn-sm" data-col-down title="⬇️">⬇️</button>
+            <button type="button" class="btn btn-ghost btn-sm" data-col-edit style="color:var(--primary)" title="${t('btn_edit')}">✏️</button>
+            <button type="button" class="btn btn-ghost btn-sm" data-col-del style="color:var(--red)" title="${t('btn_delete_col')}">🗑️</button>
+          </div>
+        </td>
+      </tr>`;
+    }
+    if(bt){
+      return `<tr data-col-locked="1" data-col-key="${esc(bt[0])}">
+        <td style="padding-inline-start:10px"><input value="${esc(bt[1]())}" readonly></td>
+        <td style="text-align:center"><span class="chip gray">🔒 ${t('col_builtin')}</span></td>
+        <td style="text-align:center"><span class="muted small">—</span></td>
+      </tr>`;
+    }
+    return '';
+  };
+
+  const body = `
+    <div class="small muted" style="margin-bottom:12px;line-height:1.7">${t('col_manager_hint')}</div>
+    <div class="small muted" style="margin-bottom:12px;padding:8px 12px;border-radius:9px;background:var(--amber-soft);border:1px solid #fde68a">
+      💡 يمكنك تحريك الأعمدة المضافة باستخدام أزرار ⬆️ ⬇️ أو السحب والإفلات. الترتيب يُحفظ تلقائياً.
+    </div>
+    <div class="tbl-wrap" style="max-height:58vh;overflow-y:auto;border-radius:12px">
+      <table>
+        <thead>
+          <tr>
+            <th>${t('col_header_name')}</th>
+            <th style="text-align:center;width:150px">${t('col_type')}</th>
+            <th style="text-align:center;width:280px">
+              <div style="display:flex;align-items:center;justify-content:center;gap:8px">
+                <span class="chip blue" id="tmCount" style="font-size:11px">📊 ${order.length}</span>
+                <button class="btn btn-primary btn-sm" id="tmAdd" type="button" style="padding:5px 12px;font-size:12px">➕ ${t('col_add')}</button>
+              </div>
+            </th>
+          </tr>
+        </thead>
+        <tbody id="tmBody">${order.map(buildRowFor).join('')}</tbody>
+      </table>
+    </div>
+  `;
+
+  openModal({
+    title: `📋 ${def.icon} ${def.name()}`,
+    body,
+    submitText: t('btn_save'),
+    wide: true,
+    onMount(root){
+      const bodyEl = root.querySelector('#tmBody');
+      const countEl = root.querySelector('#tmCount');
+      const updateCount = ()=>{ if(countEl) countEl.textContent = '📊 ' + bodyEl.querySelectorAll('tr').length; };
+
+      const bindDel = ()=>{
+        bodyEl.querySelectorAll('[data-col-del]').forEach(b=>{
+          b.onclick = ()=>{
+            if(!confirm(t('msg_confirm_del'))) return;
+            const tr = b.closest('tr');
+            if(tr) tr.remove();
+            updateCount();
+          };
+        });
+      };
+      const bindEdit = ()=>{
+        bodyEl.querySelectorAll('[data-col-edit]').forEach(b=>{
+          b.onclick = ()=>{
+            const tr = b.closest('tr');
+            const inp = tr.querySelector('[data-col-label]');
+            if(!inp) return;
+            inp.classList.add('editing');
+            inp.focus(); inp.select();
+            inp.onblur = ()=> inp.classList.remove('editing');
+          };
+        });
+      };
+      const isCustomTr = (el)=> el && el.dataset && el.dataset.colCustom === '1';
+      const bindMove = ()=>{
+        bodyEl.querySelectorAll('[data-col-up]').forEach(b=>{
+          b.onclick = ()=>{
+            const tr = b.closest('tr');
+            const prev = tr.previousElementSibling;
+            if(isCustomTr(prev)){
+              bodyEl.insertBefore(tr, prev);
+              tr.style.transition = 'background .3s';
+              tr.style.background = 'var(--primary-soft)';
+              setTimeout(()=> tr.style.background = '', 400);
+            }
+          };
+        });
+        bodyEl.querySelectorAll('[data-col-down]').forEach(b=>{
+          b.onclick = ()=>{
+            const tr = b.closest('tr');
+            const next = tr.nextElementSibling;
+            if(isCustomTr(next)){
+              bodyEl.insertBefore(next, tr);
+              tr.style.transition = 'background .3s';
+              tr.style.background = 'var(--primary-soft)';
+              setTimeout(()=> tr.style.background = '', 400);
+            }
+          };
+        });
+      };
+      const bindDrag = ()=>{
+        bodyEl.querySelectorAll('tr[data-col-custom]').forEach(tr=>{
+          tr.ondragstart = e=>{
+            state._dragSrc = tr;
+            e.dataTransfer.effectAllowed = 'move';
+            try{ e.dataTransfer.setData('text/plain', tr.dataset.colId); }catch(_){}
+            tr.style.opacity = '0.5';
+          };
+          tr.ondragend = ()=>{ tr.style.opacity = ''; state._dragSrc = null; };
+          tr.ondragover = e=>{ e.preventDefault(); e.dataTransfer.dropEffect = 'move'; };
+          tr.ondrop = e=>{
+            e.preventDefault();
+            const dragSrc = state._dragSrc;
+            if(!dragSrc || dragSrc === tr) return;
+            if(!isCustomTr(tr)) return;
+            const rect = tr.getBoundingClientRect();
+            const after = (e.clientY - rect.top) > rect.height / 2;
+            bodyEl.insertBefore(dragSrc, after ? tr.nextSibling : tr);
+            bodyEl.querySelectorAll('tr').forEach(x=> x.classList.remove('drop-target'));
+            tr.classList.add('drop-target');
+            setTimeout(()=> tr.classList.remove('drop-target'), 600);
+          };
+        });
+      };
+      const addRow = (label='')=>{
+        const id = 'cc_' + uid();
+        const tr = document.createElement('tr');
+        tr.dataset.colCustom = '1';
+        tr.dataset.colId = id;
+        tr.draggable = true;
+        tr.innerHTML = `<td style="padding-inline-start:10px">
+            <span class="muted" style="cursor:grab;margin-inline-end:6px;font-size:14px" title="اسحب للتحريك">⋮⋮</span>
+            <input data-col-label value="${esc(label)}" placeholder="${t('fld_name')}" style="display:inline-block;width:calc(100% - 40px)">
+          </td>
+          <td style="text-align:center"><span class="chip violet">${t('col_custom')}</span></td>
+          <td style="text-align:center">
+            <div class="tbl-actions" style="justify-content:center">
+              <button type="button" class="btn btn-ghost btn-sm" data-col-up title="⬆️">⬆️</button>
+              <button type="button" class="btn btn-ghost btn-sm" data-col-down title="⬇️">⬇️</button>
+              <button type="button" class="btn btn-ghost btn-sm" data-col-edit style="color:var(--primary)" title="${t('btn_edit')}">✏️</button>
+              <button type="button" class="btn btn-ghost btn-sm" data-col-del style="color:var(--red)" title="${t('btn_delete_col')}">🗑️</button>
+            </div>
+          </td>`;
+        bodyEl.appendChild(tr);
+        bindDel(); bindEdit(); bindMove(); bindDrag();
+        updateCount();
+        const inp = tr.querySelector('input');
+        if(inp){ inp.classList.add('editing'); inp.focus(); }
+      };
+      root.querySelector('#tmAdd')?.addEventListener('click', ()=> addRow());
+      bindDel(); bindEdit(); bindMove(); bindDrag();
+      updateCount();
+    },
+    onSubmit(root){
+      const fullOrder = [];
+      root.querySelectorAll('#tmBody tr').forEach(tr=>{
+        if(tr.dataset.colCustom === '1'){
+          const label = (tr.querySelector('[data-col-label]')?.value || '').trim();
+          if(!label) return;
+          fullOrder.push({ type:'custom', id: tr.dataset.colId, label });
+        } else if(tr.dataset.colLocked === '1'){
+          fullOrder.push({ type:'builtin', key: tr.dataset.colKey });
+        }
+      });
+      db.settings.customColumns = db.settings.customColumns || {};
+      db.settings.customColumns[current] = fullOrder
+        .filter(x=> x.type==='custom')
+        .map(x=>({ id:x.id, label:x.label }));
+      setColumnOrder(current, fullOrder.map(x=> x.type==='custom' ? x.id : x.key));
+      saveDB(); render();
+      toast(t('col_saved'), 'ok');
+      autoSyncAfterSave();
+      return true;
+    }
+  });
+}
+
+/* ---------- إدارة القوائم المنسدلة ---------- */
+function openDropdownManager(ddlId){
+  if(!isOwner()){ toast(t('msg_no_perm'),'warn'); return; }
+  const DDLS = [
+    {id:'banks', icon:'🏦', name:()=>t('ddl_banks'),
+     get: ()=>{ db.settings.customDropdowns = db.settings.customDropdowns||{}; return db.settings.customDropdowns.banks || ['الراجحي','الأهلي','الإنماء','الرياض','البلاد']; },
+     set: (arr)=>{ db.settings.customDropdowns.banks = arr; }},
+    {id:'regions', icon:'📍', name:()=>t('ddl_regions'),
+     get: ()=>{ db.settings.customDropdowns = db.settings.customDropdowns||{}; return db.settings.customDropdowns.regions || ['الرياض','جدة','الدمام','مكة','المدينة']; },
+     set: (arr)=>{ db.settings.customDropdowns.regions = arr; }},
+    {id:'apps', icon:'📱', name:()=>t('ddl_apps'),
+     get: ()=>{ const c = db.settings.customDropdowns?.apps; return (c && c.length) ? c : APP_OPTIONS.map(a=>a.ar); },
+     set: (arr)=>{ db.settings.customDropdowns = db.settings.customDropdowns||{}; db.settings.customDropdowns.apps = arr; }},
+    {id:'maintCats', icon:'🔧', name:()=>t('ddl_maint_cats'),
+     get: ()=>{ const c = db.settings.customDropdowns?.maintCats; return (c && c.length) ? c : MAINT_CATEGORIES.map(x=>x.ar); },
+     set: (arr)=>{ db.settings.customDropdowns = db.settings.customDropdowns||{}; db.settings.customDropdowns.maintCats = arr; }},
+    {id:'faultCats', icon:'⚠️', name:()=>t('ddl_fault_cats'),
+     get: ()=>{ const c = db.settings.customDropdowns?.faultCats; return (c && c.length) ? c : FAULT_CATEGORIES.map(x=>x.ar); },
+     set: (arr)=>{ db.settings.customDropdowns = db.settings.customDropdowns||{}; db.settings.customDropdowns.faultCats = arr; }}
+  ];
+  const current = ddlId || 'banks';
+  const ddl = DDLS.find(x=>x.id===current) || DDLS[0];
+  const items = ddl.get();
+  const itemsHTML = items.map((item, idx)=>`
+    <tr data-item-idx="${idx}">
+      <td><input data-dm-item="${idx}" value="${esc(item)}"></td>
+      <td style="text-align:center;width:80px">
+        <button class="btn btn-ghost btn-sm" data-dm-del="${idx}" style="color:var(--red)" title="حذف">🗑️</button>
+      </td>
+    </tr>`).join('') || `<tr><td colspan="2" class="empty">${t('no_data')}</td></tr>`;
+  const body = `
+    <div class="small muted" style="margin-bottom:12px;padding:8px 12px;border-radius:9px;background:var(--primary-soft);border:1px solid var(--border)">
+      💡 سيتم تطبيق التعديلات على جميع النماذج التي تستخدم هذه القائمة (السائقين، الصيانة، التصفية، إلخ).
+    </div>
+    <div class="tbl-wrap" style="max-height:58vh;overflow-y:auto;border-radius:12px">
+      <table>
+        <thead>
+          <tr>
+            <th>${t('fld_name')}</th>
+            <th style="text-align:center;width:180px">
+              <div style="display:flex;align-items:center;justify-content:center;gap:8px">
+                <span class="chip blue" id="dmCount" style="font-size:11px">📊 ${items.length}</span>
+                <button class="btn btn-primary btn-sm" id="dmAdd" type="button" style="padding:5px 12px;font-size:12px">➕ ${t('btn_add')}</button>
+              </div>
+            </th>
+          </tr>
+        </thead>
+        <tbody id="dmBody">${itemsHTML}</tbody>
+      </table>
+    </div>
+  `;
+  openModal({
+    title: `🔽 ${ddl.icon} ${ddl.name()}`,
+    body,
+    submitText: t('btn_save'),
+    wide: true,
+    onMount(root){
+      const bodyEl = root.querySelector('#dmBody');
+      const countEl = root.querySelector('#dmCount');
+      const updateCount = ()=>{ if(countEl) countEl.textContent = '📊 ' + bodyEl.querySelectorAll('tr[data-item-idx]').length; };
+      const bindDel = ()=>{
+        bodyEl.querySelectorAll('[data-dm-del]').forEach(b=>{
+          b.onclick = ()=>{
+            const tr = b.closest('tr');
+            if(tr) tr.remove();
+            updateCount();
+          };
+        });
+      };
+      const addRow = (val='')=>{
+        const idx = Date.now() + Math.random().toString(36).slice(2,5);
+        const tr = document.createElement('tr');
+        tr.dataset.itemIdx = idx;
+        tr.innerHTML = `<td><input data-dm-item="${idx}" value="${esc(val)}" placeholder="${t('fld_name')}"></td>
+          <td style="text-align:center;width:80px">
+            <button class="btn btn-ghost btn-sm" data-dm-del="${idx}" style="color:var(--red)" title="حذف">🗑️</button>
+          </td>`;
+        bodyEl.appendChild(tr);
+        bindDel();
+        updateCount();
+        tr.querySelector('input').focus();
+      };
+      root.querySelector('#dmAdd')?.addEventListener('click', ()=> addRow());
+      bindDel();
+    },
+    onSubmit(root){
+      const arr = [];
+      root.querySelectorAll('input[data-dm-item]').forEach(inp=>{
+        const v = inp.value.trim();
+        if(v) arr.push(v);
+      });
+      ddl.set(arr);
+      saveDB();
+      render();
+      toast(t('msg_saved'),'ok');
+      autoSyncAfterSave();
+      return true;
+    }
+  });
+}
+
+/* ==========================================================================
    19) الصلاحيات
    ========================================================================== */
 function permModal(){
   if(!isOwner()){ toast(t('msg_no_perm'),'warn'); return; }
-
   const renderSupCard = (s)=>{
     const p = s.permissions || [];
     const rows = [];
@@ -5251,38 +6446,65 @@ function permModal(){
         </tr>`);
       });
     });
-    return `<div class="perm-card">
+    return `<div class="perm-card" data-perm-card="${s.id}">
       <div class="perm-card-head">
         <div class="ic-avatar" style="width:34px;height:34px;font-size:14px">${esc((s.name||'?').charAt(0))}</div>
         <div style="flex:1;min-width:0">
           <div class="perm-card-title">${esc(s.name)}</div>
           <div class="small muted" dir="ltr">${esc(s.email||'')}</div>
         </div>
+        <button type="button" class="perm-toggle" data-perm-toggle="${s.id}"
+                title="${t('credentials_show')}/${t('credentials_hide')}">👁️</button>
       </div>
-      <table class="perm-table">
-        <thead><tr>
-          <th>${t('fld_sections')} / ${t('perm_branches')}</th>
-          <th>👁️ ${t('perm_view_col')}</th>
-          <th>✏️ ${t('perm_edit_col')}</th>
-        </tr></thead>
-        <tbody>${rows.join('')}</tbody>
-      </table>
+      <div class="perm-table-wrap" data-perm-body="${s.id}">
+        <table class="perm-table">
+          <thead><tr>
+            <th>${t('fld_sections')} / ${t('perm_branches')}</th>
+            <th>👁️ ${t('perm_view_col')}</th>
+            <th>✏️ ${t('perm_edit_col')}</th>
+          </tr></thead>
+          <tbody>${rows.join('')}</tbody>
+        </table>
+      </div>
     </div>`;
   };
-
   const body = `
     <div class="small muted" style="margin-bottom:14px;line-height:1.7">${t('perm_intro')}</div>
+    <div class="row" style="margin-bottom:12px;justify-content:flex-end">
+      <button type="button" class="btn btn-sm" id="permToggleAll">👁️ ${t('credentials_show')} / ${t('credentials_hide')} — ${t('fld_all')}</button>
+    </div>
     <div class="perm-list">
       ${db.supervisors.length ? db.supervisors.map(renderSupCard).join('') : `<div class="empty">${t('no_data')}</div>`}
     </div>
     <div class="small muted" style="margin-top:14px;padding:10px 14px;border-radius:10px;background:var(--primary-soft);border:1px solid var(--border)">
       ${t('perm_owner_note')}
     </div>`;
-
   openModal({
     title:`🛡️ ${t('btn_permissions')}`,
     body, wide:true, submitText:t('btn_save'),
     onMount(root){
+      const toggleBody = (id, btn)=>{
+        const card = root.querySelector(`[data-perm-card="${id}"]`);
+        if(!card) return;
+        const collapsed = card.classList.toggle('collapsed');
+        if(btn) btn.textContent = collapsed ? '🙈' : '👁️';
+      };
+      root.querySelectorAll('[data-perm-toggle]').forEach(btn=>{
+        btn.onclick = ()=> toggleBody(btn.dataset.permToggle, btn);
+      });
+      const toggleAllBtn = root.querySelector('#permToggleAll');
+      if(toggleAllBtn){
+        toggleAllBtn.onclick = ()=>{
+          const cards = root.querySelectorAll('[data-perm-card]');
+          const anyOpen = [...cards].some(c=> !c.classList.contains('collapsed'));
+          cards.forEach(card=>{
+            const id = card.dataset.permCard;
+            const btn = root.querySelector(`[data-perm-toggle="${id}"]`);
+            if(anyOpen){ card.classList.add('collapsed'); if(btn) btn.textContent = '🙈'; }
+            else { card.classList.remove('collapsed'); if(btn) btn.textContent = '👁️'; }
+          });
+        };
+      }
       const get = (supId, secId, branchId, kind)=>{
         const sel = branchId
           ? `input[data-sup="${supId}"][data-sec="${secId}"][data-branch="${branchId}"][data-kind="${kind}"]`
@@ -5290,7 +6512,6 @@ function permModal(){
         return root.querySelector(sel);
       };
       const setChk = (el,v)=>{ if(el) el.checked = v; };
-
       const syncFromSection = (supId, secId)=>{
         const v = get(supId, secId, '', 'view');
         const e = get(supId, secId, '', 'edit');
@@ -5303,9 +6524,7 @@ function permModal(){
             setChk(get(supId,secId,b.id,'edit'),false);
           });
         }
-        if(v && v.checked){
-          branches.forEach(b=> setChk(get(supId,secId,b.id,'view'),true));
-        }
+        if(v && v.checked){ branches.forEach(b=> setChk(get(supId,secId,b.id,'view'),true)); }
         if(e && e.checked){
           setChk(v,true);
           branches.forEach(b=>{
@@ -5314,30 +6533,22 @@ function permModal(){
           });
         }
       };
-
       const syncFromBranch = (supId, secId, branchId)=>{
         const bv = get(supId,secId,branchId,'view');
         const be = get(supId,secId,branchId,'edit');
         if(be && be.checked) setChk(bv,true);
         if(bv && !bv.checked) setChk(be,false);
-        if((bv && bv.checked) || (be && be.checked)){
-          setChk(get(supId,secId,'','view'), true);
-        }
+        if((bv && bv.checked) || (be && be.checked)){ setChk(get(supId,secId,'','view'), true); }
         const sec = PERM_TREE.find(x=>x.id===secId);
         if(sec && sec.branches.length){
-          const anyV = sec.branches.some(b=>{
-            const el = get(supId,secId,b.id,'view'); return el && el.checked;
-          });
-          const anyE = sec.branches.some(b=>{
-            const el = get(supId,secId,b.id,'edit'); return el && el.checked;
-          });
+          const anyV = sec.branches.some(b=>{ const el = get(supId,secId,b.id,'view'); return el && el.checked; });
+          const anyE = sec.branches.some(b=>{ const el = get(supId,secId,b.id,'edit'); return el && el.checked; });
           if(!anyV && !anyE){
             setChk(get(supId,secId,'','view'),false);
             setChk(get(supId,secId,'','edit'),false);
           }
         }
       };
-
       root.addEventListener('change', e=>{
         const cb = e.target;
         if(!cb.matches('input[type=checkbox][data-kind]')) return;
@@ -5364,7 +6575,7 @@ function permModal(){
       });
       saveDB(); render();
       toast(t('msg_updated'),'ok');
-      if(isCloudReady()) pushToCloud(true);
+      autoSyncAfterSave();
       return true;
     }
   });
@@ -5398,22 +6609,16 @@ function pwdModal(){
       const curHash = hashPwd(d.currentPwd);
       let stored = null;
       if(isOwnerUser) stored = db.auth?.owner?.password;
-      else {
-        const sup = db.supervisors.find(s=>s.id===state.user.id);
-        stored = sup?.password;
-      }
+      else { const sup = db.supervisors.find(s=>s.id===state.user.id); stored = sup?.password; }
       if(stored !== curHash){ err.textContent = t('msg_pwd_wrong'); err.style.display='block'; return false; }
       if(d.newPwd.length < 4){ err.textContent = t('msg_pwd_short'); err.style.display='block'; return false; }
       if(d.newPwd !== d.confirmPwd){ err.textContent = t('msg_pwd_mismatch'); err.style.display='block'; return false; }
       const newHash = hashPwd(d.newPwd);
       if(isOwnerUser) db.auth.owner.password = newHash;
-      else {
-        const sup = db.supervisors.find(s=>s.id===state.user.id);
-        if(sup) sup.password = newHash;
-      }
+      else { const sup = db.supervisors.find(s=>s.id===state.user.id); if(sup) sup.password = newHash; }
       saveDB();
       toast(t('msg_pwd_changed'),'ok');
-      if(isCloudReady()) pushToCloud(true);
+      autoSyncAfterSave();
       return true;
     }
   });
@@ -5510,6 +6715,7 @@ function settingsModal(){
       </div>
     </div>` : '';
 
+  const company = db.settings.company || {};
   const body = `
     <div class="field" style="margin-bottom:18px">
       <label>🎨 ${t('settings_theme')}</label>
@@ -5521,9 +6727,57 @@ function settingsModal(){
     <div class="field" style="margin-bottom:18px">
       <label>🔠 ${t('settings_font')} — <span id="fsVal">${db.settings.fontSize}</span>px</label>
       <input type="range" id="fsRange" min="12" max="20" step="1" value="${db.settings.fontSize}">
+      <span class="hint">${t('msg_font_size_hint')}</span>
     </div>
-
     ${isOwner() ? `
+    <hr style="border:0;border-top:1px dashed var(--border);margin:20px 0">
+    <div class="field" style="margin-bottom:14px">
+      <label style="font-size:14px;color:var(--text)">${t('manage_data')}</label>
+      <div class="small muted" style="margin-bottom:10px">اختر الجدول أو القائمة المنسدلة لفتح نافذة الإدارة مباشرة</div>
+      <div class="form-grid" style="gap:12px">
+        <div class="field">
+          <label>📋 ${t('msg_open_table_mgr')}</label>
+          <select id="tableMgrSelect">
+            <option value="">${t('msg_choose_table')}</option>
+            <option value="reps">🚗 ${t('t_reps')}</option>
+            <option value="supervisors">👔 ${t('t_sups')}</option>
+            <option value="cars">🚙 ${t('t_cars')}</option>
+            <option value="offices">🏢 ${t('t_offices')}</option>
+            <option value="maintenance">🔧 ${t('t_maint')}</option>
+            <option value="usage">🧭 ${t('t_usage')}</option>
+            <option value="oil">🛢️ ${t('t_oil')}</option>
+            <option value="internet">🌐 ${t('t_internet')}</option>
+            <option value="settlements">💰 ${t('t_settlement')}</option>
+          </select>
+          <span class="hint" style="margin-top:6px">يُفتح مباشرة عند الاختيار — لإدارة رؤوس الأعمدة فقط</span>
+        </div>
+        <div class="field">
+          <label>🔽 ${t('msg_open_ddl_mgr')}</label>
+          <select id="ddlMgrSelect">
+            <option value="">${t('msg_choose_table')}</option>
+            <option value="banks">🏦 ${t('ddl_banks')}</option>
+            <option value="regions">📍 ${t('ddl_regions')}</option>
+            <option value="apps">📱 ${t('ddl_apps')}</option>
+            <option value="maintCats">🔧 ${t('ddl_maint_cats')}</option>
+            <option value="faultCats">⚠️ ${t('ddl_fault_cats')}</option>
+          </select>
+          <span class="hint" style="margin-top:6px">يُفتح مباشرة عند الاختيار</span>
+        </div>
+      </div>
+    </div>
+    <hr style="border:0;border-top:1px dashed var(--border);margin:20px 0">
+    <div class="field" style="margin-bottom:14px">
+      <label style="font-size:14px;color:var(--text)">${t('company_section')}</label>
+      <div class="form-grid" style="margin-top:8px">
+        <div class="field"><label>${t('company_name')}</label>
+          <input id="companyName" value="${esc(company.name||'')}"></div>
+        <div class="field"><label>${t('company_cr')}</label>
+          <input id="companyCR" value="${esc(company.cr||'')}"></div>
+        <div class="field"><label>${t('company_phone')}</label>
+          <input id="companyPhone" dir="ltr" value="${esc(company.phone||'')}"></div>
+      </div>
+      <button class="btn btn-sm btn-primary" id="saveCompany" type="button" style="margin-top:10px">${t('save_company')}</button>
+    </div>
     <hr style="border:0;border-top:1px dashed var(--border);margin:20px 0">
     <div class="field" style="margin-bottom:14px">
       <label style="font-size:14px;color:var(--text)">${t('grades_section')}</label>
@@ -5566,7 +6820,7 @@ function settingsModal(){
           <div class="logo-preview" id="logoPrev">${b.logo?`<img src="${b.logo}">`:'📊'}</div>
           <div style="flex:1">
             <input type="file" id="logoFile" accept="image/png,image/jpeg,image/svg+xml,image/webp" hidden>
-            <button class="btn btn-sm" id="pickLogo" type="button">📁 اختر صورة</button>
+            <button class="btn btn-sm" id="pickLogo" type="button">${t('msg_pick_image')}</button>
             <button class="btn btn-sm" id="removeLogo" type="button">🗑️ ${t('brand_logo_remove')}</button>
             <div class="hint" style="margin-top:6px">${t('brand_logo_hint')}</div>
           </div>
@@ -5589,11 +6843,9 @@ function settingsModal(){
         <button class="btn btn-sm" id="openWa" type="button">💬 ${t('whatsapp_open')}</button>
       </div>
     </div>` : ''}
-
     <hr style="border:0;border-top:1px dashed var(--border);margin:20px 0">
     ${cloudSectionOwner}
     ${cloudSectionSupervisor}
-
     ${isOwner() ? `
     <hr style="border:0;border-top:1px dashed var(--border);margin:20px 0">
     <div class="field" style="margin-bottom:12px">
@@ -5607,7 +6859,6 @@ function settingsModal(){
       <button class="btn btn-sm btn-primary" id="saveOwner" type="button" style="margin-top:12px">${t('settings_save_owner')}</button>
       <div class="small muted" style="margin-top:6px">${t('pwd_owner_note')}</div>
     </div>` : ''}
-
     <hr style="border:0;border-top:1px solid var(--border);margin:20px 0">
     <div class="row" style="justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
       <div>
@@ -5619,7 +6870,6 @@ function settingsModal(){
         <button class="btn btn-danger" id="logoutBtn" type="button">🚪 ${t('btn_logout')}</button>
       </div>
     </div>`;
-
   openModal({
     title:`⚙️ ${t('btn_settings')}`,
     body,
@@ -5636,14 +6886,38 @@ function settingsModal(){
       $$('.swatch', root).forEach(sw=> sw.onclick = ()=>{
         db.settings.color = sw.dataset.color;
         $$('.swatch', root).forEach(x=>x.classList.remove('sel'));
-        sw.classList.add('sel'); applySettings();
+        sw.classList.add('sel'); applySettings(); saveDB();
       });
-      $('#customColor', root).oninput = e=>{ db.settings.color = e.target.value; applySettings(); };
+      $('#customColor', root).oninput = e=>{ db.settings.color = e.target.value; applySettings(); saveDB(); };
       $('#fsRange', root).oninput = e=>{
         db.settings.fontSize = +e.target.value;
         $('#fsVal', root).textContent = e.target.value;
         applySettings();
+        saveDB();
       };
+      $('#fsRange', root).onchange = ()=>{
+        requestAnimationFrame(()=> applySettings());
+      };
+      $('#tableMgrSelect', root)?.addEventListener('change', e=>{
+        const tid = e.target.value;
+        if(!tid) return;
+        $('#modalRoot').innerHTML = '';
+        setTimeout(()=> openTableManager(tid), 30);
+      });
+      $('#ddlMgrSelect', root)?.addEventListener('change', e=>{
+        const did = e.target.value;
+        if(!did) return;
+        $('#modalRoot').innerHTML = '';
+        setTimeout(()=> openDropdownManager(did), 30);
+      });
+      $('#saveCompany', root)?.addEventListener('click', ()=>{
+        db.settings.company = {
+          name: $('#companyName', root).value.trim(),
+          cr: $('#companyCR', root).value.trim(),
+          phone: $('#companyPhone', root).value.trim()
+        };
+        saveDB(); updatePrintHeader(); toast(t('msg_saved'),'ok'); autoSyncAfterSave();
+      });
       $('#saveGrades', root)?.addEventListener('click', ()=>{
         const g = {};
         $$('[data-grade]', root).forEach(inp=>{ g[inp.dataset.grade] = num(inp.value); });
@@ -5652,7 +6926,7 @@ function settingsModal(){
         db.reports.forEach(r=>{ r.rating = computeRatingFromGrades(r.orders, db.grades); });
         saveDB(); render();
         toast(t('msg_saved_grade'),'ok');
-        if(isCloudReady()) pushToCloud(true);
+        autoSyncAfterSave();
       });
       $('#saveDailyGrades', root)?.addEventListener('click', ()=>{
         const g = {};
@@ -5661,26 +6935,26 @@ function settingsModal(){
         db.dailyGrades = g;
         saveDB(); render();
         toast(t('msg_saved_grade'),'ok');
-        if(isCloudReady()) pushToCloud(true);
+        autoSyncAfterSave();
       });
       $('#saveBrand', root)?.addEventListener('click', ()=>{
         db.branding.title = $('#brandTitleInp', root).value.trim() || 'تحليل أداء السائقين';
         db.branding.subtitle = $('#brandSubInp', root).value.trim() || 'نظام المتابعة والتقارير';
         saveDB(); applyBranding();
         toast(t('msg_saved'),'ok');
-        if(isCloudReady()) pushToCloud(true);
+        autoSyncAfterSave();
       });
       $('#pickLogo', root)?.addEventListener('click', ()=> $('#logoFile', root).click());
       $('#logoFile', root)?.addEventListener('change', e=>{
         const f = e.target.files[0]; if(!f) return;
-        if(f.size > 500*1024){ toast('حجم الصورة يجب أن يكون أقل من 500KB','warn'); return; }
+        if(f.size > 500*1024){ toast(t('msg_img_too_large'),'warn'); return; }
         const rd = new FileReader();
         rd.onload = ()=>{
           db.branding.logo = rd.result;
           const prev = $('#logoPrev', root);
           if(prev) prev.innerHTML = `<img src="${rd.result}">`;
           saveDB(); applyBranding();
-          toast('تم اختيار الشعار، اضغط حفظ الهوية','ok');
+          toast(t('msg_logo_selected'),'ok');
         };
         rd.readAsDataURL(f);
       });
@@ -5688,13 +6962,13 @@ function settingsModal(){
         db.branding.logo = null;
         const prev = $('#logoPrev', root);
         if(prev) prev.innerHTML = '📊';
-        saveDB(); applyBranding(); toast('تم إزالة الشعار','ok');
+        saveDB(); applyBranding(); toast(t('msg_logo_removed'),'ok');
       });
       $('#saveWa', root)?.addEventListener('click', ()=>{
         db.settings.whatsapp.number = $('#waNumber', root).value.trim();
         db.settings.whatsapp.message = $('#waMessage', root).value.trim();
         saveDB(); toast(t('msg_saved'),'ok');
-        if(isCloudReady()) pushToCloud(true);
+        autoSyncAfterSave();
       });
       $('#openWa', root)?.addEventListener('click', ()=> openWhatsApp());
       $('#saveOwner', root)?.addEventListener('click', ()=>{
@@ -5704,16 +6978,18 @@ function settingsModal(){
         db.auth.owner.email = e;
         db.auth.owner.phone = p;
         saveDB(); toast(t('msg_saved'),'ok');
-        if(isCloudReady()) pushToCloud(true);
+        autoSyncAfterSave();
       });
-
       $('#supSyncModeOwner', root)?.addEventListener('change', e=>{
         db.settings.supervisorSyncMode = e.target.value;
         saveDB();
-        toast(t('msg_saved'),'ok');
+        const isManual = e.target.value === 'manual';
+        toast(isManual
+          ? '✅ تم تفعيل الوضع اليدوي — لن تتم أي مزامنة تلقائية'
+          : '✅ تم تفعيل الوضع التلقائي — سيعمل الرفع الدوري كل 45 ثانية',
+          'ok');
         if(isCloudReady()) pushToCloud(true);
       });
-
       $$('input[name="supSyncMode"]', root).forEach(r=>{
         r.addEventListener('change', e=>{
           if(e.target.checked){
@@ -5724,19 +7000,9 @@ function settingsModal(){
           }
         });
       });
-      $('#supSyncNow', root)?.addEventListener('click', async ()=>{
-        const ok = await fullSync();
-        if(ok) render();
-      });
-      $('#supSyncPush', root)?.addEventListener('click', async ()=>{
-        const ok = await pushToCloud();
-        if(ok) render();
-      });
-      $('#supSyncPull', root)?.addEventListener('click', async ()=>{
-        const ok = await pullFromCloud();
-        if(ok) render();
-      });
-
+      $('#supSyncNow', root)?.addEventListener('click', async ()=>{ const ok = await fullSync(); if(ok) render(); });
+      $('#supSyncPush', root)?.addEventListener('click', async ()=>{ const ok = await pushToCloud(); if(ok) render(); });
+      $('#supSyncPull', root)?.addEventListener('click', async ()=>{ const ok = await pullFromCloud(); if(ok) render(); });
       $('#saveJb', root)?.addEventListener('click', ()=>{
         const k = $('#jbKey', root).value.trim();
         const bin = $('#jbBin', root).value.trim();
@@ -5757,15 +7023,11 @@ function settingsModal(){
         try{
           const res = await fetch(`${JSONBIN_BASE}/b/${cloudCfg.binId}/latest`, { headers:{ 'X-Master-Key': cloudCfg.key } });
           if(!res.ok) throw new Error(await res.text());
-          setCloudStatus('on'); toast('الاتصال ناجح ✓','ok');
-        }catch(e){ setCloudStatus('off'); toast('فشل: ' + e.message,'err'); }
+          setCloudStatus('on'); toast(t('msg_conn_ok'),'ok');
+        }catch(e){ setCloudStatus('off'); toast(t('msg_conn_fail') + ': ' + e.message,'err'); }
       });
-      $('#cancelCloudEdit', root)?.addEventListener('click', ()=>{
-        state.cloudEdit = false; settingsModal();
-      });
-      $('#editCloud', root)?.addEventListener('click', ()=>{
-        state.cloudEdit = true; settingsModal();
-      });
+      $('#cancelCloudEdit', root)?.addEventListener('click', ()=>{ state.cloudEdit = false; settingsModal(); });
+      $('#editCloud', root)?.addEventListener('click', ()=>{ state.cloudEdit = true; settingsModal(); });
       $('#disconnectCloud', root)?.addEventListener('click', ()=>{
         if(!confirm(t('msg_confirm_disconnect'))) return;
         cloudCfg = { key:'', binId:'' };
@@ -5777,10 +7039,7 @@ function settingsModal(){
         settingsModal();
         toast(t('msg_cloud_disconnected'),'ok');
       });
-      $('#syncNow', root)?.addEventListener('click', async ()=>{
-        const ok = await fullSync();
-        if(ok) render();
-      });
+      $('#syncNow', root)?.addEventListener('click', async ()=>{ const ok = await fullSync(); if(ok) render(); });
       $('#pullNow', root)?.addEventListener('click', async ()=>{
         const ok = await pullFromCloud();
         if(ok && $('#modalRoot').innerHTML) settingsModal();
@@ -5795,7 +7054,6 @@ function settingsModal(){
         catch(e){ el.select(); document.execCommand('copy'); }
         toast(t('msg_link_ready'),'ok');
       });
-
       $('#changePwdBtn', root)?.addEventListener('click', ()=>{
         $('#modalRoot').innerHTML = '';
         pwdModal();
@@ -5811,7 +7069,7 @@ function settingsModal(){
 /* ==========================================================================
    22) نظام النوافذ
    ========================================================================== */
-function openModal({title, body, onSubmit, onMount, submitText, wide}){
+function openModal({title, body, onSubmit, onMount, submitText, wide, tableId, record}){
   const root = $('#modalRoot');
   root.innerHTML = `
     <div class="overlay" id="ovl">
@@ -5852,6 +7110,19 @@ function openModal({title, body, onSubmit, onMount, submitText, wide}){
   document.addEventListener('keydown', function esc2(e){
     if(e.key==='Escape'){ close(); document.removeEventListener('keydown', esc2); }
   });
+  if(tableId){
+    const form = root.querySelector('form');
+    if(form){
+      const html = customFormFieldsHTML(tableId, record);
+      if(html){
+        const errEl = form.querySelector('.err');
+        const grid   = form.querySelector('.form-grid');
+        if(errEl)      errEl.insertAdjacentHTML('beforebegin', html);
+        else if(grid)  grid.insertAdjacentHTML('beforeend', html);
+        else           form.insertAdjacentHTML('beforeend', `<div class="form-grid">${html}</div>`);
+      }
+    }
+  }
   if(onMount) onMount(root);
   root.querySelector('input,select,textarea')?.focus();
 }
@@ -5860,7 +7131,6 @@ function openModal({title, body, onSubmit, onMount, submitText, wide}){
    23) التهيئة
    ========================================================================== */
 function closeSidebar(){ $('#sidebar').classList.remove('open'); }
-
 function isFullscreen(){
   return !!(document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement);
 }
@@ -5868,29 +7138,27 @@ function updateFsBtn(){
   const b = $('#fsBtn');
   if(!b) return;
   b.textContent = isFullscreen() ? '🗗' : '⛶';
-  b.title = isFullscreen() ? 'إنهاء ملء الشاشة' : 'ملء الشاشة';
+  b.title = isFullscreen() ? t('msg_fs_exit') : t('msg_fs_enter');
 }
 function toggleFullscreen(silent){
   const el = document.documentElement;
   if(!isFullscreen()){
     const req = el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen;
-    if(!req){ if(!silent) toast('المتصفح لا يدعم ملء الشاشة','warn'); return; }
+    if(!req){ if(!silent) toast(t('msg_fs_unsupported'),'warn'); return; }
     try{
       const p = req.call(el);
-      if(p && p.catch) p.catch(()=>{ if(!silent) toast('تعذّر تفعيل ملء الشاشة','warn'); });
-    }catch(e){ if(!silent) toast('تعذّر تفعيل ملء الشاشة','warn'); }
+      if(p && p.catch) p.catch(()=>{ if(!silent) toast(t('msg_fs_failed'),'warn'); });
+    }catch(e){ if(!silent) toast(t('msg_fs_failed'),'warn'); }
   } else {
     const ex = document.exitFullscreen || document.webkitExitFullscreen || document.msExitFullscreen;
     if(ex){ try{ ex.call(document); }catch(e){} }
   }
 }
-
 async function init(){
   cloudCfg = loadCloudCfg();
   const fromURL = await readFromURLParams();
-
   if(fromURL && isCloudReady()){
-    showLoadingOverlay('جاري تحميل البيانات من السحابة…','يرجى الانتظار لحظات');
+    showLoadingOverlay(t('msg_loading_cloud'), t('msg_please_wait'));
     try{ await pullFromCloud(true); }catch(e){ console.warn('cloud pull failed', e); }
     hideLoadingOverlay();
     if(!db){ db = emptyDB(); saveDB(); }
@@ -5898,11 +7166,9 @@ async function init(){
     db = loadDB();
     if(!db){ db = seedDB(); saveDB(); }
   }
-
   state.dashboardDate = todayStr();
   state.dashboardPeriod = 'daily';
   state.repsDay = todayStr();
-
   $('#menuBtn').onclick = ()=> $('#sidebar').classList.toggle('open');
   $('#langBtn').onclick = ()=> toolAction('lang');
   $('#topSet').onclick  = ()=> settingsModal();
@@ -5924,13 +7190,12 @@ async function init(){
   ['fullscreenchange','webkitfullscreenchange','msfullscreenchange'].forEach(ev=>
     document.addEventListener(ev, updateFsBtn));
   updateFsBtn();
-
   $('#notifBtn').onclick = (e)=>{ e.stopPropagation(); openNotifPanel(); };
   $('#closeNotif').onclick = (e)=>{ e.stopPropagation(); closeNotifPanel(); };
   $('#markAllRead').onclick = ()=>{
     (db.notifications||[]).forEach(n=> n.read = true);
     saveDB(); renderNotifList(); updateNotifBadge();
-    toast('تم تحديد الكل كمقروء','ok');
+    toast(t('msg_all_read'),'ok');
   };
   document.addEventListener('click', e=>{
     const p = $('#notifPanel');
@@ -5938,7 +7203,6 @@ async function init(){
       closeNotifPanel();
     }
   });
-
   $('#loginForm').addEventListener('submit', e=>{
     e.preventDefault();
     const id = $('#lgId').value.trim();
@@ -5949,25 +7213,29 @@ async function init(){
       toast(t('msg_login_err'),'err');
     }
   });
-
   let resizeTimer;
   window.addEventListener('resize', ()=>{
     clearTimeout(resizeTimer);
     resizeTimer = setTimeout(()=> applySettings(), 120);
   });
   setTimeout(()=> applySettings(), 50);
-
+  setTimeout(()=> checkInternetExpiry(), 2000);
   const sess = loadSession();
   if(sess){
     state.user = sess; showApp();
-    if(isCloudReady() && !state.cloudMode) pushToCloud(true);
+    // ✅ التحقق الصريح من الوضع قبل الرفع التلقائي
+    const mode = (db.settings && db.settings.supervisorSyncMode) || 'auto';
+    if(isCloudReady() && mode === 'auto' && !state.cloudMode){
+      pushToCloud(true);
+    }
   } else {
     showLogin();
   }
-
+  // ✅ المؤقّت الداخلي مع التحقق الصريح من الوضع اليدوي
   setInterval(async ()=>{
     if(!isCloudReady() || !state.user || state.cloudBusy) return;
-    if(isSupervisor() && !isSupervisorAutoSync()) return;
+    const mode = (db.settings && db.settings.supervisorSyncMode) || 'auto';
+    if(mode === 'manual') return;
     if(state.cloudMode){
       const before = JSON.stringify(db);
       const ok = await pullFromCloud(true);
@@ -5976,11 +7244,9 @@ async function init(){
       await pushToCloud(true);
     }
   }, 45000);
-
   ['mousemove','mousedown','keydown','touchstart','scroll','click','input'].forEach(ev =>
     document.addEventListener(ev, resetInactivity, {passive:true})
   );
-
   window.addEventListener('beforeunload', ()=>{
     if(!state.cloudMode) saveDB();
   });
