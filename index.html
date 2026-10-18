@@ -7626,5 +7626,365 @@ console.log('%c[PATCH v2] ✅ جاهز — التعديلات تُحفظ فقط 
             'color:#10b981;font-weight:bold;');
 })();
 </script>
+<!-- ============================================================
+     PATCH v3 — App ID + Filter + Enhanced Print
+     ============================================================ -->
+<script>
+(function(){
+'use strict';
+console.log('[PATCH v3] Loading...');
+
+/* ───────────────────────────────────────────────────────────────
+   1) حالة الفلترة بقسم التصفية
+   ─────────────────────────────────────────────────────────────── */
+if(typeof state !== 'undefined'){
+  state.settlementFilter = state.settlementFilter || { type:'all', value:'' };
+}
+
+/* ───────────────────────────────────────────────────────────────
+   2) استبدال viewSettlement — App ID + فلترة
+   ─────────────────────────────────────────────────────────────── */
+window.viewSettlement = function(){
+  var canEdit = isOwner() || canEditSection('settlement');
+  var sf = state.settlementFilter || { type:'all', value:'' };
+
+  var allRows = (db.settlements || []).slice().sort(function(a,b){
+    return (b.regTime || '').localeCompare(a.regTime || '');
+  });
+
+  var uniqueAppIds = Array.from(new Set(
+    allRows.map(function(x){ return x.appId; }).filter(Boolean)
+  )).sort();
+  var uniqueResponsibles = Array.from(new Set(
+    allRows.map(function(x){ return x.responsible; }).filter(Boolean)
+  )).sort();
+
+  /* تطبيق الفلترة */
+  var rows = allRows;
+  if(sf.type === 'appId' && sf.value){
+    rows = allRows.filter(function(x){ return (x.appId || '') === sf.value; });
+  } else if(sf.type === 'responsible' && sf.value){
+    rows = allRows.filter(function(x){ return (x.responsible || '') === sf.value; });
+  } else if(sf.type === 'month' && sf.value){
+    rows = allRows.filter(function(x){ return (x.regTime || '').startsWith(sf.value); });
+  }
+
+  var totalAmount = sum(rows, 'amount');
+  var totalDays  = sum(rows, 'days');
+
+  /* واجهة الفلترة */
+  var filterUI = '<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center">' +
+    '<span style="font-weight:700;font-size:13px">🔎 ' + t('filter') + ':</span>' +
+    '<select id="setFilterType" style="max-width:200px;padding:8px 12px">' +
+      '<option value="all" ' + (sf.type==='all'?'selected':'') + '>' + t('filter_all') + '</option>' +
+      '<option value="appId" ' + (sf.type==='appId'?'selected':'') + '>App ID</option>' +
+      '<option value="responsible" ' + (sf.type==='responsible'?'selected':'') + '>' + t('fld_responsible') + '</option>' +
+      '<option value="month" ' + (sf.type==='month'?'selected':'') + '>' + t('filter_month') + '</option>' +
+    '</select>';
+
+  if(sf.type === 'appId'){
+    filterUI += '<select id="setFilterValue" style="max-width:240px;padding:8px 12px">' +
+      '<option value="">' + (t('fld_all') || 'الكل') + '</option>' +
+      uniqueAppIds.map(function(v){
+        return '<option value="' + esc(v) + '" ' + (sf.value===v?'selected':'') + '>' + esc(v) + '</option>';
+      }).join('') +
+    '</select>';
+  }
+  if(sf.type === 'responsible'){
+    filterUI += '<select id="setFilterValue" style="max-width:240px;padding:8px 12px">' +
+      '<option value="">' + (t('fld_all') || 'الكل') + '</option>' +
+      uniqueResponsibles.map(function(v){
+        return '<option value="' + esc(v) + '" ' + (sf.value===v?'selected':'') + '>' + esc(v) + '</option>';
+      }).join('') +
+    '</select>';
+  }
+  if(sf.type === 'month'){
+    filterUI += '<input type="month" id="setFilterValue" value="' + esc(sf.value) + '" style="max-width:200px;padding:8px 12px">';
+  }
+  if(sf.type !== 'all' && sf.value){
+    filterUI += '<button class="btn btn-sm" id="setFilterClear">✖ ' + t('btn_cancel') + '</button>';
+  }
+  filterUI += '<span class="chip blue">' + rows.length + ' / ' + allRows.length + '</span>';
+  filterUI += '</div>';
+
+  var colspan      = (canEdit ? 10 : 9) + customCols('settlements').length;
+  var tfootColspan = (canEdit ? 3 : 2) + customCols('settlements').length;
+
+  return '<div class="card">' +
+    '<div class="card-head">💰 ' + t('t_settlement') + ' <span class="spacer"></span>' +
+      '<span class="chip blue">' + rows.length + '</span>' +
+      '<button class="btn btn-sm" id="printSettlement">' + t('print_settlement') + '</button>' +
+      (canEdit ? '<button class="btn btn-primary btn-sm" id="addSettlement">➕ ' + t('set_add') + '</button>' : '') +
+    '</div>' +
+    '<div style="padding:16px 22px 10px">' + filterUI + '</div>' +
+    '<div class="tbl-wrap" style="border:0" id="settlementTable"><table>' +
+      '<thead><tr>' +
+        '<th>App ID</th>' +
+        '<th>' + t('fld_responsible') + '</th>' +
+        '<th>' + t('fld_app') + '</th>' +
+        '<th>' + t('fld_from') + '</th>' +
+        '<th>' + t('fld_to') + '</th>' +
+        '<th>' + t('fld_rental_days') + '</th>' +
+        '<th>' + t('fld_settlement_amount') + '</th>' +
+        '<th>' + t('fld_bank_account') + '</th>' +
+        '<th>' + t('fld_reg_time') + '</th>' +
+        customHeadHTML('settlements') +
+        (canEdit ? '<th></th>' : '') +
+      '</tr></thead>' +
+      '<tbody>' +
+        (rows.length ? rows.map(function(x){
+          return '<tr>' +
+            '<td><span class="chip gray" dir="ltr">' + esc(x.appId || '—') + '</span></td>' +
+            '<td><b>' + esc(x.responsible) + '</b></td>' +
+            '<td><span class="chip blue">' + esc(appLabel(x.app)) + '</span></td>' +
+            '<td>' + esc(x.from || '—') + '</td>' +
+            '<td>' + esc(x.to || '—') + '</td>' +
+            '<td><span class="chip violet">' + num(x.days) + '</span></td>' +
+            '<td><b>' + num(x.amount) + '</b> ر.س</td>' +
+            '<td><span class="chip gray">' + esc(x.bank || '—') + '</span></td>' +
+            '<td><span class="chip gray" style="font-size:11px">' + formatDateTime(x.regTime) + '</span></td>' +
+            customCellsHTML('settlements', x) +
+            (canEdit ? '<td><div class="tbl-actions">' +
+              '<button class="btn btn-ghost btn-sm" data-edit-set="' + x.id + '">✏️</button>' +
+              '<button class="btn btn-ghost btn-sm" data-del-set="' + x.id + '">🗑️</button>' +
+            '</div></td>' : '') +
+          '</tr>';
+        }).join('') : '<tr><td colspan="' + colspan + '" class="empty">' + t('no_data') + '</td></tr>') +
+      '</tbody>' +
+      (rows.length ? '<tfoot><tr style="background:var(--bg-3);font-weight:800">' +
+        '<td colspan="5" style="text-align:end">' + t('fld_grand_total') + '</td>' +
+        '<td><span class="chip violet" style="font-size:14px">' + totalDays + '</span></td>' +
+        '<td><span class="chip green" style="font-size:14px">' + totalAmount + ' ر.س</span></td>' +
+        '<td colspan="' + tfootColspan + '"></td>' +
+      '</tr></tfoot>' : '') +
+    '</table></div>' +
+  '</div>';
+};
+
+/* ───────────────────────────────────────────────────────────────
+   3) استبدال afterSettlement — ربط أحداث الفلترة
+   ─────────────────────────────────────────────────────────────── */
+var _origAfterSettlement = window.afterSettlement;
+window.afterSettlement = function(){
+  if(typeof _origAfterSettlement === 'function') _origAfterSettlement.call(this);
+
+  var typeSel = document.getElementById('setFilterType');
+  if(typeSel){
+    typeSel.addEventListener('change', function(e){
+      state.settlementFilter.type = e.target.value;
+      state.settlementFilter.value = '';
+      render();
+    });
+  }
+  var valEl = document.getElementById('setFilterValue');
+  if(valEl){
+    valEl.addEventListener('change', function(e){
+      state.settlementFilter.value = e.target.value;
+      render();
+    });
+    if(valEl.type === 'month'){
+      valEl.addEventListener('input', function(e){
+        state.settlementFilter.value = e.target.value;
+        render();
+      });
+    }
+  }
+  var clearBtn = document.getElementById('setFilterClear');
+  if(clearBtn){
+    clearBtn.onclick = function(){
+      state.settlementFilter = { type:'all', value:'' };
+      render();
+    };
+  }
+};
+
+/* ───────────────────────────────────────────────────────────────
+   4) استبدال settlementModal — App ID يدوي
+   ─────────────────────────────────────────────────────────────── */
+window.settlementModal = function(id){
+  if(!isOwner() && !canEditSection('settlement')){ toast(t('msg_no_perm'),'warn'); return; }
+  var rec = id ? (db.settlements || []).find(function(x){ return x.id === id; }) : null;
+  var appsList  = getAppsList();
+  var banksList = getBanksList();
+
+  var body = '<form id="setForm" class="form-grid" novalidate>' +
+    '<div class="field"><label>App ID</label>' +
+      '<input name="appId" dir="ltr" value="' + esc(rec && rec.appId || '') + '" placeholder="App ID"></div>' +
+    '<div class="field"><label>' + t('fld_responsible') + ' <span class="req">*</span></label>' +
+      '<input name="responsible" required value="' + esc(rec && rec.responsible || '') + '"></div>' +
+    '<div class="field"><label>' + t('fld_app') + ' <span class="req">*</span></label>' +
+      '<select name="app" required>' +
+        '<option value="">' + t('fld_none') + '</option>' +
+        appsList.map(function(v){
+          return '<option value="' + esc(v) + '" ' + (rec && rec.app === v ? 'selected' : '') + '>' + esc(v) + '</option>';
+        }).join('') +
+      '</select></div>' +
+    '<div class="field"><label>' + t('fld_from') + ' <span class="req">*</span></label>' +
+      '<input type="date" name="from" required value="' + (rec ? rec.from : todayStr()) + '" id="setFrom"></div>' +
+    '<div class="field"><label>' + t('fld_to') + ' <span class="req">*</span></label>' +
+      '<input type="date" name="to" required value="' + (rec ? rec.to : todayStr()) + '" id="setTo"></div>' +
+    '<div class="field"><label>' + t('fld_rental_days') + ' <span class="small muted">(' + t('fld_auto_total') + ')</span></label>' +
+      '<input type="number" name="days" readonly id="setDays" value="' + (rec ? rec.days : 0) + '"></div>' +
+    '<div class="field"><label>' + t('fld_settlement_amount') + ' <span class="req">*</span></label>' +
+      '<input type="number" name="amount" min="0" step="0.01" required value="' + (rec ? rec.amount : '') + '"></div>' +
+    '<div class="field" style="grid-column:1/-1">' +
+      '<label>' + t('fld_bank_account') + ' <span class="req">*</span></label>' +
+      '<input name="bank" required list="banksDatalist" value="' + esc(rec && rec.bank || '') + '" placeholder="' + t('msg_bank_text_hint') + '">' +
+      '<datalist id="banksDatalist">' +
+        banksList.map(function(v){ return '<option value="' + esc(v) + '"></option>'; }).join('') +
+      '</datalist>' +
+      '<span class="hint">' + t('msg_bank_text_hint') + '</span>' +
+    '</div>' +
+    '<div class="field"><label>' + t('fld_reg_time') + '</label>' +
+      '<input type="text" readonly value="' + (rec ? formatDateTime(rec.regTime) : formatDateTime(new Date().toISOString())) + '"></div>' +
+    '<div id="setErr" class="err" style="grid-column:1/-1;display:none"></div>' +
+  '</form>';
+
+  openModal({
+    title: rec ? t('btn_edit') : t('set_add'),
+    body: body, tableId: 'settlements', record: rec,
+    onMount: function(root){
+      var f  = root.querySelector('#setFrom');
+      var t2 = root.querySelector('#setTo');
+      var d  = root.querySelector('#setDays');
+      var upd = function(){
+        if(f.value && t2.value){
+          var days = Math.max(0, Math.floor((new Date(t2.value) - new Date(f.value)) / 86400000) + 1);
+          d.value = days;
+        }
+      };
+      f.addEventListener('change', upd);
+      t2.addEventListener('change', upd);
+      upd();
+    },
+    onSubmit: function(root){
+      var d   = Object.fromEntries(new FormData($('#setForm', root)));
+      var err = $('#setErr', root);
+      if(['responsible','app','from','to','amount','bank'].some(function(k){ return !d[k]; })){
+        err.textContent = t('msg_required');
+        err.style.display = 'block';
+        return false;
+      }
+      var days = Math.max(0, Math.floor((new Date(d.to) - new Date(d.from)) / 86400000) + 1);
+      var payload = {
+        appId: d.appId || '',
+        responsible: d.responsible,
+        app: d.app,
+        from: d.from,
+        to: d.to,
+        days: days,
+        amount: num(d.amount),
+        bank: d.bank,
+        custom: readCustomValues(root)
+      };
+      if(rec){
+        Object.assign(rec, payload);
+        toast(t('msg_settlement_saved'),'ok');
+      } else {
+        db.settlements = db.settlements || [];
+        db.settlements.push(Object.assign({ id: uid() }, payload, { regTime: new Date().toISOString() }));
+        toast(t('msg_settlement_added'),'ok');
+      }
+      saveDB();
+      render();
+      autoSyncAfterSave();
+      return true;
+    }
+  });
+};
+
+/* ───────────────────────────────────────────────────────────────
+   5) تحسين الملاءمة التلقائية للطباعة
+   ─────────────────────────────────────────────────────────────── */
+window.addEventListener('beforeprint', function(){
+  try{
+    var view = document.getElementById('view');
+    if(!view) return;
+
+    var A4_PX = 718;
+    var savedWidth    = view.style.width;
+    var savedMaxWidth = view.style.maxWidth;
+
+    /* فرض عرض A4 مؤقتاً لقياس الفائض الحقيقي */
+    view.style.width    = A4_PX + 'px';
+    view.style.maxWidth = A4_PX + 'px';
+    void view.getBoundingClientRect();
+
+    var maxOverflow = A4_PX;
+    var elems = view.querySelectorAll('table, .tbl-wrap, .bulk-table, .perf-hero');
+    for(var i = 0; i < elems.length; i++){
+      if(elems[i].scrollWidth > maxOverflow) maxOverflow = elems[i].scrollWidth;
+    }
+
+    /* استعادة */
+    view.style.width    = savedWidth;
+    view.style.maxWidth = savedMaxWidth;
+
+    var z = Math.min(1, A4_PX / Math.max(maxOverflow, A4_PX));
+    document.documentElement.style.setProperty('--print-zoom', String(Math.max(0.35, z)));
+  }catch(e){ console.warn('autoFitPrint v3 error', e); }
+});
+
+/* ───────────────────────────────────────────────────────────────
+   6) تحديث ترويسة الطباعة (لوجو + بيانات الشركة) قبل كل طباعة
+   ─────────────────────────────────────────────────────────────── */
+window.addEventListener('beforeprint', function(){
+  try{
+    var c = db.settings.company || {};
+    var nameEl = document.getElementById('printCompanyName');
+    if(nameEl) nameEl.textContent = c.name || (db.branding && db.branding.title) || '';
+    var crEl = document.getElementById('printCR');
+    if(crEl) crEl.textContent = c.cr ? (t('company_cr') + ': ' + c.cr) : '';
+    var phEl = document.getElementById('printPhone');
+    if(phEl) phEl.textContent = c.phone ? (t('company_phone') + ': ' + c.phone) : '';
+    var dateEl = document.getElementById('printDate');
+    if(dateEl) dateEl.textContent = new Date().toLocaleDateString(state.lang === 'ar' ? 'ar-SA' : 'en-US');
+    var logoEl = document.getElementById('printHeaderLogo');
+    if(logoEl){
+      if(db.branding && db.branding.logo){
+        logoEl.src = db.branding.logo;
+        logoEl.style.display = 'block';
+      } else {
+        logoEl.style.display = 'none';
+      }
+    }
+  }catch(e){}
+});
+
+/* ───────────────────────────────────────────────────────────────
+   7) CSS إضافي للطباعة — يضمن ظهور الترويسة وعدم انفصالها
+   ─────────────────────────────────────────────────────────────── */
+var _extraPrintCSS = '@media print {' +
+  '#printHeader { display: block !important; page-break-after: avoid !important; break-after: avoid !important; }' +
+  '#printHeaderLogo { max-height: 55px !important; width: auto !important; }' +
+  '.card { page-break-inside: auto !important; break-inside: auto !important; }' +
+  '.tbl-wrap { page-break-inside: auto !important; }' +
+  'thead { display: table-header-group !important; }' +
+  'tfoot { display: table-footer-group !important; }' +
+  'tr { page-break-inside: avoid !important; break-inside: avoid !important; }' +
+'}';
+var _extraStyle = document.createElement('style');
+_extraStyle.textContent = _extraPrintCSS;
+document.head.appendChild(_extraStyle);
+
+/* ───────────────────────────────────────────────────────────────
+   8) ترحيل آمن: تهيئة appId للسجلات القديمة بعد تحميل البيانات
+   ─────────────────────────────────────────────────────────────── */
+setTimeout(function(){
+  try{
+    if(typeof db !== 'undefined' && db && Array.isArray(db.settlements)){
+      var changed = false;
+      db.settlements.forEach(function(x){
+        if(x.appId === undefined){ x.appId = ''; changed = true; }
+      });
+      if(changed) saveDB();
+    }
+  }catch(e){}
+}, 800);
+
+console.log('%c[PATCH v3] ✅ App ID + Filter + Enhanced Print ready',
+            'color:#10b981;font-weight:bold;');
+})();
+</script>
 </body>
 </html>
