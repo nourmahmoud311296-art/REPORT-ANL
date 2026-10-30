@@ -8879,5 +8879,1017 @@ console.log('%c[PATCH v7] ✅ إجمالي الإيجار من حقل مستقل
             'color:#10b981;font-weight:bold;font-size:13px;');
 })();
 </script>
+<!-- ============================================================
+     PATCH v8 — Export (Image/PDF/Excel) + Import (Excel)
+     ============================================================ -->
+<script>
+(function(){
+'use strict';
+console.log('[PATCH v8] Export/Import redesign loading...');
+
+const _libsLoaded = {};
+function _loadScript(src){
+  if(_libsLoaded[src]) return _libsLoaded[src];
+  return _libsLoaded[src] = new Promise((res, rej) => {
+    const s = document.createElement('script');
+    s.src = src;
+    s.onload = res;
+    s.onerror = () => rej(new Error('Failed: ' + src));
+    document.head.appendChild(s);
+  });
+}
+async function ensureExportLibs(){
+  const jobs = [];
+  if(!window.html2canvas) jobs.push(_loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js'));
+  if(!window.jspdf)       jobs.push(_loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'));
+  await Promise.all(jobs);
+}
+async function ensureXLSXlib(){
+  if(!window.XLSX) throw new Error('XLSX library not loaded');
+}
+
+try{
+  if(typeof I18N === 'object'){
+    Object.assign(I18N.ar, {
+      export_modal_title: '📤 تصدير',
+      export_as_image: 'صورة',
+      export_as_image_sub: 'PNG عالي الدقة',
+      export_as_pdf: 'PDF',
+      export_as_pdf_sub: 'جاهز للطباعة والمشاركة',
+      export_as_excel: 'Excel',
+      export_as_excel_sub: 'جداول قابلة للتعديل',
+      export_include_header: 'تضمين ترويسة الشركة (صورة / PDF فقط)',
+      export_json_backup: '📦 نسخة احتياطية JSON (بيانات كاملة)',
+      export_json_hint: 'للمالك فقط — تُستخدم للنسخ الاحتياطي والاستعادة',
+      export_in_progress: '⏳ جاري التصدير… يرجى الانتظار',
+      export_done: '✅ تم التصدير بنجاح',
+      export_failed: '⛔ فشل التصدير',
+      export_no_tables: 'ℹ️ لا توجد جداول في هذه الصفحة — استخدم تصدير صورة أو PDF',
+      import_modal_title: '📥 استيراد',
+      import_target: 'الجدول الهدف',
+      import_pick_file: '📁 اختر ملف Excel (.xlsx / .xls / .csv)',
+      import_preview: '👁️ معاينة (أول 10 صفوف)',
+      import_strategy_add: 'إضافة فقط — الصفوف المكررة تُتجاهل تلقائياً',
+      import_confirm: '📥 استيراد',
+      import_file_required: 'اختر ملفاً أولاً',
+      import_no_data: 'الملف لا يحتوي على صفوف بيانات صالحة',
+      import_headers_mismatch: 'الملف لا يحتوي على الأعمدة الإلزامية',
+      import_success: 'تم استيراد {n} سجل (تم تجاهل {s} صف)',
+      import_loading: '⏳ جاري قراءة الملف…',
+      import_failed: 'تعذّر قراءة الملف',
+      import_target_reps: 'السائقون',
+      import_target_cars: 'السيارات',
+      import_target_settlements: 'التصفية',
+      import_json_restore: '📦 استعادة نسخة JSON احتياطية',
+      import_json_hint: 'للمالك فقط — سيتم استبدال كل البيانات',
+      import_tpl_hint: '💡 الأعمدة يجب أن تطابق أسماء الأعمدة في ملف Excel المُصدَّر من نفس النظام'
+    });
+    Object.assign(I18N.en, {
+      export_modal_title: '📤 Export',
+      export_as_image: 'Image',
+      export_as_image_sub: 'High-resolution PNG',
+      export_as_pdf: 'PDF',
+      export_as_pdf_sub: 'Print & share ready',
+      export_as_excel: 'Excel',
+      export_as_excel_sub: 'Editable tables',
+      export_include_header: 'Include company header (Image / PDF only)',
+      export_json_backup: '📦 JSON backup (full data)',
+      export_json_hint: 'Owner only — for backup & restore',
+      export_in_progress: '⏳ Exporting… please wait',
+      export_done: '✅ Exported successfully',
+      export_failed: '⛔ Export failed',
+      export_no_tables: 'ℹ️ No tables on this page — use Image or PDF',
+      import_modal_title: '📥 Import',
+      import_target: 'Target table',
+      import_pick_file: '📁 Choose Excel file (.xlsx / .xls / .csv)',
+      import_preview: '👁️ Preview (first 10 rows)',
+      import_strategy_add: 'Add only — duplicates are skipped',
+      import_confirm: '📥 Import',
+      import_file_required: 'Choose a file first',
+      import_no_data: 'No valid data rows found',
+      import_headers_mismatch: 'Required columns missing',
+      import_success: 'Imported {n} records ({s} skipped)',
+      import_loading: '⏳ Reading file…',
+      import_failed: 'Failed to read file',
+      import_target_reps: 'Drivers',
+      import_target_cars: 'Vehicles',
+      import_target_settlements: 'Settlements',
+      import_json_restore: '📦 Restore JSON backup',
+      import_json_hint: 'Owner only — replaces all data',
+      import_tpl_hint: '💡 Column names must match the exported Excel from this system'
+    });
+  }
+}catch(e){}
+
+function _waitFrame(){ return new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))); }
+function _safeFilename(str){
+  return String(str||'').replace(/[\\/:*?"<>|]+/g,'-').replace(/\s+/g,'_').slice(0,80);
+}
+function _sectionName(){
+  const el = document.getElementById('pageTitle');
+  return (el ? el.textContent : 'export').trim();
+}
+function _buildCaptureHeader(){
+  const c = (db.settings && db.settings.company) || {};
+  const b = db.branding || {};
+  const div = document.createElement('div');
+  div.setAttribute('data-capture-header','1');
+  div.style.cssText = 'text-align:center;padding:16px 20px;margin-bottom:14px;border-bottom:2px solid var(--primary);background:#fff;border-radius:14px';
+  let html = '';
+  if(b.logo){
+    html += '<img src="' + b.logo + '" style="max-height:55px;max-width:180px;object-fit:contain;display:block;margin:0 auto 8px" alt="logo">';
+  }
+  const name = c.name || b.title || '';
+  if(name){
+    html += '<div style="font-size:18px;font-weight:800;color:#0b1220;letter-spacing:-.2px">' + esc(name) + '</div>';
+  }
+  const meta = [];
+  if(c.cr)    meta.push('📋 ' + (t('company_cr')    || 'السجل التجاري') + ': ' + esc(c.cr));
+  if(c.phone) meta.push('📞 ' + (t('company_phone') || 'الهاتف')        + ': ' + esc(c.phone));
+  meta.push('📅 ' + new Date().toLocaleDateString(state.lang === 'ar' ? 'ar-SA' : 'en-US'));
+  if(meta.length){
+    html += '<div style="display:flex;justify-content:center;gap:20px;flex-wrap:wrap;margin-top:6px;font-size:12px;color:#334155;font-weight:600">';
+    html += meta.map(m => '<span>' + m + '</span>').join('');
+    html += '</div>';
+  }
+  div.innerHTML = html;
+  return div;
+}
+
+async function _captureViewAsCanvas(includeHeader){
+  await ensureExportLibs();
+  const view = document.getElementById('view');
+  if(!view) throw new Error('View not found');
+
+  const savedZoom     = document.body.style.zoom;
+  const savedHeight   = document.documentElement.style.height;
+  const savedFontSize = document.body.style.fontSize;
+
+  document.body.style.zoom = '1';
+  document.documentElement.style.height = '';
+  const collapsedCards = Array.prototype.slice.call(view.querySelectorAll('.card.collapsed'));
+  collapsedCards.forEach(c => c.classList.remove('collapsed'));
+
+  let headerEl = null;
+  if(includeHeader){
+    headerEl = _buildCaptureHeader();
+    view.insertBefore(headerEl, view.firstChild);
+  }
+  await _waitFrame();
+
+  let canvas;
+  try{
+    canvas = await window.html2canvas(view, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: '#ffffff',
+      logging: false,
+      onclone: function(clonedDoc){
+        const st = clonedDoc.createElement('style');
+        st.textContent = '*{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}.perf-ring .pr-fg{filter:none!important}.kpi-icon,.chip{box-shadow:none!important}';
+        clonedDoc.head.appendChild(st);
+      }
+    });
+  } finally {
+    if(headerEl && headerEl.parentNode) headerEl.parentNode.removeChild(headerEl);
+    document.body.style.zoom = savedZoom;
+    document.body.style.fontSize = savedFontSize;
+    document.documentElement.style.height = savedHeight;
+    collapsedCards.forEach(c => c.classList.add('collapsed'));
+  }
+  return canvas;
+}
+
+async function _exportImage(includeHeader){
+  const canvas = await _captureViewAsCanvas(includeHeader);
+  const dataUrl = canvas.toDataURL('image/png');
+  const a = document.createElement('a');
+  a.href = dataUrl;
+  a.download = _safeFilename(_sectionName()) + '_' + todayStr() + '.png';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+
+async function _exportPdf(includeHeader){
+  const canvas = await _captureViewAsCanvas(includeHeader);
+  const jsPDFCtor = window.jspdf && window.jspdf.jsPDF;
+  if(!jsPDFCtor) throw new Error('jsPDF not available');
+
+  const orient = (db.settings && db.settings.printOrientation === 'landscape') ? 'l' : 'p';
+  const pdf = new jsPDFCtor({ orientation: orient, unit: 'mm', format: 'a4' });
+
+  const pageW = pdf.internal.pageSize.getWidth();
+  const pageH = pdf.internal.pageSize.getHeight();
+  const margin = 6;
+  const contentW = pageW - margin * 2;
+  const contentH = pageH - margin * 2;
+
+  const imgW = canvas.width;
+  const imgH = canvas.height;
+  const ratio = imgH / imgW;
+  const pageImgH = contentW * ratio;
+
+  if(pageImgH <= contentH){
+    const data = canvas.toDataURL('image/jpeg', 0.92);
+    pdf.addImage(data, 'JPEG', margin, margin, contentW, pageImgH);
+  } else {
+    const slicePxH = Math.floor(imgH * (contentH / pageImgH));
+    let y = 0, pageNum = 0;
+    while(y < imgH){
+      const sliceH = Math.min(slicePxH, imgH - y);
+      const sc = document.createElement('canvas');
+      sc.width = imgW;
+      sc.height = sliceH;
+      const ctx = sc.getContext('2d');
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, imgW, sliceH);
+      ctx.drawImage(canvas, 0, y, imgW, sliceH, 0, 0, imgW, sliceH);
+      const sliceData = sc.toDataURL('image/jpeg', 0.92);
+      const dispH = (sliceH / imgW) * contentW;
+      if(pageNum > 0) pdf.addPage();
+      pdf.addImage(sliceData, 'JPEG', margin, margin, contentW, dispH);
+      y += sliceH;
+      pageNum++;
+    }
+  }
+  pdf.save(_safeFilename(_sectionName()) + '_' + todayStr() + '.pdf');
+}
+
+function _cellText(cell){
+  const clone = cell.cloneNode(true);
+  clone.querySelectorAll('button,.btn,.tbl-actions,[data-actions],svg').forEach(x => x.remove());
+  return (clone.textContent || '').replace(/\s+/g, ' ').trim();
+}
+
+async function _exportExcel(){
+  await ensureXLSXlib();
+  const view = document.getElementById('view');
+  if(!view) throw new Error('View not found');
+
+  const tables = Array.prototype.slice.call(view.querySelectorAll('table'));
+  if(!tables.length) throw new Error(t('export_no_tables'));
+
+  const wb = XLSX.utils.book_new();
+  let added = 0;
+
+  tables.forEach(function(table){
+    const headerRow = table.querySelector('thead tr');
+    if(!headerRow) return;
+    const headers = Array.prototype.map.call(headerRow.children, function(th){
+      return (th.textContent || '').replace(/\s+/g, ' ').trim();
+    });
+    if(!headers.length) return;
+
+    const bodyRows = Array.prototype.map.call(table.querySelectorAll('tbody tr'), function(tr){
+      return Array.prototype.map.call(tr.children, _cellText);
+    }).filter(function(r){ return r.some(function(v){ return v; }); });
+    if(!bodyRows.length) return;
+
+    const aoa = [headers].concat(bodyRows);
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    ws['!cols'] = headers.map(function(h, i){
+      let maxLen = h.length;
+      bodyRows.forEach(function(r){ if(r[i]) maxLen = Math.max(maxLen, r[i].length); });
+      return { wch: Math.min(45, Math.max(10, maxLen + 2)) };
+    });
+
+    added++;
+    let sheetName = 'Sheet' + added;
+    const card = table.closest('.card');
+    const headEl = card ? card.querySelector('.card-head') : null;
+    if(headEl){
+      const txt = headEl.textContent.replace(/[\u{1F300}-\u{1F9FF}]/gu, '').replace(/\s+/g, ' ').trim();
+      if(txt) sheetName = txt.slice(0, 28);
+    }
+    sheetName = sheetName.replace(/[\\\/\?\*\[\]:]/g, '').slice(0, 31) || ('Sheet' + added);
+    let finalName = sheetName, k = 1;
+    while(wb.SheetNames.indexOf(finalName) !== -1){
+      finalName = sheetName.slice(0, 27) + '_' + (k++);
+    }
+    XLSX.utils.book_append_sheet(wb, ws, finalName);
+  });
+
+  if(!wb.SheetNames.length) throw new Error(t('export_no_tables'));
+  XLSX.writeFile(wb, _safeFilename(_sectionName()) + '_' + todayStr() + '.xlsx');
+}
+
+function openExportModal(){
+  if(!document.getElementById('exportModalCSS')){
+    const st = document.createElement('style');
+    st.id = 'exportModalCSS';
+    st.textContent =
+      '.export-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}' +
+      '.export-card{padding:22px 14px;border:2px solid var(--border);border-radius:16px;background:var(--card);cursor:pointer;text-align:center;transition:all .2s;font-family:inherit;color:inherit;font-size:inherit;display:flex;flex-direction:column;gap:6px;align-items:center}' +
+      '.export-card:hover:not(:disabled){border-color:var(--primary);background:var(--primary-soft);transform:translateY(-3px);box-shadow:var(--shadow)}' +
+      '.export-card:disabled{opacity:.5;cursor:not-allowed}' +
+      '.export-card .ec-icon{font-size:38px;line-height:1}' +
+      '.export-card .ec-title{font-weight:800;font-size:15px;color:var(--text)}' +
+      '.export-card .ec-sub{font-size:11.5px;color:var(--muted)}' +
+      '@media(max-width:520px){.export-grid{grid-template-columns:1fr}}';
+    document.head.appendChild(st);
+  }
+
+  const body =
+    '<div style="padding:4px">' +
+      '<div class="export-grid">' +
+        '<button class="export-card" data-export="image" type="button">' +
+          '<div class="ec-icon">🖼️</div>' +
+          '<div class="ec-title">' + t('export_as_image') + '</div>' +
+          '<div class="ec-sub">' + t('export_as_image_sub') + '</div>' +
+        '</button>' +
+        '<button class="export-card" data-export="pdf" type="button">' +
+          '<div class="ec-icon">📄</div>' +
+          '<div class="ec-title">' + t('export_as_pdf') + '</div>' +
+          '<div class="ec-sub">' + t('export_as_pdf_sub') + '</div>' +
+        '</button>' +
+        '<button class="export-card" data-export="excel" type="button">' +
+          '<div class="ec-icon">📊</div>' +
+          '<div class="ec-title">' + t('export_as_excel') + '</div>' +
+          '<div class="ec-sub">' + t('export_as_excel_sub') + '</div>' +
+        '</button>' +
+      '</div>' +
+      '<div style="padding:12px 14px;border-radius:12px;background:var(--bg-2);border:1px solid var(--border);margin-bottom:14px">' +
+        '<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:600">' +
+          '<input type="checkbox" id="exportIncludeHeader" checked style="width:auto;padding:0;accent-color:var(--primary)">' +
+          t('export_include_header') +
+        '</label>' +
+      '</div>' +
+      (isOwner() ?
+      '<div style="padding:12px 14px;border-radius:12px;background:var(--amber-soft);border:1px solid #fde68a">' +
+        '<button class="btn btn-sm" id="exportJsonBtn" type="button" style="width:100%">' + t('export_json_backup') + '</button>' +
+        '<div class="small muted" style="margin-top:6px;text-align:center">' + t('export_json_hint') + '</div>' +
+      '</div>' : '') +
+      '<div id="exportStatus" style="display:none;margin-top:14px;padding:12px;border-radius:12px;background:var(--primary-soft);border:1px solid var(--border);text-align:center;font-weight:700"></div>' +
+    '</div>';
+
+  openModal({
+    title: t('export_modal_title'),
+    body: body,
+    submitText: t('btn_close'),
+    onMount: function(root){
+      const mSave = document.getElementById('mSave');
+      if(mSave) mSave.style.display = 'none';
+      const statusEl = root.querySelector('#exportStatus');
+      const headerChk = root.querySelector('#exportIncludeHeader');
+      const cards = root.querySelectorAll('.export-card');
+      function setStatus(msg, type){
+        statusEl.style.display = 'block';
+        statusEl.textContent = msg;
+        statusEl.style.background = type === 'err' ? 'var(--red-soft)' : type === 'ok' ? 'var(--green-soft)' : 'var(--primary-soft)';
+      }
+      Array.prototype.forEach.call(cards, function(btn){
+        btn.onclick = async function(){
+          const type = btn.dataset.export;
+          const includeHeader = headerChk.checked;
+          Array.prototype.forEach.call(cards, function(b){ b.disabled = true; });
+          btn.disabled = false;
+          setStatus(t('export_in_progress'));
+          try{
+            if(type === 'image') await _exportImage(includeHeader);
+            else if(type === 'pdf') await _exportPdf(includeHeader);
+            else if(type === 'excel') await _exportExcel();
+            setStatus(t('export_done'), 'ok');
+            setTimeout(function(){ try{ document.getElementById('mCancel').click(); }catch(e){} }, 900);
+          } catch(err){
+            console.error(err);
+            setStatus(t('export_failed') + ': ' + (err && err.message ? err.message : ''), 'err');
+            Array.prototype.forEach.call(cards, function(b){ b.disabled = false; });
+          }
+        };
+      });
+      const jsonBtn = root.querySelector('#exportJsonBtn');
+      if(jsonBtn){
+        jsonBtn.addEventListener('click', function(){
+          try{
+            if(typeof exportJSON === 'function') exportJSON();
+            setStatus(t('export_done'), 'ok');
+          } catch(e){ setStatus(t('export_failed'), 'err'); }
+        });
+      }
+    }
+  });
+}
+
+/* toolAction override */
+if(typeof window.toolAction === 'function'){
+  const _origToolAction = window.toolAction;
+  window.toolAction = function(act){
+    if(act === 'export'){ window.openExportModal(); return; }
+    if(act === 'import'){ window.openImportModal(); return; }
+    return _origToolAction.call(this, act);
+  };
+}
+window.addEventListener('load', function(){
+  setTimeout(function(){
+    const eb = document.getElementById('exportBtn');
+    const ib = document.getElementById('importBtn');
+    if(eb) eb.onclick = function(){ window.openExportModal(); };
+    if(ib) ib.onclick = function(){ window.openImportModal(); };
+  }, 400);
+});
+
+window.openExportModal = openExportModal;
+console.log('%c[PATCH v8] ✅ Export ready (Import في v9-A)', 'color:#10b981;font-weight:bold;font-size:13px;');
+})();
+</script>
+
+<!-- ============================================================
+     PATCH v9-A — Extended Import: 6 schemas
+     ============================================================ -->
+<script>
+(function(){
+'use strict';
+console.log('[PATCH v9-A] Extended import loading...');
+
+async function ensureXLSXlib(){
+  if(!window.XLSX) throw new Error('XLSX library not loaded');
+}
+function _matchHeaders(headers, schema){
+  const mapping = {}, missing = [];
+  schema.fields.forEach(function(f){
+    let foundIdx = -1;
+    for(let i = 0; i < headers.length; i++){
+      const h = String(headers[i] || '').toLowerCase().trim();
+      if(!h) continue;
+      for(let j = 0; j < f.aliases.length; j++){
+        const al = f.aliases[j].toLowerCase();
+        if(h === al || h.indexOf(al) !== -1){ foundIdx = i; break; }
+      }
+      if(foundIdx >= 0) break;
+    }
+    if(foundIdx >= 0) mapping[f.key] = foundIdx;
+    else if(f.required) missing.push(f.aliases[0]);
+  });
+  return { mapping, missing };
+}
+
+const SCHEMAS = {
+  reps: {
+    uniqueKey: r => ((r.code||'').toLowerCase()) || ((r.name+'|'+r.phone).toLowerCase()),
+    existingKeys: () => new Set(db.reps.map(r => ((r.code||'').toLowerCase()) || ((r.name+'|'+r.phone).toLowerCase()))),
+    fields: [
+      { key:'name',           aliases:['الاسم','name'], required:true },
+      { key:'code',           aliases:['المعرّف','المعرف','code','id'], required:true },
+      { key:'phone',          aliases:['رقم الجوال','هاتف','phone','mobile'], required:true },
+      { key:'app',            aliases:['التطبيق','app'], required:false },
+      { key:'region',         aliases:['المنطقة','region'], required:false },
+      { key:'carPlate',       aliases:['السيارة المسندة','السيارة','لوحة السيارة','car','plate'], required:false },
+      { key:'supervisorName', aliases:['المشرف','supervisor'], required:true }
+    ],
+    build: m => {
+      const sup = db.supervisors.find(s => s.name === m.supervisorName);
+      if(!sup) return null;
+      const car = m.carPlate ? db.cars.find(c => c.plate === m.carPlate) : null;
+      return { id:uid(), name:m.name, code:m.code, phone:m.phone, app:m.app||'',
+        region:m.region||'', carId:car?car.id:'', plate:car?car.plate:(m.carPlate||''),
+        supervisorId:sup.id, startKm:0, status:'active', createdAt:new Date().toISOString() };
+    }
+  },
+  cars: {
+    uniqueKey: r => (r.plate||'').toLowerCase(),
+    existingKeys: () => new Set(db.cars.map(c => (c.plate||'').toLowerCase())),
+    fields: [
+      { key:'brand',      aliases:['الماركة','brand'], required:true },
+      { key:'model',      aliases:['الطراز','model'], required:true },
+      { key:'plate',      aliases:['رقم اللوحة','اللوحة','plate'], required:true },
+      { key:'year',       aliases:['سنة الصنع','السنة','year'], required:false },
+      { key:'officeName', aliases:['مكتب التأجير','المكتب','office','rental'], required:false },
+      { key:'statusAr',   aliases:['الحالة','status'], required:false },
+      { key:'driverName', aliases:['السائق','driver','rep'], required:false }
+    ],
+    build: m => {
+      const office = m.officeName ? (db.rentalOffices||[]).find(o => o.name === m.officeName) : null;
+      const driver = m.driverName ? db.reps.find(r => r.name === m.driverName) : null;
+      const sm = { 'متاح':'available','available':'available','نشط':'in_use','in_use':'in_use',
+        'في الصيانة':'maintenance','maintenance':'maintenance','معطل':'broken','broken':'broken' };
+      const status = sm[String(m.statusAr||'').toLowerCase()] || 'available';
+      return { id:uid(), brand:m.brand||'', model:m.model||'', plate:m.plate||'',
+        year:m.year||new Date().getFullYear(), status:status,
+        rentalOfficeId:office?office.id:'', assignedRepId:driver?driver.id:'',
+        createdAt:new Date().toISOString() };
+    }
+  },
+  settlements: {
+    uniqueKey: () => null,
+    existingKeys: () => new Set(),
+    fields: [
+      { key:'responsible', aliases:['المسئول','المسؤول','responsible'], required:true },
+      { key:'appId',       aliases:['app id','appid'], required:false },
+      { key:'app',         aliases:['التطبيق','app'], required:false },
+      { key:'from',        aliases:['من','from'], required:true },
+      { key:'to',          aliases:['إلى','الى','to'], required:true },
+      { key:'amount',      aliases:['مبلغ التصفية','المبلغ','amount'], required:true },
+      { key:'totalRent',   aliases:['إجمالي الإيجار','الايجار','totalrent','total rent','rent'], required:false },
+      { key:'bank',        aliases:['الحساب البنكي','البنك','bank'], required:true }
+    ],
+    build: m => {
+      let days = 0;
+      try{ if(m.from && m.to) days = Math.max(0, Math.floor((new Date(m.to)-new Date(m.from))/86400000)+1); }catch(e){}
+      return { id:uid(), appId:m.appId||'', responsible:m.responsible, app:m.app||'',
+        from:m.from, to:m.to, days, amount:num(m.amount), totalRent:num(m.totalRent),
+        bank:m.bank, regTime:new Date().toISOString() };
+    }
+  },
+  supervisors: {
+    uniqueKey: r => ((r.code||'').toLowerCase()) || ((r.email||'').toLowerCase()),
+    existingKeys: () => new Set(db.supervisors.map(s => ((s.code||'').toLowerCase()) || ((s.email||'').toLowerCase()))),
+    fields: [
+      { key:'name',     aliases:['الاسم','name'], required:true },
+      { key:'code',     aliases:['المعرّف','المعرف','code','id'], required:true },
+      { key:'phone',    aliases:['رقم الجوال','هاتف','phone','mobile'], required:true },
+      { key:'email',    aliases:['البريد الإلكتروني','البريد','email'], required:true },
+      { key:'password', aliases:['كلمة المرور','password','pwd'], required:false }
+    ],
+    build: m => ({
+      id:uid(), name:m.name, code:m.code, phone:m.phone, email:m.email,
+      password: hashPwd(m.password || '1234'),
+      permissions: ['dashboard','daily','daily_edit','reps','reps_edit','analytics','goals'],
+      goals: defaultGoals(), createdAt:new Date().toISOString()
+    })
+  },
+  offices: {
+    uniqueKey: r => (r.name||'').toLowerCase(),
+    existingKeys: () => new Set((db.rentalOffices||[]).map(o => (o.name||'').toLowerCase())),
+    fields: [
+      { key:'name',    aliases:['اسم المكتب','المكتب','name'], required:true },
+      { key:'phone',   aliases:['الهاتف','phone'], required:false },
+      { key:'contact', aliases:['المسؤول','contact'], required:false },
+      { key:'address', aliases:['العنوان','address'], required:false },
+      { key:'notes',   aliases:['ملاحظات','notes'], required:false }
+    ],
+    build: m => ({
+      id:uid(), name:m.name, phone:m.phone||'', contact:m.contact||'',
+      address:m.address||'', notes:m.notes||'', createdAt:new Date().toISOString()
+    })
+  },
+  internet: {
+    uniqueKey: () => null,
+    existingKeys: () => new Set(),
+    fields: [
+      { key:'repName',     aliases:['الاسم','السائق','اسم السائق','name'], required:true },
+      { key:'prevRenewal', aliases:['وقت التجديد السابق','التجديد السابق','prev','from'], required:true },
+      { key:'price',       aliases:['السعر','price'], required:true }
+    ],
+    build: m => {
+      const rep = db.reps.find(r => r.name === m.repName);
+      if(!rep) return null;
+      const next = addDaysStr(m.prevRenewal, 28);
+      return { id:uid(), repId:rep.id, prevRenewal:m.prevRenewal, nextRenewal:next,
+        price:num(m.price), notified1day:false, notified2day:false, notifiedExpired:false,
+        createdAt:new Date().toISOString() };
+    }
+  }
+};
+
+window.openImportModal = function(){
+  if(!document.getElementById('importModalCSS')){
+    const st = document.createElement('style');
+    st.id = 'importModalCSS';
+    st.textContent =
+      '.import-preview-wrap{max-height:340px;overflow:auto;border:1px solid var(--border);border-radius:12px;margin-top:10px}' +
+      '.import-preview-wrap table{min-width:0;font-size:12.5px}' +
+      '.import-preview-wrap thead th{font-size:10.5px;padding:8px 10px;background:var(--bg-3);position:sticky;top:0;z-index:1;white-space:nowrap}' +
+      '.import-preview-wrap tbody td{padding:6px 10px;font-size:12px;white-space:nowrap}' +
+      '.import-status-bar{padding:10px 14px;border-radius:10px;font-size:12.5px;font-weight:700;margin-top:12px;display:none}';
+    document.head.appendChild(st);
+  }
+  const body =
+    '<div style="padding:4px">' +
+      '<div class="field" style="margin-bottom:14px">' +
+        '<label>' + t('import_target') + '</label>' +
+        '<select id="importTarget">' +
+          '<option value="reps">🚗 ' + t('import_target_reps') + '</option>' +
+          '<option value="cars">🚙 ' + t('import_target_cars') + '</option>' +
+          '<option value="settlements">💰 ' + t('import_target_settlements') + '</option>' +
+          '<option value="supervisors">👔 المشرفون</option>' +
+          '<option value="offices">🏢 مكاتب التأجير</option>' +
+          '<option value="internet">🌐 الإنترنت</option>' +
+        '</select>' +
+      '</div>' +
+      '<div class="field" style="margin-bottom:14px">' +
+        '<label>' + t('import_pick_file') + '</label>' +
+        '<input type="file" id="importFile" accept=".xlsx,.xls,.csv" style="padding:10px">' +
+      '</div>' +
+      '<div style="padding:10px 14px;border-radius:10px;background:var(--primary-soft);border:1px solid var(--border);font-size:12px;line-height:1.6">' +
+        '<b>ℹ️ ' + t('import_strategy_add') + '</b>' +
+        '<div class="small muted" style="margin-top:6px">' + t('import_tpl_hint') + '</div>' +
+      '</div>' +
+      '<div id="importStatusBar" class="import-status-bar"></div>' +
+      '<div id="importPreviewArea"></div>' +
+      '<div style="margin-top:16px;padding-top:14px;border-top:1px dashed var(--border);text-align:center">' +
+        '<button class="btn btn-sm" id="importJsonBtn" type="button">' + t('import_json_restore') + '</button>' +
+        '<div class="small muted" style="margin-top:6px">' + t('import_json_hint') + '</div>' +
+      '</div>' +
+    '</div>';
+
+  openModal({
+    title: t('import_modal_title'),
+    body: body,
+    submitText: t('import_confirm'),
+    onMount: function(root){
+      const targetSel   = root.querySelector('#importTarget');
+      const fileInput   = root.querySelector('#importFile');
+      const previewArea = root.querySelector('#importPreviewArea');
+      const statusBar   = root.querySelector('#importStatusBar');
+      let parsedData = null;
+
+      function showStatus(msg, type){
+        statusBar.style.display = 'block';
+        statusBar.textContent = msg;
+        statusBar.style.background = type === 'err' ? 'var(--red-soft)' : type === 'ok' ? 'var(--green-soft)' : type === 'warn' ? 'var(--amber-soft)' : 'var(--primary-soft)';
+        statusBar.style.color = type === 'err' ? 'var(--red-ink)' : type === 'ok' ? 'var(--green-ink)' : type === 'warn' ? 'var(--amber-ink)' : 'var(--text)';
+      }
+
+      async function parseFile(){
+        const file = fileInput.files && fileInput.files[0];
+        if(!file){ toast(t('import_file_required'), 'warn'); return; }
+        previewArea.innerHTML = '';
+        parsedData = null;
+        showStatus(t('import_loading'));
+        try{
+          await ensureXLSXlib();
+          const buf = await file.arrayBuffer();
+          const wb = XLSX.read(buf, { type: 'array' });
+          const sheet = wb.Sheets[wb.SheetNames[0]];
+          const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+          if(rows.length < 2){ showStatus(t('import_no_data'), 'err'); return; }
+          const headers = rows[0].map(h => String(h || '').trim());
+          const dataRows = rows.slice(1).filter(r => r.some(c => String(c || '').trim()));
+          const schema = SCHEMAS[targetSel.value];
+          const matched = _matchHeaders(headers, schema);
+          if(matched.missing.length){
+            showStatus('❌ ' + t('import_headers_mismatch') + ': ' + matched.missing.join(', '), 'err');
+            return;
+          }
+          const existingKeys = schema.existingKeys();
+          const processed = dataRows.map(raw => {
+            const mapped = {};
+            Object.keys(matched.mapping).forEach(k => { mapped[k] = raw[matched.mapping[k]]; });
+            const record = schema.build(mapped);
+            let valid = !!record, reason = '';
+            if(record){
+              const key = schema.uniqueKey(record);
+              if(key && existingKeys.has(key)){ valid = false; reason = 'duplicate'; }
+              else if(key){ existingKeys.add(key); }
+            } else { reason = 'invalid'; }
+            return { record, valid, reason, raw };
+          });
+          parsedData = { headers, mapping: matched.mapping, rows: processed, schema };
+          const validCount = processed.filter(p => p.valid).length;
+          const invalidCount = processed.length - validCount;
+          let previewHTML = '<div class="small muted" style="margin-top:12px;font-weight:700">' + t('import_preview') + '</div>';
+          previewHTML += '<div class="import-preview-wrap"><table><thead><tr>';
+          headers.forEach(h => { previewHTML += '<th>' + esc(h || '—') + '</th>'; });
+          previewHTML += '</tr></thead><tbody>';
+          processed.slice(0, 10).forEach(row => {
+            previewHTML += '<tr style="' + (!row.valid ? 'opacity:.5' : '') + '">';
+            row.raw.forEach(c => { previewHTML += '<td>' + esc(String(c || '')) + '</td>'; });
+            previewHTML += '</tr>';
+          });
+          previewHTML += '</tbody></table></div>';
+          previewArea.innerHTML = previewHTML;
+          showStatus('✅ ' + validCount + ' صف صالح — سيتم استيراده' +
+                     (invalidCount ? '  ·  ⚠️ ' + invalidCount + ' صف سيتم تجاهله' : ''),
+                     validCount ? 'ok' : 'warn');
+        } catch(err){
+          console.error(err);
+          showStatus(t('import_failed') + ': ' + (err && err.message ? err.message : ''), 'err');
+        }
+      }
+
+      fileInput.addEventListener('change', parseFile);
+      targetSel.addEventListener('change', () => {
+        parsedData = null;
+        previewArea.innerHTML = '';
+        statusBar.style.display = 'none';
+        if(fileInput.files && fileInput.files[0]) parseFile();
+      });
+      root.querySelector('#importJsonBtn').addEventListener('click', () => {
+        if(!isOwner()){ toast(t('msg_no_perm'), 'warn'); return; }
+        try{ document.getElementById('mCancel').click(); }catch(e){}
+        if(typeof openImportDialog === 'function') openImportDialog();
+      });
+      root._importState = { getData: () => parsedData, getTargetKey: () => targetSel.value };
+    },
+    onSubmit: function(root){
+      const st = root._importState;
+      const parsed = st ? st.getData() : null;
+      if(!parsed || !parsed.rows || !parsed.rows.length){
+        toast(t('import_file_required'), 'warn');
+        return false;
+      }
+      const validRows = parsed.rows.filter(r => r.valid && r.record);
+      if(!validRows.length){ toast(t('import_no_data'), 'warn'); return false; }
+      const targetKey = st.getTargetKey();
+      validRows.forEach(r => {
+        if(targetKey === 'reps')            db.reps.push(r.record);
+        else if(targetKey === 'cars')       db.cars.push(r.record);
+        else if(targetKey === 'settlements'){ db.settlements = db.settlements || []; db.settlements.push(r.record); }
+        else if(targetKey === 'supervisors') db.supervisors.push(r.record);
+        else if(targetKey === 'offices'){ db.rentalOffices = db.rentalOffices || []; db.rentalOffices.push(r.record); }
+        else if(targetKey === 'internet'){ db.internet = db.internet || []; db.internet.push(r.record); }
+      });
+      cleanupRelations();
+      saveDB();
+      render();
+      const invalidCount = parsed.rows.length - validRows.length;
+      toast(t('import_success').replace('{n}', validRows.length).replace('{s}', invalidCount), 'ok');
+      addNotif('📥 استيراد', validRows.length + ' سجل — ' + targetKey, 'ok');
+      autoSyncAfterSave();
+      return true;
+    }
+  });
+};
+
+/* إعادة ربط toolAction وزر الاستيراد بالنسخة الموسعة */
+if(typeof window.toolAction === 'function'){
+  const _prevTA = window.toolAction;
+  window.toolAction = function(act){
+    if(act === 'import'){ window.openImportModal(); return; }
+    return _prevTA.call(this, act);
+  };
+}
+window.addEventListener('load', function(){
+  setTimeout(function(){
+    const ib = document.getElementById('importBtn');
+    if(ib) ib.onclick = function(){ window.openImportModal(); };
+  }, 500);
+});
+
+console.log('%c[PATCH v9-A] ✅ 6 import schemas ready', 'color:#10b981;font-weight:bold;font-size:13px;');
+})();
+</script>
+
+<!-- ============================================================
+     PATCH v9-B — Attachments (images as evidence)
+     ============================================================ -->
+<script>
+(function(){
+'use strict';
+console.log('[PATCH v9-B] Attachments loading...');
+
+try{
+  if(typeof I18N === 'object'){
+    Object.assign(I18N.ar, {
+      attach_title: '📎 المرفقات',
+      attach_add: '📎 إضافة صورة',
+      attach_note: 'ملاحظة (اختياري)',
+      attach_empty: 'لا توجد مرفقات بعد — أضف صورة كدليل',
+      attach_confirm_del: 'حذف هذا المرفق؟',
+      attach_compressing: '⏳ جاري ضغط الصورة…',
+      attach_uploaded: '✅ تمت إضافة المرفق',
+      attach_deleted: '🗑️ تم حذف المرفق',
+      attach_failed: '⛔ فشل: ',
+      attach_pick_file: 'اختر صورة (JPG/PNG — سيتم ضغطها تلقائياً)',
+      attach_count: 'مرفقات'
+    });
+    Object.assign(I18N.en, {
+      attach_title: '📎 Attachments',
+      attach_add: '📎 Add Image',
+      attach_note: 'Note (optional)',
+      attach_empty: 'No attachments yet — add an image as evidence',
+      attach_confirm_del: 'Delete this attachment?',
+      attach_compressing: '⏳ Compressing…',
+      attach_uploaded: '✅ Attachment added',
+      attach_deleted: '🗑️ Attachment deleted',
+      attach_failed: '⛔ Failed: ',
+      attach_pick_file: 'Choose image (JPG/PNG — auto-compressed)',
+      attach_count: 'attachments'
+    });
+  }
+}catch(e){}
+
+function ensureAttachments(){ if(typeof db === 'object' && db){ db.attachments = db.attachments || []; } }
+ensureAttachments();
+
+function compressImage(file, maxW, maxH, quality){
+  return new Promise((resolve, reject) => {
+    const rd = new FileReader();
+    rd.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if(width > maxW){ height = height * (maxW / width); width = maxW; }
+        if(height > maxH){ width = width * (maxH / height); height = maxH; }
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.round(width);
+        canvas.height = Math.round(height);
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = reject;
+      img.src = rd.result;
+    };
+    rd.onerror = reject;
+    rd.readAsDataURL(file);
+  });
+}
+
+function showLightbox(dataUrl){
+  const el = document.createElement('div');
+  el.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:99999;display:grid;place-items:center;cursor:zoom-out;padding:20px';
+  el.innerHTML = '<img src="' + dataUrl + '" style="max-width:100%;max-height:100%;object-fit:contain;box-shadow:0 25px 80px rgba(0,0,0,.6);border-radius:8px">';
+  el.onclick = () => el.remove();
+  document.body.appendChild(el);
+}
+
+function resolveTargetLabel(type, id){
+  try{
+    switch(type){
+      case 'rep':        return getRep(id)?.name || '—';
+      case 'car':        { const c = getCar(id); return c ? c.brand + ' ' + c.model + ' — ' + c.plate : '—'; }
+      case 'settlement': return (db.settlements||[]).find(x => x.id === id)?.responsible || '—';
+      case 'supervisor': return getSup(id)?.name || '—';
+      case 'office':     return getOffice(id)?.name || '—';
+      case 'internet':   { const x = (db.internet||[]).find(x => x.id === id); return x ? repName(x.repId) : '—'; }
+      case 'maintenance':{ const m = db.maintenance.find(x => x.id === id); return m ? carName(m.carId) : '—'; }
+      case 'usage':      { const u = db.usage.find(x => x.id === id); return u ? carName(u.carId) : '—'; }
+      case 'oil':        { const o = db.oil.find(x => x.id === id); return o ? carName(o.carId) : '—'; }
+      case 'report':     return repName(db.reports.find(x => x.id === id)?.repId) || '—';
+    }
+  }catch(e){}
+  return '—';
+}
+
+function attachmentsModal(targetType, targetId){
+  ensureAttachments();
+  const label = resolveTargetLabel(targetType, targetId);
+  const items = db.attachments.filter(a => a.targetType === targetType && a.targetId === targetId);
+
+  const thumbsHTML = items.length ? items.map(item => {
+    const kb = Math.round((item.image.length * 0.75) / 1024);
+    return `
+      <div class="attach-thumb" data-attach-id="${item.id}"
+           style="position:relative;aspect-ratio:1;border-radius:10px;overflow:hidden;cursor:pointer;border:1px solid var(--border);background:#000">
+        <img src="${item.image}" style="width:100%;height:100%;object-fit:cover;display:block">
+        <button type="button" data-del-attach="${item.id}"
+                style="position:absolute;top:6px;inset-inline-end:6px;background:rgba(239,68,68,.9);color:#fff;border:0;border-radius:7px;padding:5px 8px;cursor:pointer;font-size:13px;box-shadow:0 2px 8px rgba(0,0,0,.4)">
+          🗑️
+        </button>
+        <div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,.85));padding:20px 8px 6px;color:#fff;font-size:10.5px;line-height:1.4">
+          ${item.note ? '<div style="font-weight:700;margin-bottom:2px">' + esc(item.note) + '</div>' : ''}
+          <div style="opacity:.75">📅 ${formatDateTime(item.createdAt)} · ${kb}KB</div>
+        </div>
+      </div>`;
+  }).join('') : '<div class="empty" style="grid-column:1/-1;padding:32px 12px">📎 ' + t('attach_empty') + '</div>';
+
+  const body = `
+    <div style="padding:4px">
+      <div class="small muted" style="margin-bottom:12px">
+        📎 ${t('attach_title')}: <b>${esc(label)}</b>
+        <span class="chip violet" style="margin-inline-start:6px">${items.length} ${t('attach_count')}</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-bottom:18px">
+        ${thumbsHTML}
+      </div>
+      <div style="padding:16px;border:1.5px dashed var(--border);border-radius:14px;background:var(--bg-2)">
+        <div style="font-weight:800;font-size:14px;margin-bottom:12px">➕ ${t('attach_add')}</div>
+        <div class="form-grid">
+          <div class="field" style="grid-column:1/-1">
+            <label>${t('attach_pick_file')}</label>
+            <input type="file" id="attachFile" accept="image/*">
+          </div>
+          <div class="field" style="grid-column:1/-1">
+            <label>${t('attach_note')}</label>
+            <input id="attachNote" placeholder="مثال: صورة الإيصال / لقطة من التطبيق">
+          </div>
+        </div>
+      </div>
+    </div>`;
+
+  openModal({
+    title: '📎 ' + t('attach_title') + ' — ' + esc(label),
+    body: body,
+    submitText: '📎 ' + t('attach_add'),
+    onMount: function(root){
+      root.querySelectorAll('[data-del-attach]').forEach(btn => {
+        btn.onclick = (e) => {
+          e.stopPropagation();
+          if(!confirm(t('attach_confirm_del'))) return;
+          const aid = btn.dataset.delAttach;
+          db.attachments = db.attachments.filter(a => a.id !== aid);
+          saveDB();
+          try{ document.getElementById('mCancel').click(); }catch(e){}
+          setTimeout(() => attachmentsModal(targetType, targetId), 60);
+          toast(t('attach_deleted'), 'ok');
+        };
+      });
+      root.querySelectorAll('.attach-thumb').forEach(thumb => {
+        thumb.onclick = (e) => {
+          if(e.target.closest('[data-del-attach]')) return;
+          const item = db.attachments.find(a => a.id === thumb.dataset.attachId);
+          if(item) showLightbox(item.image);
+        };
+      });
+    },
+    onSubmit: function(root){
+      const fileInput = root.querySelector('#attachFile');
+      const noteInput = root.querySelector('#attachNote');
+      const file = fileInput.files && fileInput.files[0];
+      if(!file){ toast(t('attach_pick_file'), 'warn'); return false; }
+      const saveBtn = document.getElementById('mSave');
+      if(saveBtn){ saveBtn.disabled = true; saveBtn.textContent = t('attach_compressing'); }
+      compressImage(file, 1400, 1400, 0.78).then(dataUrl => {
+        db.attachments.push({
+          id: uid(),
+          targetType: targetType,
+          targetId: targetId,
+          image: dataUrl,
+          note: (noteInput.value || '').trim(),
+          createdAt: new Date().toISOString()
+        });
+        saveDB();
+        try{ render(); }catch(e){}
+        try{ document.getElementById('mCancel').click(); }catch(e){}
+        setTimeout(() => attachmentsModal(targetType, targetId), 80);
+        toast(t('attach_uploaded'), 'ok');
+      }).catch(err => {
+        console.error(err);
+        toast(t('attach_failed') + (err.message || ''), 'err');
+        if(saveBtn){ saveBtn.disabled = false; saveBtn.textContent = '📎 ' + t('attach_add'); }
+      });
+      return false;
+    }
+  });
+}
+
+function injectAttachButtons(){
+  ensureAttachments();
+  const map = {
+    'edit-rep':    'rep',
+    'edit-car':    'car',
+    'edit-set':    'settlement',
+    'edit-sup':    'supervisor',
+    'edit-office': 'office',
+    'edit-net':    'internet',
+    'edit-maint':  'maintenance',
+    'edit-usage':  'usage',
+    'edit-oil':    'oil',
+    'edit-report': 'report'
+  };
+  Object.entries(map).forEach(([attr, type]) => {
+    document.querySelectorAll('[data-' + attr + ']').forEach(btn => {
+      if(btn.dataset.attachInjected) return;
+      btn.dataset.attachInjected = '1';
+      const id = btn.getAttribute('data-' + attr);
+      if(!id) return;
+      const count = db.attachments.filter(a => a.targetType === type && a.targetId === id).length;
+      const attach = document.createElement('button');
+      attach.className = 'btn btn-ghost btn-sm';
+      attach.title = t('attach_title') + (count ? ' (' + count + ')' : '');
+      attach.innerHTML = '📎' + (count ? ' <span style="font-size:10px;color:var(--primary);font-weight:800">' + count + '</span>' : '');
+      attach.onclick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        attachmentsModal(type, id);
+      };
+      btn.parentNode.insertBefore(attach, btn);
+    });
+  });
+}
+
+function cleanupOrphanAttachments(){
+  ensureAttachments();
+  if(!db.attachments.length) return;
+  const before = db.attachments.length;
+  db.attachments = db.attachments.filter(a => {
+    switch(a.targetType){
+      case 'rep':         return db.reps.some(r => r.id === a.targetId);
+      case 'car':         return db.cars.some(c => c.id === a.targetId);
+      case 'settlement':  return (db.settlements||[]).some(x => x.id === a.targetId);
+      case 'supervisor':  return db.supervisors.some(s => s.id === a.targetId);
+      case 'office':      return (db.rentalOffices||[]).some(o => o.id === a.targetId);
+      case 'internet':    return (db.internet||[]).some(x => x.id === a.targetId);
+      case 'maintenance': return db.maintenance.some(x => x.id === a.targetId);
+      case 'usage':       return db.usage.some(x => x.id === a.targetId);
+      case 'oil':         return db.oil.some(x => x.id === a.targetId);
+      case 'report':      return db.reports.some(x => x.id === a.targetId);
+    }
+    return false;
+  });
+  if(db.attachments.length !== before) saveDB();
+}
+
+if(typeof window.render === 'function'){
+  const _origRender = window.render;
+  window.render = function(){
+    ensureAttachments();
+    const r = _origRender.apply(this, arguments);
+    setTimeout(injectAttachButtons, 60);
+    setTimeout(cleanupOrphanAttachments, 300);
+    return r;
+  };
+}
+setTimeout(injectAttachButtons, 800);
+setTimeout(cleanupOrphanAttachments, 1000);
+
+window.attachmentsModal = attachmentsModal;
+console.log('%c[PATCH v9-B] ✅ Attachments ready', 'color:#10b981;font-weight:bold;font-size:13px;');
+})();
+</script>
 </body>
 </html>
