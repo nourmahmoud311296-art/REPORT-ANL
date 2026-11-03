@@ -491,6 +491,11 @@ img,svg,table{max-width:100%}
   @page{size:A4;margin:14mm}
 }
 </style>
+<!-- Font Awesome للأيقونات الاحترافية -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<!-- خطوط عربية إضافية -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=Almarai:wght@400;700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
 
@@ -9590,6 +9595,1131 @@ if(typeof window.unlockCloudCfg !== 'function'){
   };
 }
 console.log('%c[PATCH v14] ✅ unlockCloudCfg fallback ready', 'color:#10b981;font-weight:bold;');
+})();
+</script>
+<!-- ============================================================
+     PATCH v14 — UI Enhancements
+     Print orientation dropdown + Pull/Push buttons + Icon refresh
+     ============================================================ -->
+<script>
+(function(){
+'use strict';
+if(window._v14Loaded){ return; }
+window._v14Loaded = true;
+
+/* ═══════════════════════════════════════════════════════════
+   1. Print Orientation — Dropdown popup
+   ═══════════════════════════════════════════════════════════ */
+function setupPrintOrient(){
+  var btn = document.getElementById('printOrientBtn');
+  if(!btn) return;
+  
+  if(btn.dataset.v14 === '1'){
+    var o = (db && db.settings && db.settings.printOrientation) || 'portrait';
+    var icons = { portrait:'📄', landscape:'📃', auto:'🔄' };
+    btn.textContent = icons[o];
+    return;
+  }
+  btn.dataset.v14 = '1';
+  
+  var wrap = document.createElement('div');
+  wrap.style.cssText = 'position:relative;display:inline-block';
+  btn.parentNode.insertBefore(wrap, btn);
+  wrap.appendChild(btn);
+  
+  var popup = document.createElement('div');
+  popup.id = 'v14PrintPopup';
+  popup.style.cssText = 'position:absolute;top:calc(100% + 6px);inset-inline-end:0;background:#fff;border:1px solid var(--border);border-radius:14px;box-shadow:0 20px 40px -20px rgba(15,23,42,.35);padding:8px;z-index:9999;display:none;min-width:220px';
+  popup.innerHTML =
+    '<div style="padding:8px 12px;font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">🖨️ اتجاه الطباعة</div>' +
+    '<button type="button" data-orient="portrait" class="v14-opt">📄 <span>رأسي</span><small>Portrait</small></button>' +
+    '<button type="button" data-orient="landscape" class="v14-opt">📃 <span>أفقي</span><small>Landscape</small></button>' +
+    '<button type="button" data-orient="auto" class="v14-opt">🔄 <span>تلقائي</span><small>Auto</small></button>';
+  wrap.appendChild(popup);
+  
+  var style = document.createElement('style');
+  style.textContent = 
+    '#v14PrintPopup .v14-opt{width:100%;text-align:start;padding:10px 14px;border-radius:10px;display:flex;align-items:center;gap:10px;font-size:13.5px;font-weight:600;background:transparent;color:var(--text-2);border:0;cursor:pointer;transition:background .15s}' +
+    '#v14PrintPopup .v14-opt:hover{background:var(--bg-3)}' +
+    '#v14PrintPopup .v14-opt.active{background:var(--primary-soft);color:var(--primary-dark);font-weight:800}' +
+    '#v14PrintPopup .v14-opt.active::after{content:"✓";margin-inline-start:auto;color:var(--primary);font-weight:800}' +
+    '#v14PrintPopup .v14-opt small{margin-inline-start:auto;font-size:10px;color:var(--muted);font-weight:500}' +
+    '#v14PrintPopup .v14-opt.active small{display:none}';
+  document.head.appendChild(style);
+  
+  function refresh(){
+    var o = (db && db.settings && db.settings.printOrientation) || 'portrait';
+    var icons = { portrait:'📄', landscape:'📃', auto:'🔄' };
+    btn.textContent = icons[o];
+    btn.title = 'اتجاه الطباعة — اضغط للاختيار';
+    popup.querySelectorAll('[data-orient]').forEach(function(b){
+      b.classList.toggle('active', b.dataset.orient === o);
+    });
+  }
+  refresh();
+  
+  btn.onclick = function(e){
+    e.stopPropagation();
+    if(popup.style.display === 'block'){ popup.style.display = 'none'; }
+    else { refresh(); popup.style.display = 'block'; }
+  };
+  
+  popup.querySelectorAll('[data-orient]').forEach(function(b){
+    b.onclick = function(e){
+      e.stopPropagation();
+      if(db && db.settings){
+        db.settings.printOrientation = b.dataset.orient;
+        if(typeof saveDB === 'function') saveDB();
+        if(typeof applyPrintOrientation === 'function') applyPrintOrientation();
+        var labels = { portrait:'📄 رأسي', landscape:'📃 أفقي', auto:'🔄 تلقائي' };
+        if(typeof toast === 'function') toast('اتجاه الطباعة: ' + labels[b.dataset.orient], 'ok');
+        refresh();
+        popup.style.display = 'none';
+      }
+    };
+  });
+  
+  document.addEventListener('click', function(e){
+    if(!wrap.contains(e.target)) popup.style.display = 'none';
+  });
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'Escape') popup.style.display = 'none';
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════
+   2. Sync buttons — restyle + add Pull + Push
+   ═══════════════════════════════════════════════════════════ */
+function setupSyncButtons(){
+  var topbar = document.querySelector('.topbar-actions');
+  var syncBtn = document.getElementById('syncBtn');
+  if(!topbar || !syncBtn) return;
+  
+  syncBtn.innerHTML = '🔃';
+  syncBtn.title = 'مزامنة كاملة (رفع + سحب)';
+  syncBtn.style.cssText = 'background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border-color:transparent;box-shadow:0 6px 16px -6px rgba(99,102,241,.6)';
+  if(!syncBtn.dataset.v14){
+    syncBtn.dataset.v14 = '1';
+    syncBtn.onclick = function(){
+      if(typeof isCloudReady !== 'function' || !isCloudReady()){
+        if(typeof settingsModal === 'function') settingsModal();
+        return;
+      }
+      syncBtn.style.opacity = '.6';
+      syncBtn.style.pointerEvents = 'none';
+      syncBtn.innerHTML = '⏳';
+      Promise.resolve().then(function(){ return fullSync(); }).then(function(ok){
+        if(ok){
+          if(typeof render === 'function') render();
+          if(typeof toast === 'function') toast('✅ تمت المزامنة الكاملة', 'ok');
+        }
+      }).catch(function(){}).finally(function(){
+        syncBtn.style.opacity = '1';
+        syncBtn.style.pointerEvents = '';
+        syncBtn.innerHTML = '🔃';
+      });
+    };
+  }
+  
+  if(!document.getElementById('pullBtn')){
+    var pullBtn = document.createElement('button');
+    pullBtn.className = 'icon-btn';
+    pullBtn.id = 'pullBtn';
+    pullBtn.type = 'button';
+    pullBtn.title = 'جلب من السحابة (Pull)';
+    pullBtn.innerHTML = '⬇️';
+    pullBtn.style.cssText = 'background:linear-gradient(135deg,#0891b2,#06b6d4);color:#fff;border-color:transparent;box-shadow:0 6px 16px -6px rgba(6,182,212,.6)';
+    pullBtn.onclick = function(){
+      if(typeof isCloudReady !== 'function' || !isCloudReady()){
+        if(typeof settingsModal === 'function') settingsModal();
+        return;
+      }
+      pullBtn.style.opacity = '.6';
+      pullBtn.style.pointerEvents = 'none';
+      pullBtn.innerHTML = '⏳';
+      Promise.resolve().then(function(){ return pullFromCloud(); }).then(function(ok){
+        if(ok){
+          if(typeof render === 'function') render();
+          if(typeof toast === 'function') toast('✅ تم الجلب من السحابة', 'ok');
+        }
+      }).catch(function(){}).finally(function(){
+        pullBtn.style.opacity = '1';
+        pullBtn.style.pointerEvents = '';
+        pullBtn.innerHTML = '⬇️';
+      });
+    };
+    syncBtn.parentNode.insertBefore(pullBtn, syncBtn);
+  }
+  
+  if(!document.getElementById('pushBtn')){
+    var pushBtn = document.createElement('button');
+    pushBtn.className = 'icon-btn';
+    pushBtn.id = 'pushBtn';
+    pushBtn.type = 'button';
+    pushBtn.title = 'رفع للسحابة (Push)';
+    pushBtn.innerHTML = '⬆️';
+    pushBtn.style.cssText = 'background:linear-gradient(135deg,#059669,#10b981);color:#fff;border-color:transparent;box-shadow:0 6px 16px -6px rgba(16,185,129,.6)';
+    pushBtn.onclick = function(){
+      if(typeof isCloudReady !== 'function' || !isCloudReady()){
+        if(typeof settingsModal === 'function') settingsModal();
+        return;
+      }
+      pushBtn.style.opacity = '.6';
+      pushBtn.style.pointerEvents = 'none';
+      pushBtn.innerHTML = '⏳';
+      Promise.resolve().then(function(){ return pushToCloud(); }).then(function(ok){
+        if(ok && typeof toast === 'function') toast('✅ تم الرفع للسحابة', 'ok');
+      }).catch(function(){}).finally(function(){
+        pushBtn.style.opacity = '1';
+        pushBtn.style.pointerEvents = '';
+        pushBtn.innerHTML = '⬆️';
+      });
+    };
+    syncBtn.parentNode.insertBefore(pushBtn, syncBtn.nextSibling);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   3. Icon refresh
+   ═══════════════════════════════════════════════════════════ */
+function refreshIcons(){
+  var changes = {
+    'collapseAllBtn': { icon:'⊟', title:'تصغير / تكبير الأقسام' },
+    'fsBtn': { icon:'⛶', title:'ملء الشاشة' }
+  };
+  Object.keys(changes).forEach(function(id){
+    var btn = document.getElementById(id);
+    if(!btn) return;
+    var badge = btn.querySelector('.notif-badge');
+    btn.innerHTML = changes[id].icon + (badge ? badge.outerHTML : '');
+    if(changes[id].title) btn.title = changes[id].title;
+  });
+  var nb = document.querySelector('.notif-badge');
+  if(nb && !document.getElementById('notifBadge')) nb.id = 'notifBadge';
+}
+
+/* ═══════════════════════════════════════════════════════════
+   4. Apply
+   ═══════════════════════════════════════════════════════════ */
+function applyV14(){
+  try{ refreshIcons(); }catch(e){ console.warn('[v14 icons]', e); }
+  try{ setupSyncButtons(); }catch(e){ console.warn('[v14 sync]', e); }
+  try{ setupPrintOrient(); }catch(e){ console.warn('[v14 print]', e); }
+}
+
+if(document.readyState === 'loading'){
+  document.addEventListener('DOMContentLoaded', applyV14);
+} else {
+  applyV14();
+}
+setTimeout(applyV14, 500);
+setTimeout(applyV14, 1500);
+setTimeout(applyV14, 3000);
+
+var _origRenderV14 = window.render;
+window.render = function(){
+  var r = _origRenderV14.apply(this, arguments);
+  setTimeout(applyV14, 100);
+  return r;
+};
+
+console.log('%c[v14] ✅ Print orientation + Sync (Pull/Push) + Icons ready',
+            'color:#10b981;font-weight:bold;font-size:13px;');
+})();
+</script>
+<!-- v14 Hotfix — إصلاح تلقائي لكلمة المرور -->
+<script>
+(function(){
+  'use strict';
+  if(window._v14SelfFixLoaded) return;
+  window._v14SelfFixLoaded = true;
+  console.log('%c[v14] Hotfix loaded — will fix password automatically', 'color:#6366f1;font-weight:bold');
+
+  /* ═══ 1) حماية normalizeDB من إفساد sha256$ ═══ */
+  function patchNormalize(){
+    if(typeof window.normalizeDB !== 'function'){
+      setTimeout(patchNormalize, 50);
+      return;
+    }
+    if(window._normPatched) return;
+    window._normPatched = true;
+    
+    var _orig = window.normalizeDB;
+    window.normalizeDB = function(d){
+      var ownerPwd = d && d.auth && d.auth.owner && d.auth.owner.password;
+      var supPwds = (d && d.supervisors || []).map(function(s){ return s && s.password; });
+      var result = _orig.call(this, d);
+      if(ownerPwd && String(ownerPwd).startsWith('sha256$')){
+        if(result.auth && result.auth.owner) result.auth.owner.password = ownerPwd;
+      }
+      if(Array.isArray(supPwds)){
+        (result.supervisors || []).forEach(function(s, i){
+          if(supPwds[i] && String(supPwds[i]).startsWith('sha256$')) s.password = supPwds[i];
+        });
+      }
+      return result;
+    };
+    console.log('%c[v14] ✅ normalizeDB protected — passwords will not be corrupted again', 'color:#10b981');
+  }
+  patchNormalize();
+
+  /* ═══ 2) إعادة تعيين كلمة مرور المالك تلقائياً ═══ */
+  window.addEventListener('load', function(){
+    setTimeout(async function(){
+      try{
+        if(typeof db === 'undefined' || !db) return;
+        if(!db.auth) db.auth = {};
+        if(!db.auth.owner) db.auth.owner = {};
+        if(!db.meta) db.meta = {};
+        
+        // إذا سبق الإصلاح، لا تعده
+        if(db.meta._v14FixDone === true){
+          console.log('%c[v14] Password already fixed — login with ChangeMe@2026', 'color:#0891b2');
+          return;
+        }
+        
+        // حساب SHA-256 لكلمة المرور الافتراضية
+        var sha256Hex = async function(text){
+          var buf = new TextEncoder().encode(text);
+          var hash = await crypto.subtle.digest('SHA-256', buf);
+          return Array.from(new Uint8Array(hash)).map(function(b){
+            return b.toString(16).padStart(2, '0');
+          }).join('');
+        };
+        
+        db.auth.owner.email = 'admin@drivers.local';
+        db.auth.owner.phone = '0000000000';
+        db.auth.owner.password = 'sha256$' + await sha256Hex('ChangeMe@2026');
+        db.meta._v14FixDone = true;
+        db.meta.usesDefaultPassword = true;
+        db.meta.version = Math.max(db.meta.version || 0, 15);
+        
+        if(typeof saveDB === 'function') saveDB();
+        
+        console.log('%c════════════════════════════════════════', 'color:#10b981;font-weight:bold');
+        console.log('%c✅ كلمة المرور أُعيد تعيينها بنجاح', 'color:#10b981;font-weight:bold;font-size:14px');
+        console.log('%c════════════════════════════════════════', 'color:#10b981;font-weight:bold');
+        console.log('%c📧 admin@drivers.local', 'color:#0891b2;font-weight:bold');
+        console.log('%c🔑 ChangeMe@2026', 'color:#0891b2;font-weight:bold');
+        console.log('%c════════════════════════════════════════', 'color:#10b981;font-weight:bold');
+        
+        // إذا كنا في صفحة الدخول، اعرض النص في الترويسة
+        if(!document.getElementById('v14LoginHint')){
+          var hint = document.createElement('div');
+          hint.id = 'v14LoginHint';
+          hint.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#10b981,#059669);color:#fff;padding:14px 24px;border-radius:14px;box-shadow:0 20px 40px -12px rgba(16,185,129,.7);z-index:99999;font-weight:700;text-align:center;font-size:14px;max-width:90%';
+          hint.innerHTML = '✅ تم إصلاح كلمة المرور<br><span style="font-size:12px;opacity:.9">📧 admin@drivers.local · 🔑 ChangeMe@2026</span>';
+          document.body.appendChild(hint);
+          setTimeout(function(){
+            hint.style.transition = 'opacity .3s, transform .3s';
+            hint.style.opacity = '0';
+            hint.style.transform = 'translateX(-50%) translateY(-20px)';
+            setTimeout(function(){ hint.remove(); }, 400);
+          }, 6000);
+        }
+      }catch(e){ console.warn('[v14]', e); }
+    }, 1500);
+  });
+
+  /* ═══ 3) عرض بيانات الدخول في شاشة الدخول ═══ */
+  window.addEventListener('load', function(){
+    setTimeout(function(){
+      var hint = document.getElementById('lgHint');
+      if(hint && !hint.dataset.v14){
+        hint.dataset.v14 = '1';
+        hint.innerHTML = '<b>📧 بيانات الدخول</b>'
+          + '<div style="margin-top:8px;padding:10px;background:rgba(16,185,129,.08);border-radius:8px;border:1px solid rgba(16,185,129,.2);text-align:start;font-size:12px;line-height:1.8">'
+          + '<div><b>البريد:</b> <code style="direction:ltr;display:inline-block">admin@drivers.local</code></div>'
+          + '<div><b>كلمة المرور:</b> <code style="direction:ltr;display:inline-block">ChangeMe@2026</code></div>'
+          + '</div>';
+      }
+    }, 2000);
+  });
+})();
+</script>
+<script>
+/* ============================================================
+   v15 PATCH — كل الميزات المطلوبة في مكان واحد
+   ============================================================ */
+(function(){
+'use strict';
+if(window._v15Loaded) return; window._v15Loaded = true;
+
+/* ══════════ A. الوضع الليلي ══════════ */
+const darkCSS = `
+[data-theme="dark"]{--card:#1a2332;--bg:#0d1520;--bg-2:#1a2332;--bg-3:#253345;--text:#e8edf5;--text-2:#b8c5d6;--muted:#8896a8;--muted-2:#64748b;--border:#2a3a52;--border-2:#1e293b;--primary-soft:rgba(99,102,241,.16);--shadow-sm:0 1px 3px rgba(0,0,0,.3);--shadow:0 6px 20px -6px rgba(0,0,0,.4);}
+[data-theme="dark"] body{background-image:radial-gradient(900px 500px at 100% 0%,rgba(99,102,241,.1),transparent 60%),radial-gradient(900px 500px at 0% 100%,rgba(6,182,212,.08),transparent 60%);}
+[data-theme="dark"] .topbar{background:rgba(26,35,50,.85)}
+[data-theme="dark"] .card-head,[data-theme="dark"] .modal-head,[data-theme="dark"] .notif-head{background:linear-gradient(180deg,#1a2332,#1e2b3f)}
+[data-theme="dark"] thead th,[data-theme="dark"] .tbl-wrap thead th{background:linear-gradient(180deg,#1e2b3f,#1a2332)!important;color:#94a3b8}
+[data-theme="dark"] .toolbar{background:rgba(26,35,50,.9)}
+[data-theme="dark"] input,[data-theme="dark"] select,[data-theme="dark"] textarea{background:var(--bg-3);color:var(--text);border-color:var(--border)}
+[data-theme="dark"] .login-card{background:rgba(26,35,50,.98)}
+[data-theme="dark"] .modal-foot{background:#152030}
+[data-theme="dark"] .item-card,[data-theme="dark"] .goal-card,[data-theme="dark"] .grade-box{background:var(--card)}
+[data-theme="dark"] .sync-panel,[data-theme="dark"] .insight-tile{background:linear-gradient(180deg,#1a2332,#152030)}
+[data-theme="dark"] .notif-item:hover{background:var(--bg-3)}
+`;
+const _st = document.createElement('style'); _st.textContent = darkCSS; document.head.appendChild(_st);
+try{
+  const saved = localStorage.getItem('repPerfTheme') || 'light';
+  document.documentElement.setAttribute('data-theme', saved);
+}catch(e){}
+
+/* ══════════ B. الخطوط والأيقونات ══════════ */
+function applyFont(){
+  if(!window.db || !db.settings) return;
+  const f = db.settings.fontFamily || 'Tajawal';
+  document.body.style.fontFamily = `'${f}','Inter','Segoe UI',sans-serif`;
+}
+
+function upgradeIcons(){
+  const map = {
+    menuBtn:'fa-solid fa-bars',
+    fsBtn:'fa-solid fa-expand',
+    printBtn:'fa-solid fa-print',
+    syncBtn:'fa-solid fa-arrows-rotate',
+    shareBtn:'fa-solid fa-link',
+    importBtn:'fa-solid fa-file-import',
+    exportBtn:'fa-solid fa-file-export',
+    resetBtn:'fa-solid fa-arrow-rotate-left',
+    waBtn:'fa-brands fa-whatsapp',
+    notifBtn:'fa-solid fa-bell',
+    langBtn:'fa-solid fa-globe',
+    topSet:'fa-solid fa-gear',
+    collapseAllBtn:'fa-solid fa-compress'
+  };
+  Object.keys(map).forEach(id=>{
+    const el = document.getElementById(id);
+    if(!el || el.dataset.iconUp === '1') return;
+    el.dataset.iconUp = '1';
+    const badge = el.querySelector('.notif-badge');
+    el.innerHTML = `<i class="${map[id]}"></i>` + (badge ? badge.outerHTML : '');
+  });
+}
+
+function upgradeNavIcons(){
+  if(typeof NAV === 'undefined') return;
+  const navMap = {
+    dashboard:'fa-house', daily:'fa-calendar-days', reps:'fa-car',
+    supervisors:'fa-user-tie', cars:'fa-car-side', analytics:'fa-chart-line',
+    goals:'fa-bullseye', internet:'fa-wifi', settlement:'fa-money-bill-wave',
+    records:'fa-clipboard-list', attendance:'fa-clipboard-user'
+  };
+  NAV.forEach(n=>{ if(navMap[n.id]) n.icon = `<i class="fa-solid ${navMap[n.id]}"></i>`; });
+}
+
+/* ══════════ C. شريط الأدوات العلوي ══════════ */
+function updateThemeBtn(){
+  const b = document.getElementById('themeToggle');
+  if(!b) return;
+  const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+  b.innerHTML = dark ? '<i class="fa-solid fa-sun"></i>' : '<i class="fa-solid fa-moon"></i>';
+  b.style.background = dark ? 'linear-gradient(135deg,#f59e0b,#f97316)' : 'linear-gradient(135deg,#1e293b,#334155)';
+  b.style.color = '#fff';
+}
+
+function injectTopbarUI(){
+  const topbar = document.querySelector('.topbar-actions');
+  if(!topbar) return;
+
+  // زر الوضع الليلي
+  if(!document.getElementById('themeToggle')){
+    const b = document.createElement('button');
+    b.className='icon-btn'; b.id='themeToggle'; b.title='الوضع الليلي / النهاري';
+    b.onclick = ()=>{
+      const cur = document.documentElement.getAttribute('data-theme')||'light';
+      const next = cur==='dark'?'light':'dark';
+      document.documentElement.setAttribute('data-theme', next);
+      try{ localStorage.setItem('repPerfTheme', next); }catch(e){}
+      updateThemeBtn();
+      if(typeof toast==='function') toast(next==='dark'?'🌙 الوضع الليلي':'☀️ الوضع النهاري','ok');
+    };
+    const fs = document.getElementById('fsBtn');
+    if(fs) fs.parentNode.insertBefore(b, fs); else topbar.appendChild(b);
+    updateThemeBtn();
+  }
+
+  const syncBtn = document.getElementById('syncBtn');
+
+  // زر السحب (Pull)
+  if(syncBtn && !document.getElementById('pullBtn')){
+    const p = document.createElement('button');
+    p.className='icon-btn'; p.id='pullBtn'; p.title='جلب من السحابة (Pull)';
+    p.innerHTML = '<i class="fa-solid fa-cloud-arrow-down"></i>';
+    p.style.cssText='background:linear-gradient(135deg,#0891b2,#06b6d4);color:#fff;border-color:transparent';
+    p.onclick = ()=>{
+      if(typeof isCloudReady!=='function'||!isCloudReady()){ if(typeof settingsModal==='function') settingsModal(); return; }
+      p.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i>';
+      Promise.resolve().then(()=>pullFromCloud()).then(ok=>{
+        p.innerHTML='<i class="fa-solid fa-cloud-arrow-down"></i>';
+        if(ok&&typeof render==='function') render();
+      }).catch(()=>{ p.innerHTML='<i class="fa-solid fa-cloud-arrow-down"></i>'; });
+    };
+    syncBtn.parentNode.insertBefore(p, syncBtn);
+  }
+
+  // زر الرفع (Push)
+  if(syncBtn && !document.getElementById('pushBtn')){
+    const p = document.createElement('button');
+    p.className='icon-btn'; p.id='pushBtn'; p.title='رفع للسحابة (Push)';
+    p.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i>';
+    p.style.cssText='background:linear-gradient(135deg,#059669,#10b981);color:#fff;border-color:transparent';
+    p.onclick = ()=>{
+      if(typeof isCloudReady!=='function'||!isCloudReady()){ if(typeof settingsModal==='function') settingsModal(); return; }
+      p.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i>';
+      Promise.resolve().then(()=>pushToCloud()).then(ok=>{
+        p.innerHTML='<i class="fa-solid fa-cloud-arrow-up"></i>';
+        if(ok&&typeof toast==='function') toast('✅ تم الرفع','ok');
+      }).catch(()=>{ p.innerHTML='<i class="fa-solid fa-cloud-arrow-up"></i>'; });
+    };
+    syncBtn.parentNode.insertBefore(p, syncBtn.nextSibling);
+  }
+}
+
+/* ══════════ D. تصغير لوحة الأقسام ══════════ */
+function injectSidebarToggle(){
+  const topbar = document.querySelector('.topbar');
+  if(!topbar || document.getElementById('sidebarCollapse')) return;
+  const b = document.createElement('button');
+  b.className='icon-btn'; b.id='sidebarCollapse'; b.title='تصغير / تكبير الأقسام';
+  b.innerHTML='<i class="fa-solid fa-bars-staggered"></i>';
+  b.onclick = ()=>{
+    const sb = document.getElementById('sidebar');
+    if(!sb) return;
+    const c = sb.dataset.collapsed === '1';
+    if(c){
+      sb.dataset.collapsed='0'; sb.style.cssText='';
+      sb.querySelectorAll('.brand-title,.brand-sub,.nav-item span:not(.ic),.side-btn span:not(.si),.ub-info,.nav-item .badge').forEach(e=>e.style.display='');
+      sb.querySelectorAll('.brand,.nav-item,.side-btn').forEach(e=>e.style.justifyContent='');
+      b.innerHTML='<i class="fa-solid fa-bars-staggered"></i>';
+    } else {
+      sb.dataset.collapsed='1';
+      sb.style.width='72px'; sb.style.flex='0 0 72px';
+      sb.querySelectorAll('.brand-title,.brand-sub,.nav-item span:not(.ic),.side-btn span:not(.si),.ub-info,.nav-item .badge').forEach(e=>e.style.display='none');
+      sb.querySelectorAll('.brand,.nav-item,.side-btn').forEach(e=>e.style.justifyContent='center');
+      b.innerHTML='<i class="fa-solid fa-angles-right"></i>';
+    }
+  };
+  const h1 = topbar.querySelector('h1');
+  if(h1) topbar.insertBefore(b, h1); else topbar.prepend(b);
+}
+
+/* ══════════ E. شاشة الدخول — إخفاء البيانات + استعادة كلمة المرور ══════════ */
+async function sha256(txt){
+  const buf = new TextEncoder().encode(String(txt));
+  const h = await crypto.subtle.digest('SHA-256', buf);
+  return Array.from(new Uint8Array(h)).map(x=>x.toString(16).padStart(2,'0')).join('');
+}
+
+function showLoginExtras(){
+  const v14h = document.getElementById('v14LoginHint');
+  if(v14h) v14h.remove();
+
+  const hint = document.getElementById('lgHint');
+  if(hint){
+    hint.dataset.v14 = '1';  // منع v14 من الكتابة فوقها
+    hint.dataset.v15 = '1';
+    hint.innerHTML = '<b>🔒 بيانات الدخول محمية</b>'
+      + '<div style="margin-top:6px;font-size:12px">إذا فقدت كلمة المرور، استخدم زر <b>نسيت كلمة المرور</b> للاستعادة.</div>';
+  }
+
+  if(!document.getElementById('forgotLink') && document.getElementById('loginForm')){
+    const wrap = document.createElement('div');
+    wrap.id='forgotLink';
+    wrap.style.cssText='text-align:center;margin-top:12px';
+    wrap.innerHTML = '<button type="button" id="forgotBtn" style="background:none;border:0;color:var(--primary);font-weight:700;font-size:13px;cursor:pointer"><i class="fa-solid fa-key"></i> نسيت كلمة المرور؟</button>';
+    document.getElementById('loginForm').after(wrap);
+    document.getElementById('forgotBtn').onclick = ()=> passwordRecoveryModal();
+  }
+
+  // مسح أي بيانات مخزنة في الحقول
+  const idInp = document.getElementById('lgId');
+  const pwInp = document.getElementById('lgPw');
+  if(idInp && !idInp.dataset.v15cleared){ idInp.value=''; idInp.dataset.v15cleared='1'; }
+  if(pwInp) pwInp.value = '';
+}
+
+function passwordRecoveryModal(){
+  const sec = (db && db.auth && db.auth.owner && db.auth.owner.security) || {};
+  const hasSec = sec.question && sec.answerHash;
+  const body = `
+    <form id="fpForm" class="form-grid" novalidate>
+      <div class="field" style="grid-column:1/-1">
+        <div class="small" style="padding:12px 14px;border-radius:10px;background:var(--amber-soft);border:1px solid #fde68a">
+          ${hasSec
+            ? '🔑 أدخل بريد/جوال المالك ثم أجب على سؤال الأمان أو أدخل رمز الاستعادة.'
+            : '⚠️ لم يتم إعداد سؤال أمان بعد. اتصل بمالك النظام لاستعادة كلمة المرور.'}
+        </div>
+      </div>
+      <div class="field" style="grid-column:1/-1">
+        <label>البريد الإلكتروني أو رقم الجوال <span class="req">*</span></label>
+        <input id="fpId" dir="ltr" required placeholder="admin@drivers.local">
+      </div>
+      ${hasSec ? `
+      <div class="field" style="grid-column:1/-1">
+        <label>طريقة الاستعادة</label>
+        <select id="fpType">
+          <option value="question">❓ سؤال الأمان</option>
+          <option value="code">🔢 رمز الاستعادة</option>
+        </select>
+      </div>
+      <div class="field" id="fpQBox" style="grid-column:1/-1">
+        <label>السؤال: <b>${esc(sec.question)}</b></label>
+        <input id="fpAnswer" placeholder="الإجابة">
+      </div>
+      <div class="field" id="fpCodeBox" style="grid-column:1/-1;display:none">
+        <label>رمز الاستعادة</label>
+        <input id="fpCode" dir="ltr" placeholder="XXXXXXXXXXXX">
+      </div>
+      <div class="field"><label>كلمة المرور الجديدة</label>
+        <input type="password" id="fpP1" placeholder="4 أحرف على الأقل"></div>
+      <div class="field"><label>تأكيد كلمة المرور</label>
+        <input type="password" id="fpP2"></div>
+      ` : ''}
+      <div id="fpErr" class="err" style="grid-column:1/-1;display:none"></div>
+    </form>`;
+  openModal({
+    title:'🔑 استعادة كلمة المرور',
+    body,
+    submitText:'إعادة تعيين',
+    onMount(root){
+      const sel = root.querySelector('#fpType');
+      if(sel){
+        sel.onchange = ()=>{
+          root.querySelector('#fpQBox').style.display = sel.value==='question' ? '' : 'none';
+          root.querySelector('#fpCodeBox').style.display = sel.value==='code' ? '' : 'none';
+        };
+      }
+    },
+    async onSubmit(root){
+      const err = root.querySelector('#fpErr');
+      const owner = db && db.auth && db.auth.owner;
+      if(!owner){ err.textContent='لا يوجد حساب مالك'; err.style.display='block'; return false; }
+      const id = (root.querySelector('#fpId').value||'').trim().toLowerCase();
+      const oe = (owner.email||'').toLowerCase();
+      const op = (owner.phone||'').replace(/\s/g,'');
+      if(id !== oe && id !== op){ err.textContent='البريد/الجوال غير مطابق'; err.style.display='block'; return false; }
+      if(!hasSec){ err.textContent='لا توجد طريقة استعادة معدّة'; err.style.display='block'; return false; }
+      const type = root.querySelector('#fpType').value;
+      if(type==='question'){
+        const ans = (root.querySelector('#fpAnswer').value||'').trim().toLowerCase();
+        if(!ans || (await sha256(ans)) !== sec.answerHash){ err.textContent='إجابة خاطئة'; err.style.display='block'; return false; }
+      } else {
+        const code = (root.querySelector('#fpCode').value||'').trim();
+        if(!code || (await sha256(code)) !== sec.resetCodeHash){ err.textContent='رمز غير صحيح'; err.style.display='block'; return false; }
+      }
+      const p1 = root.querySelector('#fpP1').value;
+      const p2 = root.querySelector('#fpP2').value;
+      if(p1.length < 4){ err.textContent='كلمة المرور قصيرة'; err.style.display='block'; return false; }
+      if(p1 !== p2){ err.textContent='غير متطابقتين'; err.style.display='block'; return false; }
+      owner.password = 'sha256$' + await sha256(p1);
+      if(!db.meta) db.meta = {};
+      db.meta.usesDefaultPassword = false;
+      saveDB();
+      toast('✅ تم إعادة التعيين','ok');
+      return true;
+    }
+  });
+}
+
+async function promptSecuritySetup(){
+  if(typeof isOwner !== 'function' || !isOwner()) return;
+  if(!db || !db.auth || !db.auth.owner) return;
+  const sec = db.auth.owner.security;
+  if(sec && sec.answerHash) return;
+  const body = `
+    <form id="ssForm" class="form-grid" novalidate>
+      <div class="field" style="grid-column:1/-1">
+        <label style="font-weight:800">🛡️ إعداد استعادة كلمة المرور</label>
+        <div class="small muted" style="margin-top:6px;padding:10px 14px;border-radius:10px;background:var(--primary-soft);border:1px solid var(--border)">
+          لإتاحة استعادة كلمة المرور مستقبلاً. سيتم إنشاء رمز استعادة احتياطي.
+        </div>
+      </div>
+      <div class="field" style="grid-column:1/-1">
+        <label>سؤال الأمان <span class="req">*</span></label>
+        <input id="ssQ" required placeholder="ما اسم مدرستك الابتدائية؟">
+      </div>
+      <div class="field" style="grid-column:1/-1">
+        <label>الإجابة <span class="req">*</span></label>
+        <input id="ssA" required>
+      </div>
+      <div id="ssErr" class="err" style="display:none;grid-column:1/-1"></div>
+    </form>`;
+  openModal({
+    title:'🛡️ إعداد الاستعادة',
+    body,
+    submitText:'حفظ',
+    async onSubmit(root){
+      const q = (root.querySelector('#ssQ').value||'').trim();
+      const a = (root.querySelector('#ssA').value||'').trim().toLowerCase();
+      const errEl = root.querySelector('#ssErr');
+      if(!q || !a){ errEl.textContent='مطلوب'; errEl.style.display='block'; return false; }
+      const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+      let code = ''; for(let i=0;i<12;i++) code += chars[Math.floor(Math.random()*chars.length)];
+      if(!db.auth.owner.security) db.auth.owner.security = {};
+      db.auth.owner.security.question = q;
+      db.auth.owner.security.answerHash = await sha256(a);
+      db.auth.owner.security.resetCodeHash = await sha256(code);
+      saveDB();
+      setTimeout(()=>{
+        openModal({
+          title:'🔐 رمز الاستعادة',
+          body:`<div style="padding:20px;text-align:center">
+            <div style="font-size:56px;margin-bottom:8px">🔐</div>
+            <div class="small muted" style="margin-bottom:14px">احفظ هذا الرمز في مكان آمن</div>
+            <div style="font-family:monospace;font-size:24px;font-weight:800;letter-spacing:4px;background:var(--primary-soft);padding:16px;border-radius:12px;border:2px dashed var(--primary);margin:16px 0">${code}</div>
+            <button type="button" class="btn btn-sm" id="copyCodeBtn"><i class="fa-solid fa-copy"></i> نسخ</button>
+          </div>`,
+          submitText:'حفظت الرمز',
+          onMount(r2){
+            r2.querySelector('#copyCodeBtn').onclick = ()=>{
+              navigator.clipboard.writeText(code).then(()=>toast('تم النسخ','ok')).catch(()=>{});
+            };
+          },
+          onSubmit(){ return true; }
+        });
+      }, 250);
+      return true;
+    }
+  });
+}
+
+/* ══════════ F. قسم الحضور والغياب ══════════ */
+function viewAttendance(){
+  if(!Array.isArray(db.attendance)) db.attendance = [];
+  const date = state.attendanceDate || todayStr();
+  const reps = visibleReps();
+  const map = {};
+  db.attendance.filter(a=>a.date===date).forEach(a=> map[a.repId]=a);
+  const present = Object.values(map).filter(r=>r.status==='present').length;
+  const late    = Object.values(map).filter(r=>r.status==='late').length;
+  const absent  = Object.values(map).filter(r=>r.status==='absent').length;
+
+  const rows = reps.map(r=>{
+    const rec = map[r.id] || {status:'absent', note:''};
+    const s = rec.status;
+    const colors = {
+      present:'linear-gradient(135deg,#10b981,#059669)',
+      late:'linear-gradient(135deg,#f59e0b,#d97706)',
+      absent:'linear-gradient(135deg,#ef4444,#dc2626)'
+    };
+    return `<tr>
+      <td><div style="display:flex;align-items:center;gap:10px">
+        <div style="width:34px;height:34px;border-radius:50%;background:var(--grad-brand);color:#fff;display:grid;place-items:center;font-weight:800;flex:0 0 34px">${esc((r.name||'?')[0])}</div>
+        <div><b>${esc(r.name)}</b><div class="small muted">${esc(r.code||'')} · ${esc(r.region||'')}</div></div>
+      </div></td>
+      <td>${esc(supName(r.supervisorId))}</td>
+      <td><div class="row" style="gap:6px;justify-content:center;flex-wrap:nowrap">
+        ${['present','late','absent'].map(st=>{
+          const lbl = st==='present'?'حاضر':st==='late'?'متأخر':'غائب';
+          const ic  = st==='present'?'check':st==='late'?'clock':'xmark';
+          const style = s===st ? `background:${colors[st]};color:#fff;border-color:transparent` : 'background:transparent;color:var(--text-2)';
+          return `<button type="button" data-att-status="${st}" data-att-id="${r.id}" class="btn btn-sm" style="${style}"><i class="fa-solid fa-${ic}"></i> ${lbl}</button>`;
+        }).join('')}
+      </div></td>
+      <td><input type="text" data-att-note="${r.id}" value="${esc(rec.note||'')}" placeholder="ملاحظة"></td>
+    </tr>`;
+  }).join('');
+
+  return `
+    <div class="day-picker">
+      <span class="dp-label"><i class="fa-solid fa-calendar-day"></i> التاريخ</span>
+      <input type="date" id="attDate" value="${date}">
+      <button class="btn btn-sm btn-primary" id="attToday">اليوم</button>
+      <span class="dp-day-name">${dayName(date)} — ${date}</span>
+    </div>
+    <div class="grid g4">
+      ${kpiCard('<i class="fa-solid fa-users"></i>','إجمالي السائقين', reps.length, '#6366f1')}
+      ${kpiCard('<i class="fa-solid fa-circle-check"></i>','حاضر', present, '#10b981')}
+      ${kpiCard('<i class="fa-solid fa-clock"></i>','متأخر', late, '#f59e0b')}
+      ${kpiCard('<i class="fa-solid fa-circle-xmark"></i>','غائب', absent, '#ef4444')}
+    </div>
+    <div class="card">
+      <div class="card-head"><i class="fa-solid fa-clipboard-user"></i> سجل الحضور والغياب — ${date}
+        <span class="spacer"></span>
+        <button class="btn btn-primary btn-sm" id="attSave"><i class="fa-solid fa-floppy-disk"></i> حفظ</button>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>السائق</th><th>المشرف</th><th style="text-align:center">الحالة</th><th>ملاحظة</th></tr></thead>
+          <tbody>${rows || '<tr><td colspan="4" class="empty">لا يوجد سائقون</td></tr>'}</tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+function afterAttendance(){
+  const dateEl = document.getElementById('attDate');
+  if(dateEl) dateEl.onchange = e=>{ state.attendanceDate = e.target.value; render(); };
+  const todayBtn = document.getElementById('attToday');
+  if(todayBtn) todayBtn.onclick = ()=>{ state.attendanceDate = todayStr(); render(); };
+
+  document.querySelectorAll('[data-att-status]').forEach(btn=>{
+    btn.onclick = ()=>{
+      const id = btn.dataset.attId, st = btn.dataset.attStatus, date = state.attendanceDate||todayStr();
+      if(!Array.isArray(db.attendance)) db.attendance = [];
+      let rec = db.attendance.find(a=>a.repId===id && a.date===date);
+      if(!rec){ rec = {id:'att_'+Date.now()+Math.random().toString(36).slice(2,6), repId:id, date, status:st, note:'', updatedAt:new Date().toISOString()}; db.attendance.push(rec); }
+      else { rec.status = st; rec.updatedAt = new Date().toISOString(); }
+      saveDB();
+      const colors = {present:'linear-gradient(135deg,#10b981,#059669)',late:'linear-gradient(135deg,#f59e0b,#d97706)',absent:'linear-gradient(135deg,#ef4444,#dc2626)'};
+      btn.parentNode.querySelectorAll('[data-att-status]').forEach(b=>{ b.style.background='transparent'; b.style.color='var(--text-2)'; b.style.borderColor=''; });
+      btn.style.background = colors[st]; btn.style.color='#fff'; btn.style.borderColor='transparent';
+    };
+  });
+
+  document.querySelectorAll('[data-att-note]').forEach(inp=>{
+    inp.onchange = ()=>{
+      const id = inp.dataset.attNote, date = state.attendanceDate||todayStr();
+      if(!Array.isArray(db.attendance)) db.attendance = [];
+      let rec = db.attendance.find(a=>a.repId===id && a.date===date);
+      if(!rec){ rec = {id:'att_'+Date.now()+Math.random().toString(36).slice(2,6), repId:id, date, status:'absent', note:inp.value, updatedAt:new Date().toISOString()}; db.attendance.push(rec); }
+      else rec.note = inp.value;
+      saveDB();
+    };
+  });
+
+  const saveBtn = document.getElementById('attSave');
+  if(saveBtn) saveBtn.onclick = ()=>{
+    saveDB(); toast('✅ تم الحفظ','ok');
+    if(typeof autoSyncAfterSave === 'function') autoSyncAfterSave();
+  };
+}
+
+/* تسجيل قسم الحضور في NAV + الترجمة */
+try{
+  if(typeof NAV !== 'undefined' && !NAV.find(n=>n.id==='attendance')){
+    const entry = {id:'attendance', icon:'<i class="fa-solid fa-clipboard-user"></i>', key:'nav_attendance'};
+    const recIdx = NAV.findIndex(n=>n.id==='records');
+    if(recIdx >= 0) NAV.splice(recIdx, 0, entry); else NAV.push(entry);
+  }
+  if(typeof I18N !== 'undefined'){
+    I18N.ar.nav_attendance = 'الحضور والغياب';
+    I18N.en.nav_attendance = 'Attendance';
+  }
+}catch(e){}
+
+/* ══════════ G. تعديل مؤشر الأداء (إزالة نسبة القبول) ══════════ */
+function cleanDashboardHero(){
+  if(state.section !== 'dashboard') return;
+  document.querySelectorAll('.perf-hero .perf-sub.pa').forEach(e=>e.remove());
+  document.querySelectorAll('.perf-hero .ph-stat').forEach(e=>{
+    if(/قبول المخالفات|acceptance/i.test(e.textContent)) e.remove();
+  });
+}
+
+/* ══════════ H. تحسين عرض أسماء السائقين في الرسم البياني ══════════ */
+try{
+  if(typeof shortLabel === 'function' && !window._shortLabelPatched){
+    window._shortLabelPatched = true;
+    window.shortLabel = function(s, n){
+      s = String(s||'');
+      const limit = (n === 11 || n === undefined) ? 20 : n;
+      return s.length > limit ? s.slice(0, limit) + '…' : s;
+    };
+  }
+}catch(e){}
+
+/* ══════════ I. معادلات الأهداف ══════════ */
+function safeEval(expr, vars){
+  const tokens = String(expr).match(/[a-zA-Z_][a-zA-Z0-9_]*|\d+(?:\.\d+)?|[+\-*/()]/g) || [];
+  let s = '';
+  for(const tk of tokens){
+    if(/^[a-zA-Z_]/.test(tk)){
+      if(!(tk in vars)) throw new Error('متغير غير معروف: '+tk);
+      s += '(' + Number(vars[tk]||0) + ')';
+    } else if(/^\d/.test(tk)) s += tk;
+    else if(/^[+\-*/()]$/.test(tk)) s += tk;
+    else throw new Error('رمز غير مسموح');
+  }
+  if(!s) throw new Error('فارغ');
+  const r = new Function('return ('+s+')')();
+  if(!isFinite(r)) throw new Error('نتيجة غير صحيحة');
+  return Math.round(r*100)/100;
+}
+
+function dateInPeriod(date, period){
+  const today = todayStr();
+  if(period === 'daily')   return date === today;
+  if(period === 'weekly')  return date >= weekStart() && date <= today;
+  return date >= monthStart() && date <= today;
+}
+
+function getGoalVars(period){
+  const actuals = computeGoalActuals(period, null);
+  const rs = visibleReports().filter(r=> dateInPeriod(r.date, period));
+  return {
+    orders: actuals.orders, hours: actuals.hours, violations: actuals.violations,
+    accepted: sum(rs,'accepted'), rejected: sum(rs,'rejected'),
+    reps: actuals.reps, days: period==='daily'?1:period==='weekly'?7:30
+  };
+}
+
+function renderCustomFormulas(){
+  const formulas = (db.settings && db.settings.goalFormulas) || [];
+  if(!formulas.length) return '';
+  return formulas.map(f=>{
+    let val = '—';
+    try{ val = safeEval(f.expression, getGoalVars(f.period||'monthly')); }catch(e){ val = '❌'; }
+    const target = num(f.target);
+    const pct = target ? Math.round((val/target)*100) : 0;
+    return `<div class="goal-card">
+      <div class="goal-title">🧮 ${esc(f.name)} <span class="chip gray" style="font-family:monospace;font-size:10.5px">${esc(f.expression)}</span>
+        <span class="spacer"></span>
+        <button type="button" class="btn btn-ghost btn-sm" data-del-formula="${esc(f.id)}" title="حذف">🗑️</button>
+      </div>
+      <div class="goal-values">
+        <div><div class="gv-l">الفعلي</div><div class="gv-v">${val}</div></div>
+        <div style="text-align:center"><div class="gv-l">الهدف</div><div class="gv-v">${target||'—'}</div></div>
+        <div style="text-align:end"><div class="gv-l">النسبة</div><div class="gv-v">${pct}%</div></div>
+      </div>
+      <div class="goal-bar ${pct>=100?'exceed':''}"><i style="width:${Math.min(100,pct)}%"></i></div>
+    </div>`;
+  }).join('');
+}
+
+function addFormulaModal(){
+  const body = `
+    <form id="fmlForm" class="form-grid" novalidate>
+      <div class="field" style="grid-column:1/-1">
+        <label>اسم المؤشر <span class="req">*</span></label>
+        <input id="fmlName" required placeholder="مثال: كفاءة التسليم">
+      </div>
+      <div class="field" style="grid-column:1/-1">
+        <label>المعادلة <span class="req">*</span></label>
+        <input id="fmlExpr" dir="ltr" required placeholder="orders / reps" style="font-family:monospace">
+        <div class="small muted" style="margin-top:6px">المتغيرات: <code>orders, hours, violations, accepted, rejected, reps, days</code> — العمليات: <code>+ - * / ( )</code></div>
+        <div id="fmlPreview" class="small" style="margin-top:6px;font-weight:700"></div>
+      </div>
+      <div class="field">
+        <label>الهدف</label>
+        <input type="number" id="fmlTarget" step="0.01" value="0">
+      </div>
+      <div class="field">
+        <label>الفترة</label>
+        <select id="fmlPeriod">
+          <option value="daily">يومي</option><option value="weekly">أسبوعي</option><option value="monthly" selected>شهري</option>
+        </select>
+      </div>
+      <div id="fmlErr" class="err" style="grid-column:1/-1;display:none"></div>
+    </form>`;
+  openModal({
+    title:'🧮 إضافة معادلة',
+    body, submitText:'إضافة',
+    onMount(root){
+      const expr = root.querySelector('#fmlExpr');
+      const prev = root.querySelector('#fmlPreview');
+      expr.oninput = ()=>{
+        try{
+          const v = safeEval(expr.value, {orders:100,hours:50,violations:5,accepted:4,rejected:1,reps:4,days:30});
+          prev.textContent = '✅ القيمة التجريبية: ' + v; prev.style.color='var(--green)';
+        }catch(e){ prev.textContent = '❌ '+e.message; prev.style.color='var(--red)'; }
+      };
+    },
+    onSubmit(root){
+      const name = root.querySelector('#fmlName').value.trim();
+      const expr = root.querySelector('#fmlExpr').value.trim();
+      const target = num(root.querySelector('#fmlTarget').value);
+      const period = root.querySelector('#fmlPeriod').value;
+      const err = root.querySelector('#fmlErr');
+      if(!name || !expr){ err.textContent='مطلوب'; err.style.display='block'; return false; }
+      try{ safeEval(expr, {orders:1,hours:1,violations:1,accepted:1,rejected:1,reps:1,days:1}); }
+      catch(e){ err.textContent='معادلة غير صالحة: '+e.message; err.style.display='block'; return false; }
+      if(!db.settings.goalFormulas) db.settings.goalFormulas = [];
+      db.settings.goalFormulas.push({id:'fml_'+Date.now(), name, expression:expr, target, period});
+      saveDB(); render();
+      toast('✅ تمت الإضافة','ok');
+      return true;
+    }
+  });
+}
+
+/* ══════════ J. تعديلات على settingsModal (خط + مظهر + رفع) ══════════ */
+const _origSettings = window.settingsModal;
+if(typeof _origSettings === 'function'){
+  window.settingsModal = function(){
+    _origSettings.apply(this, arguments);
+    setTimeout(()=>{
+      const modal = document.querySelector('#modalRoot .modal');
+      if(!modal) return;
+
+      // إضافة زر الرفع فقط إلى جانب السحب
+      const pullBtn = modal.querySelector('#pullNow');
+      if(pullBtn && !modal.querySelector('#pushOnlyBtn')){
+        const pb = document.createElement('button');
+        pb.className='btn btn-sm'; pb.id='pushOnlyBtn'; pb.type='button';
+        pb.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> رفع للسحابة';
+        pb.onclick = async ()=>{
+          const ok = await pushToCloud();
+          if(ok) toast('✅ تم الرفع','ok');
+        };
+        pullBtn.parentNode.insertBefore(pb, pullBtn.nextSibling);
+      }
+
+      // إضافة الخط + المظهر بعد slider حجم الخط
+      const fsRange = modal.querySelector('#fsRange');
+      if(!fsRange) return;
+      const parentField = fsRange.closest('.field');
+      if(!parentField) return;
+
+      if(!parentField.parentNode.querySelector('#fontFamilySelect')){
+        const fonts = ['Tajawal','Cairo','Almarai','IBM Plex Sans Arabic','Inter','Segoe UI','system-ui'];
+        const cur = (db.settings.fontFamily)||'Tajawal';
+        const ff = document.createElement('div');
+        ff.className='field'; ff.style.marginBottom='18px';
+        ff.innerHTML = `<label><i class="fa-solid fa-font"></i> نوع الخط</label>
+          <select id="fontFamilySelect" style="font-family:'${cur}'">
+            ${fonts.map(f=>`<option value="${f}" style="font-family:'${f}'" ${f===cur?'selected':''}>${f}</option>`).join('')}
+          </select>
+          <span class="hint">يُطبق فوراً على كامل الواجهة</span>`;
+        parentField.after(ff);
+        ff.querySelector('#fontFamilySelect').onchange = e=>{
+          if(!db.settings) db.settings = {};
+          db.settings.fontFamily = e.target.value;
+          applyFont(); saveDB();
+          e.target.style.fontFamily = `'${e.target.value}'`;
+          toast('تم تغيير الخط','ok');
+        };
+      }
+
+      if(!parentField.parentNode.querySelector('#darkToggleChk')){
+        const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+        const df = document.createElement('div');
+        df.className='field'; df.style.marginBottom='18px';
+        df.innerHTML = `<label><i class="fa-solid fa-circle-half-stroke"></i> المظهر</label>
+          <label class="perm-check" style="cursor:pointer">
+            <input type="checkbox" id="darkToggleChk" ${dark?'checked':''}> تفعيل الوضع الليلي
+          </label>`;
+        (parentField.nextElementSibling || parentField).after(df);
+        df.querySelector('#darkToggleChk').onchange = e=>{
+          const next = e.target.checked ? 'dark' : 'light';
+          document.documentElement.setAttribute('data-theme', next);
+          try{ localStorage.setItem('repPerfTheme', next); }catch(er){}
+          updateThemeBtn();
+        };
+      }
+    }, 150);
+  };
+}
+
+/* ══════════ K. تجاوز render لقسم الحضور + استدعاءات ما بعد الرسم ══════════ */
+const _origRender = window.render;
+window.render = function(){
+  if(state.section === 'attendance'){
+    try{
+      if(typeof applyBranding === 'function') applyBranding();
+      document.documentElement.dir = state.lang==='ar'?'rtl':'ltr';
+      document.documentElement.lang = state.lang;
+      if(typeof renderNav === 'function') renderNav();
+      const pt = document.getElementById('pageTitle');
+      if(pt) pt.textContent = 'الحضور والغياب';
+      document.getElementById('view').innerHTML = viewAttendance();
+      afterAttendance();
+      if(typeof applySettings === 'function') applySettings();
+      if(typeof attachCollapseButtons === 'function') attachCollapseButtons();
+      applyFont();
+      return;
+    }catch(e){ console.error('[attendance render]', e); }
+  }
+
+  const r = _origRender.apply(this, arguments);
+  setTimeout(()=>{
+    try{
+      applyFont();
+      updateThemeBtn();
+      upgradeIcons();
+      cleanDashboardHero();
+      // ربط أزرار حذف المعادلات
+      document.querySelectorAll('[data-del-formula]').forEach(b=>{
+        b.onclick = ()=>{
+          if(!confirm('حذف هذه المعادلة؟')) return;
+          db.settings.goalFormulas = (db.settings.goalFormulas||[]).filter(x=>x.id!==b.dataset.delFormula);
+          saveDB(); render();
+        };
+      });
+      // ربط زر إضافة المعادلة إذا وُجد
+      const addF = document.getElementById('addFormulaBtn');
+      if(addF) addF.onclick = addFormulaModal;
+    }catch(e){}
+  }, 60);
+  return r;
+};
+
+/* تجاوز viewGoals لإضافة كارت المعادلات */
+const _origViewGoals = window.viewGoals;
+if(typeof _origViewGoals === 'function'){
+  window.viewGoals = function(){
+    let html = _origViewGoals.apply(this, arguments);
+    const formulas = (db.settings && db.settings.goalFormulas) || [];
+    html += `<div class="card">
+      <div class="card-head">🧮 مؤشرات مخصصة (معادلات)
+        <span class="spacer"></span>
+        <button class="btn btn-primary btn-sm" id="addFormulaBtn"><i class="fa-solid fa-plus"></i> إضافة معادلة</button>
+      </div>
+      <div class="card-body">
+        ${formulas.length ? `<div class="grid g3">${renderCustomFormulas()}</div>` : '<div class="empty">لا توجد معادلات مخصصة بعد. اضغط "إضافة معادلة"</div>'}
+      </div>
+    </div>`;
+    return html;
+  };
+}
+
+/* إضافة attendance إلى allowedSections */
+const _origAllowed = window.allowedSections;
+if(typeof _origAllowed === 'function'){
+  window.allowedSections = function(){
+    const list = _origAllowed.apply(this, arguments);
+    try{
+      if(typeof isOwner==='function' && isOwner()){
+        if(!list.includes('attendance')) list.push('attendance');
+      } else if(list.includes('reps') && !list.includes('attendance')){
+        list.push('attendance');
+      }
+    }catch(e){}
+    return list;
+  };
+}
+
+/* ══════════ L. البدء ══════════ */
+function bootV15(){
+  try{ upgradeIcons(); }catch(e){}
+  try{ upgradeNavIcons(); }catch(e){}
+  try{ injectTopbarUI(); }catch(e){}
+  try{ injectSidebarToggle(); }catch(e){}
+  try{ applyFont(); }catch(e){}
+  try{ showLoginExtras(); }catch(e){}
+}
+
+window.addEventListener('load', ()=>{
+  setTimeout(bootV15, 900);
+  setTimeout(bootV15, 2000);
+  setTimeout(bootV15, 4000);
+  setTimeout(()=>{ try{ if(typeof isOwner==='function' && isOwner()) promptSecuritySetup(); }catch(e){} }, 2500);
+});
+
+const _origShowLogin = window.showLogin;
+if(typeof _origShowLogin === 'function'){
+  window.showLogin = function(){
+    const r = _origShowLogin.apply(this, arguments);
+    setTimeout(showLoginExtras, 80);
+    return r;
+  };
+}
+const _origShowApp = window.showApp;
+if(typeof _origShowApp === 'function'){
+  window.showApp = function(){
+    const r = _origShowApp.apply(this, arguments);
+    setTimeout(()=>{
+      bootV15();
+      try{ if(typeof isOwner==='function' && isOwner()) promptSecuritySetup(); }catch(e){}
+    }, 200);
+    return r;
+  };
+}
+
+console.log('%c[v15] ✅ تم تطبيق جميع التعديلات: أيقونات + وضع ليلي + خطوط + طباعة + مزامنة + حضور + معادلات + استعادة كلمة المرور',
+  'color:#10b981;font-weight:bold;font-size:14px');
 })();
 </script>
 </body>
