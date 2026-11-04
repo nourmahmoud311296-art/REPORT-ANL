@@ -10722,5 +10722,982 @@ console.log('%c[v15] ✅ تم تطبيق جميع التعديلات: أيقون
   'color:#10b981;font-weight:bold;font-size:14px');
 })();
 </script>
+<!-- ============================================================
+     v16 PATCH — كل التعديلات المطلوبة في مكان واحد
+     1) إظهار مفاتيح المزامنة عند المشرفين
+     2) زر اتجاه الطباعة (رأسي/أفقي/تلقائي)
+     3) نسيت كلمة المرور من شاشة الدخول
+     4) زر حفظ كلمة المرور (دخول سريع)
+     5) الحضور: لا افتراضي + إجازة/راحة
+     6) الحد الأقصى للمخالفات قابل للتعديل يدوياً
+     7) إلغاء بطاقة "الحد الأدنى لنسبة قبول المخالفات"
+     8) إضافة حقل معادلة داخل نافذة إنشاء الهدف
+     ============================================================ -->
+<script>
+(function(){
+'use strict';
+if(window._v16Loaded) return;
+window._v16Loaded = true;
+console.log('%c[v16] Loading all requested changes...', 'color:#6366f1;font-weight:bold;font-size:13px');
+
+/* ───────────────────── Helper ───────────────────── */
+async function _sha256(text){
+  const buf = new TextEncoder().encode(String(text));
+  const hash = await crypto.subtle.digest('SHA-256', buf);
+  return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+/* ═══════════════════════════════════════════════════════════
+   F1 — إظهار مفاتيح المزامنة عند المشرفين
+   ═══════════════════════════════════════════════════════════ */
+const _origSettingsV16 = window.settingsModal;
+if(typeof _origSettingsV16 === 'function'){
+  window.settingsModal = function(){
+    _origSettingsV16.apply(this, arguments);
+    setTimeout(function(){
+      const modal = document.querySelector('#modalRoot .modal');
+      if(!modal) return;
+      if(typeof isOwner === 'function' && isOwner()) return;
+      if(typeof isCloudReady !== 'function' || !isCloudReady()) return;
+
+      const syncPanel = modal.querySelector('.sync-panel');
+      if(!syncPanel || syncPanel.querySelector('#supCloudKeys')) return;
+
+      const keysDiv = document.createElement('div');
+      keysDiv.id = 'supCloudKeys';
+      keysDiv.style.cssText = 'margin-top:14px;padding-top:14px;border-top:1px dashed var(--border)';
+      keysDiv.innerHTML = `
+        <div class="field">
+          <label style="font-weight:800;font-size:13.5px">🔑 مفاتيح المزامنة السحابية</label>
+          <div class="small muted" style="margin:4px 0 10px;line-height:1.6">
+            يمكنك عرض وتعديل مفاتيح الاتصال بالسحابة (jsonbin.io).
+          </div>
+          <div class="form-grid" style="gap:12px">
+            <div class="field">
+              <label>Master Key</label>
+              <input type="text" id="supJbKey" dir="ltr" value="${esc((window.cloudCfg && cloudCfg.key)||'')}" placeholder="$2b$10$..." style="font-family:monospace;font-size:12px">
+            </div>
+            <div class="field">
+              <label>Bin ID</label>
+              <input type="text" id="supJbBin" dir="ltr" value="${esc((window.cloudCfg && cloudCfg.binId)||'')}" placeholder="..." style="font-family:monospace;font-size:12px">
+            </div>
+          </div>
+          <div class="row" style="margin-top:10px;gap:8px">
+            <button class="btn btn-sm btn-primary" id="supSaveKeys" type="button">💾 حفظ المفاتيح</button>
+            <button class="btn btn-sm" id="supTestKeys" type="button">🧪 اختبار الاتصال</button>
+          </div>
+        </div>`;
+      syncPanel.appendChild(keysDiv);
+
+      keysDiv.querySelector('#supSaveKeys').onclick = function(){
+        const k = keysDiv.querySelector('#supJbKey').value.trim();
+        const bin = keysDiv.querySelector('#supJbBin').value.trim();
+        if(!k || !bin){ if(typeof toast==='function') toast('يرجى إدخال المفتاح والمعرف','warn'); return; }
+        try{
+          window.cloudCfg = window.cloudCfg || {};
+          cloudCfg.key = k;
+          cloudCfg.binId = bin;
+          if(typeof saveCloudCfg === 'function') saveCloudCfg();
+          if(typeof setCloudStatus === 'function') setCloudStatus('on');
+          if(typeof toast==='function') toast('✅ تم حفظ المفاتيح','ok');
+        }catch(e){ if(typeof toast==='function') toast('تعذّر الحفظ: '+e.message,'err'); }
+      };
+
+      keysDiv.querySelector('#supTestKeys').onclick = async function(){
+        const k = keysDiv.querySelector('#supJbKey').value.trim();
+        const bin = keysDiv.querySelector('#supJbBin').value.trim();
+        if(!k || !bin){ if(typeof toast==='function') toast('يرجى إدخال المفتاح والمعرف','warn'); return; }
+        try{
+          const res = await fetch('https://api.jsonbin.io/v3/b/'+bin+'/latest', { headers:{ 'X-Master-Key': k } });
+          if(!res.ok) throw new Error('HTTP '+res.status);
+          if(typeof toast==='function') toast('✅ الاتصال ناجح','ok');
+        }catch(e){
+          if(typeof toast==='function') toast('❌ فشل الاتصال: '+e.message,'err');
+        }
+      };
+    }, 200);
+  };
+}
+
+/* ═══════════════════════════════════════════════════════════
+   F2 — زر اتجاه الطباعة (رأسي / أفقي / تلقائي)
+   ═══════════════════════════════════════════════════════════ */
+function setupPrintButtonV16(){
+  const topbar = document.querySelector('.topbar-actions');
+  if(!topbar) return;
+
+  // إزالة الأزرار القديمة (v13/v14)
+  const oldBtn = document.getElementById('printOrientBtn');
+  if(oldBtn) oldBtn.remove();
+  const oldPopup = document.getElementById('v14PrintPopup');
+  if(oldPopup) oldPopup.remove();
+
+  // إنشاء زر v16 إذا لم يوجد
+  let btn = document.getElementById('v16PrintBtn');
+  if(btn){
+    // موجود — فقط حدّث
+    updatePrintBtnLabel(btn);
+    return;
+  }
+
+  btn = document.createElement('button');
+  btn.className = 'icon-btn';
+  btn.id = 'v16PrintBtn';
+  btn.type = 'button';
+  btn.title = 'اتجاه الطباعة';
+
+  const getOrient = function(){ return (window.db && db.settings && db.settings.printOrientation) || 'portrait'; };
+  const icons = { portrait:'📄', landscape:'📃', auto:'🔄' };
+  const labels = { portrait:'رأسي (Portrait)', landscape:'أفقي (Landscape)', auto:'تلقائي (Auto)' };
+
+  window.updatePrintBtnLabel = function(b){
+    const o = getOrient();
+    b.innerHTML = icons[o] || '📄';
+    b.title = 'اتجاه الطباعة: ' + (labels[o] || labels.portrait);
+  };
+  updatePrintBtnLabel(btn);
+
+  const popup = document.createElement('div');
+  popup.id = 'v16PrintPopup';
+  popup.style.cssText = 'position:fixed;background:var(--card);border:1px solid var(--border);border-radius:14px;box-shadow:0 20px 40px -20px rgba(15,23,42,.35);padding:8px;z-index:99999;display:none;min-width:230px';
+  popup.innerHTML = `
+    <div style="padding:8px 12px;font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">🖨️ اتجاه الطباعة</div>
+    ${['portrait','landscape','auto'].map(function(o){
+      return '<button type="button" data-orient="'+o+'" class="v16-opt" style="width:100%;text-align:start;padding:10px 14px;border-radius:10px;display:flex;align-items:center;gap:10px;font-size:13.5px;font-weight:600;background:transparent;color:var(--text-2);border:0;cursor:pointer;transition:background .15s">'
+        + '<span style="font-size:16px">'+icons[o]+'</span>'
+        + '<span>'+labels[o]+'</span>'
+        + '<span class="v16-check" style="margin-inline-start:auto;color:var(--primary);font-weight:800;display:none">✓</span>'
+        + '</button>';
+    }).join('')}`;
+  document.body.appendChild(popup);
+
+  const refreshPopup = function(){
+    const cur = getOrient();
+    popup.querySelectorAll('[data-orient]').forEach(function(b){
+      const active = b.dataset.orient === cur;
+      b.style.background = active ? 'var(--primary-soft)' : 'transparent';
+      b.style.color = active ? 'var(--primary-dark)' : 'var(--text-2)';
+      b.style.fontWeight = active ? '800' : '600';
+      const chk = b.querySelector('.v16-check');
+      if(chk) chk.style.display = active ? 'inline' : 'none';
+    });
+  };
+
+  btn.onclick = function(e){
+    e.stopPropagation();
+    if(popup.style.display === 'block'){ popup.style.display = 'none'; return; }
+    const rect = btn.getBoundingClientRect();
+    popup.style.top = (rect.bottom + 8) + 'px';
+    popup.style.right = (window.innerWidth - rect.right) + 'px';
+    popup.style.left = 'auto';
+    refreshPopup();
+    popup.style.display = 'block';
+  };
+
+  popup.querySelectorAll('[data-orient]').forEach(function(b){
+    b.onclick = function(e){
+      e.stopPropagation();
+      const o = b.dataset.orient;
+      if(window.db && db.settings){
+        db.settings.printOrientation = o;
+        if(typeof saveDB === 'function') saveDB();
+        if(typeof applyPrintOrientation === 'function') applyPrintOrientation();
+        updatePrintBtnLabel(btn);
+        if(typeof toast === 'function') toast('اتجاه الطباعة: ' + labels[o], 'ok');
+      }
+      popup.style.display = 'none';
+    };
+  });
+
+  document.addEventListener('click', function(e){
+    if(!popup.contains(e.target) && e.target !== btn) popup.style.display = 'none';
+  });
+
+  const printBtn = document.getElementById('printBtn');
+  if(printBtn && printBtn.parentNode) printBtn.parentNode.insertBefore(btn, printBtn);
+  else topbar.insertBefore(btn, topbar.firstChild);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   F3 — نسيت كلمة المرور من شاشة الدخول
+   ═══════════════════════════════════════════════════════════ */
+window.myPasswordRecoveryModal = function(){
+  const owner = window.db && db.auth && db.auth.owner;
+  if(!owner){ if(typeof toast === 'function') toast('لا يوجد حساب مالك','err'); return; }
+  const sec = owner.security || {};
+  const hasSec = !!(sec.question && sec.answerHash);
+
+  const body = '<form id="fpFormV16" class="form-grid" novalidate>'
+    + '<div class="field" style="grid-column:1/-1">'
+    +   '<div class="small" style="padding:12px 14px;border-radius:10px;background:var(--amber-soft);border:1px solid #fde68a;line-height:1.7">'
+    +     (hasSec
+            ? '🔑 أدخل بيانات المالك، ثم أجب على سؤال الأمان أو استخدم رمز الاستعادة.'
+            : '🔑 أدخل البريد الإلكتروني أو رقم الجوال المسجل لإعادة تعيين كلمة المرور إلى <code>ChangeMe@2026</code>.')
+    +   '</div>'
+    + '</div>'
+    + '<div class="field" style="grid-column:1/-1">'
+    +   '<label>البريد الإلكتروني أو رقم الجوال <span class="req">*</span></label>'
+    +   '<input id="fpIdV16" dir="ltr" required placeholder="admin@drivers.local">'
+    + '</div>'
+    + (hasSec ? (
+        '<div class="field" style="grid-column:1/-1">'
+        + '<label>طريقة الاستعادة</label>'
+        + '<select id="fpTypeV16"><option value="question">❓ سؤال الأمان</option><option value="code">🔢 رمز الاستعادة</option></select>'
+        + '</div>'
+        + '<div class="field" id="fpQBoxV16" style="grid-column:1/-1">'
+        + '<label>السؤال: <b>'+esc(sec.question)+'</b></label>'
+        + '<input id="fpAnswerV16" placeholder="الإجابة">'
+        + '</div>'
+        + '<div class="field" id="fpCodeBoxV16" style="grid-column:1/-1;display:none">'
+        + '<label>رمز الاستعادة</label>'
+        + '<input id="fpCodeV16" dir="ltr" placeholder="XXXXXXXXXXXX">'
+        + '</div>'
+        + '<div class="field"><label>كلمة المرور الجديدة</label><input type="password" id="fpP1V16" placeholder="4 أحرف على الأقل"></div>'
+        + '<div class="field"><label>تأكيد كلمة المرور</label><input type="password" id="fpP2V16"></div>'
+      ) : '')
+    + '<div id="fpErrV16" class="err" style="grid-column:1/-1;display:none"></div>'
+    + '</form>';
+
+  openModal({
+    title: '🔑 استعادة كلمة المرور',
+    body: body,
+    submitText: hasSec ? 'إعادة تعيين' : 'إعادة تعيين إلى الافتراضي',
+    onMount: function(root){
+      const sel = root.querySelector('#fpTypeV16');
+      if(sel){
+        sel.onchange = function(){
+          const q = root.querySelector('#fpQBoxV16');
+          const c = root.querySelector('#fpCodeBoxV16');
+          if(q) q.style.display = sel.value==='question' ? '' : 'none';
+          if(c) c.style.display = sel.value==='code' ? '' : 'none';
+        };
+      }
+    },
+    onSubmit: async function(root){
+      const err = root.querySelector('#fpErrV16');
+      const showErr = function(m){ if(err){ err.textContent = m; err.style.display = 'block'; } };
+
+      const o = window.db && db.auth && db.auth.owner;
+      if(!o){ showErr('لا يوجد حساب مالك'); return false; }
+
+      const id = (root.querySelector('#fpIdV16').value || '').trim().toLowerCase();
+      const oe = (o.email || '').toLowerCase();
+      const op = (o.phone || '').replace(/\s/g, '');
+      if(id !== oe && id.replace(/\s/g,'') !== op){ showErr('البريد الإلكتروني أو رقم الجوال غير مطابق'); return false; }
+
+      if(!hasSec){
+        if(!confirm('سيتم إعادة تعيين كلمة المرور إلى ChangeMe@2026. متابعة؟')) return false;
+        o.password = 'sha256$' + await _sha256('ChangeMe@2026');
+        if(!db.meta) db.meta = {};
+        db.meta.usesDefaultPassword = true;
+        if(typeof saveDB === 'function') saveDB();
+        if(typeof toast === 'function') toast('✅ تمت إعادة التعيين — كلمة المرور: ChangeMe@2026','ok');
+        return true;
+      }
+
+      const type = root.querySelector('#fpTypeV16').value;
+      if(type === 'question'){
+        const ans = (root.querySelector('#fpAnswerV16').value || '').trim().toLowerCase();
+        if(!ans || (await _sha256(ans)) !== sec.answerHash){ showErr('إجابة سؤال الأمان غير صحيحة'); return false; }
+      } else {
+        const code = (root.querySelector('#fpCodeV16').value || '').trim();
+        if(!code || (await _sha256(code)) !== sec.resetCodeHash){ showErr('رمز الاستعادة غير صحيح'); return false; }
+      }
+      const p1 = root.querySelector('#fpP1V16').value;
+      const p2 = root.querySelector('#fpP2V16').value;
+      if(!p1 || p1.length < 4){ showErr('كلمة المرور يجب أن تكون 4 أحرف على الأقل'); return false; }
+      if(p1 !== p2){ showErr('كلمتا المرور غير متطابقتين'); return false; }
+      o.password = 'sha256$' + await _sha256(p1);
+      if(!db.meta) db.meta = {};
+      db.meta.usesDefaultPassword = false;
+      if(typeof saveDB === 'function') saveDB();
+      if(typeof toast === 'function') toast('✅ تم إعادة تعيين كلمة المرور','ok');
+      return true;
+    }
+  });
+};
+
+function rebindForgotLink(){
+  const fb = document.getElementById('forgotBtn');
+  if(fb && !fb.dataset.v16){
+    fb.dataset.v16 = '1';
+    fb.onclick = function(){ window.myPasswordRecoveryModal(); };
+  }
+}
+
+function ensureForgotLink(){
+  if(!document.getElementById('forgotLink')){
+    const form = document.getElementById('loginForm');
+    if(!form) return;
+    const wrap = document.createElement('div');
+    wrap.id = 'forgotLink';
+    wrap.style.cssText = 'text-align:center;margin-top:12px';
+    wrap.innerHTML = '<button type="button" id="forgotBtn" style="background:none;border:0;color:var(--primary);font-weight:700;font-size:13px;cursor:pointer">🔑 نسيت كلمة المرور؟</button>';
+    form.after(wrap);
+  }
+  rebindForgotLink();
+}
+
+/* ═══════════════════════════════════════════════════════════
+   F4 — زر حفظ كلمة المرور (Remember Me)
+   ═══════════════════════════════════════════════════════════ */
+function addRememberMe(){
+  const form = document.getElementById('loginForm');
+  if(!form || document.getElementById('rememberMeWrap')) return;
+  const submitBtn = document.getElementById('lgBtn');
+  if(!submitBtn) return;
+
+  const wrap = document.createElement('div');
+  wrap.id = 'rememberMeWrap';
+  wrap.style.cssText = 'display:flex;align-items:center;gap:8px;margin:2px 0 4px';
+  wrap.innerHTML = '<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--text-2);font-weight:600">'
+    + '<input type="checkbox" id="rememberMe" style="width:16px;height:16px;accent-color:var(--primary);cursor:pointer">'
+    + '<span>💾 حفظ كلمة المرور للدخول السريع</span>'
+    + '</label>';
+  submitBtn.parentNode.insertBefore(wrap, submitBtn);
+}
+
+function loadSavedCreds(){
+  try{
+    const saved = localStorage.getItem('repPerfSavedCreds');
+    if(!saved) return;
+    const creds = JSON.parse(saved);
+    const idEl = document.getElementById('lgId');
+    const pwEl = document.getElementById('lgPw');
+    const rmEl = document.getElementById('rememberMe');
+    if(idEl && creds.id) idEl.value = creds.id;
+    if(pwEl && creds.pw) pwEl.value = creds.pw;
+    if(rmEl) rmEl.checked = true;
+  }catch(e){}
+}
+
+const _origDoLoginV16 = window.doLogin;
+if(typeof _origDoLoginV16 === 'function'){
+  window.doLogin = async function(identifier, password){
+    const ok = await _origDoLoginV16.apply(this, arguments);
+    if(ok){
+      try{
+        const rm = document.getElementById('rememberMe');
+        if(rm && rm.checked){
+          localStorage.setItem('repPerfSavedCreds', JSON.stringify({ id: identifier, pw: password }));
+        } else {
+          localStorage.removeItem('repPerfSavedCreds');
+        }
+      }catch(e){}
+    }
+    return ok;
+  };
+}
+
+const _origShowLoginV16 = window.showLogin;
+if(typeof _origShowLoginV16 === 'function'){
+  window.showLogin = function(){
+    const r = _origShowLoginV16.apply(this, arguments);
+    setTimeout(function(){
+      ensureForgotLink();
+      addRememberMe();
+      loadSavedCreds();
+    }, 120);
+    return r;
+  };
+}
+
+/* ═══════════════════════════════════════════════════════════
+   F5 — الحضور: لا افتراضي + إجازة/راحة
+   ═══════════════════════════════════════════════════════════ */
+const ATT_STATUSES = [
+  { id:'present', label:'حاضر',  icon:'check',   color:'linear-gradient(135deg,#10b981,#059669)' },
+  { id:'late',    label:'متأخر', icon:'clock',   color:'linear-gradient(135deg,#f59e0b,#d97706)' },
+  { id:'absent',  label:'غائب',  icon:'xmark',   color:'linear-gradient(135deg,#ef4444,#dc2626)' },
+  { id:'leave',   label:'إجازة', icon:'plane',   color:'linear-gradient(135deg,#3b82f6,#2563eb)' },
+  { id:'rest',    label:'راحة',  icon:'bed',     color:'linear-gradient(135deg,#8b5cf6,#7c3aed)' }
+];
+
+function myViewAttendanceV16(){
+  if(!Array.isArray(db.attendance)) db.attendance = [];
+  const date = state.attendanceDate || todayStr();
+  const reps = visibleReps();
+  const map = {};
+  db.attendance.filter(function(a){ return a.date === date; }).forEach(function(a){ map[a.repId] = a; });
+
+  const counts = { present:0, late:0, absent:0, leave:0, rest:0, none:0 };
+  reps.forEach(function(r){
+    const rec = map[r.id];
+    if(!rec || !rec.status) counts.none++;
+    else if(counts[rec.status] !== undefined) counts[rec.status]++;
+  });
+
+  const rows = reps.map(function(r){
+    const rec = map[r.id] || { status:'', note:'' };
+    const s = rec.status || '';
+    return '<tr>'
+      + '<td><div style="display:flex;align-items:center;gap:10px">'
+      +   '<div style="width:34px;height:34px;border-radius:50%;background:var(--grad-brand);color:#fff;display:grid;place-items:center;font-weight:800;flex:0 0 34px">'+esc((r.name||'?')[0]||'?')+'</div>'
+      +   '<div><b>'+esc(r.name||'')+'</b><div class="small muted">'+esc(r.code||'')+' · '+esc(r.region||'')+'</div></div>'
+      + '</div></td>'
+      + '<td class="muted small">'+esc(supName(r.supervisorId))+'</td>'
+      + '<td><div class="row" style="gap:6px;justify-content:center;flex-wrap:wrap">'
+      +   ATT_STATUSES.map(function(st){
+            const isActive = s === st.id;
+            const style = isActive
+              ? 'background:'+st.color+';color:#fff;border-color:transparent;font-weight:700'
+              : 'background:transparent;color:var(--text-2)';
+            return '<button type="button" data-att-status="'+st.id+'" data-att-id="'+r.id+'" class="btn btn-sm" style="'+style+'"><i class="fa-solid fa-'+st.icon+'"></i> '+st.label+'</button>';
+          }).join('')
+      + '</div></td>'
+      + '<td><input type="text" data-att-note="'+r.id+'" value="'+esc(rec.note||'')+'" placeholder="ملاحظة"></td>'
+      + '</tr>';
+  }).join('');
+
+  return '<div class="day-picker">'
+    + '<span class="dp-label"><i class="fa-solid fa-calendar-day"></i> التاريخ</span>'
+    + '<input type="date" id="attDate" value="'+date+'">'
+    + '<button class="btn btn-sm btn-primary" id="attToday">اليوم</button>'
+    + '<span class="dp-day-name">'+dayName(date)+' — '+date+'</span>'
+    + '</div>'
+    + '<div class="grid g3">'
+    +   kpiCard('<i class="fa-solid fa-users"></i>','إجمالي السائقين', reps.length, '#6366f1')
+    +   kpiCard('<i class="fa-solid fa-circle-check"></i>','حاضر', counts.present, '#10b981')
+    +   kpiCard('<i class="fa-solid fa-clock"></i>','متأخر', counts.late, '#f59e0b')
+    +   kpiCard('<i class="fa-solid fa-circle-xmark"></i>','غائب', counts.absent, '#ef4444')
+    +   kpiCard('<i class="fa-solid fa-plane"></i>','إجازة', counts.leave, '#3b82f6')
+    +   kpiCard('<i class="fa-solid fa-bed"></i>','راحة', counts.rest, '#8b5cf6')
+    + '</div>'
+    + '<div class="card">'
+    +   '<div class="card-head"><i class="fa-solid fa-clipboard-user"></i> سجل الحضور والغياب — '+date
+    +     '<span class="spacer"></span>'
+    +     '<span class="chip gray" title="لم يتم تحديد حالتهم">بدون تحديد: '+counts.none+'</span>'
+    +     '<button class="btn btn-primary btn-sm" id="attSave"><i class="fa-solid fa-floppy-disk"></i> حفظ</button>'
+    +   '</div>'
+    +   '<div class="tbl-wrap"><table>'
+    +     '<thead><tr><th>السائق</th><th>المشرف</th><th style="text-align:center">الحالة (اختر يدوياً)</th><th>ملاحظة</th></tr></thead>'
+    +     '<tbody>'+(rows || '<tr><td colspan="4" class="empty">لا يوجد سائقون</td></tr>')+'</tbody>'
+    +   '</table></div>'
+    + '</div>';
+}
+
+function myAfterAttendanceV16(){
+  const dateEl = document.getElementById('attDate');
+  if(dateEl) dateEl.onchange = function(e){ state.attendanceDate = e.target.value; render(); };
+  const todayBtn = document.getElementById('attToday');
+  if(todayBtn) todayBtn.onclick = function(){ state.attendanceDate = todayStr(); render(); };
+
+  document.querySelectorAll('[data-att-status]').forEach(function(btn){
+    btn.onclick = function(){
+      const id = btn.dataset.attId;
+      const st = btn.dataset.attStatus;
+      const date = state.attendanceDate || todayStr();
+      if(!Array.isArray(db.attendance)) db.attendance = [];
+      let rec = db.attendance.find(function(a){ return a.repId === id && a.date === date; });
+
+      // Toggle off
+      if(rec && rec.status === st){
+        rec.status = '';
+        rec.updatedAt = new Date().toISOString();
+        saveDB();
+        btn.parentNode.querySelectorAll('[data-att-status]').forEach(function(b){
+          b.style.background = 'transparent';
+          b.style.color = 'var(--text-2)';
+          b.style.borderColor = '';
+          b.style.fontWeight = '600';
+        });
+        return;
+      }
+
+      if(!rec){
+        rec = { id:'att_'+Date.now()+Math.random().toString(36).slice(2,6), repId:id, date:date, status:st, note:'', updatedAt:new Date().toISOString() };
+        db.attendance.push(rec);
+      } else {
+        rec.status = st;
+        rec.updatedAt = new Date().toISOString();
+      }
+      saveDB();
+
+      const stObj = ATT_STATUSES.find(function(x){ return x.id === st; });
+      btn.parentNode.querySelectorAll('[data-att-status]').forEach(function(b){
+        b.style.background = 'transparent';
+        b.style.color = 'var(--text-2)';
+        b.style.borderColor = '';
+        b.style.fontWeight = '600';
+      });
+      btn.style.background = stObj ? stObj.color : 'var(--primary)';
+      btn.style.color = '#fff';
+      btn.style.borderColor = 'transparent';
+      btn.style.fontWeight = '700';
+    };
+  });
+
+  document.querySelectorAll('[data-att-note]').forEach(function(inp){
+    inp.onchange = function(){
+      const id = inp.dataset.attNote;
+      const date = state.attendanceDate || todayStr();
+      if(!Array.isArray(db.attendance)) db.attendance = [];
+      let rec = db.attendance.find(function(a){ return a.repId === id && a.date === date; });
+      if(!rec){
+        rec = { id:'att_'+Date.now()+Math.random().toString(36).slice(2,6), repId:id, date:date, status:'', note:inp.value, updatedAt:new Date().toISOString() };
+        db.attendance.push(rec);
+      } else {
+        rec.note = inp.value;
+        rec.updatedAt = new Date().toISOString();
+      }
+      saveDB();
+    };
+  });
+
+  const saveBtn = document.getElementById('attSave');
+  if(saveBtn) saveBtn.onclick = function(){
+    saveDB();
+    if(typeof toast === 'function') toast('✅ تم الحفظ','ok');
+    if(typeof autoSyncAfterSave === 'function') autoSyncAfterSave();
+  };
+}
+
+window.viewAttendance = myViewAttendanceV16;
+window.afterAttendance = myAfterAttendanceV16;
+
+/* ═══════════════════════════════════════════════════════════
+   F6 — الحد الأقصى للمخالفات قابل للتعديل يدوياً
+   ═══════════════════════════════════════════════════════════ */
+window.openMaxViolEditModal = function(){
+  const period = state.goalPeriod || db.settings.activeGoalPeriod || 'monthly';
+  const targetId = state.goalTarget || 'owner';
+
+  let currentVal = 0;
+  let targetLabel = '';
+  if(targetId === 'owner'){
+    currentVal = num(db.goals && db.goals[period] && db.goals[period].maxViolations) || 0;
+    targetLabel = 'الهدف العام';
+  } else {
+    const sup = getSup(targetId);
+    currentVal = sup ? (num(sup.goals && sup.goals[period] && sup.goals[period].maxViolations) || 0) : 0;
+    targetLabel = sup ? sup.name : '';
+  }
+
+  const periodLabel = period === 'daily' ? 'يومي' : period === 'weekly' ? 'أسبوعي' : 'شهري';
+
+  const body = '<form id="maxViolForm" class="form-grid" novalidate>'
+    + '<div class="field" style="grid-column:1/-1">'
+    +   '<div class="small muted" style="padding:12px 14px;border-radius:10px;background:var(--amber-soft);border:1px solid #fde68a;line-height:1.7">'
+    +     '🎯 '+targetLabel+' · '+periodLabel+' — يُحتسب أي عدد مخالفات أقل من هذا الحد كأداء جيد.'
+    +   '</div>'
+    + '</div>'
+    + '<div class="field" style="grid-column:1/-1">'
+    +   '<label>الحد الأقصى للمخالفات <span class="req">*</span></label>'
+    +   '<input type="number" id="maxViolInput" min="0" step="1" value="'+currentVal+'" required>'
+    +   '<span class="hint">أدخل 0 لتعطيل هذا المؤشر</span>'
+    + '</div>'
+    + '<div id="maxViolErr" class="err" style="display:none;grid-column:1/-1"></div>'
+    + '</form>';
+
+  openModal({
+    title: '✏️ تعديل الحد الأقصى للمخالفات',
+    body: body,
+    submitText: '💾 حفظ',
+    onSubmit: function(root){
+      const val = num(root.querySelector('#maxViolInput').value);
+      if(targetId === 'owner'){
+        if(!db.goals) db.goals = defaultGoals();
+        if(!db.goals[period]) db.goals[period] = {};
+        db.goals[period].maxViolations = val;
+      } else {
+        const sup = getSup(targetId);
+        if(sup){
+          if(!sup.goals) sup.goals = defaultGoals();
+          if(!sup.goals[period]) sup.goals[period] = {};
+          sup.goals[period].maxViolations = val;
+        }
+      }
+      saveDB();
+      render();
+      if(typeof toast === 'function') toast('✅ تم حفظ الحد الأقصى للمخالفات','ok');
+      if(typeof autoSyncAfterSave === 'function') autoSyncAfterSave();
+      return true;
+    }
+  });
+};
+
+/* ═══════════════════════════════════════════════════════════
+   F8 — حقل المعادلة داخل نافذة إنشاء الهدف
+   ═══════════════════════════════════════════════════════════ */
+function enhanceGoalsModalV16(){
+  const modal = document.querySelector('#modalRoot .modal');
+  if(!modal || modal.querySelector('#v16GoalsEnhanced')) return;
+
+  const marker = document.createElement('div');
+  marker.id = 'v16GoalsEnhanced';
+  marker.style.display = 'none';
+  modal.appendChild(marker);
+
+  /* 1) تحديث رأس الجدول لإضافة عمود "الحد الأقصى للمخالفات" */
+  const table = modal.querySelector('#supTargetsBody') ? modal.querySelector('#supTargetsBody').closest('table') : null;
+  if(table){
+    const headerRow = table.querySelector('thead tr');
+    if(headerRow && !headerRow.querySelector('[data-v16-maxviol-header]')){
+      const ordersTh = headerRow.querySelector('th:nth-child(3)');
+      if(ordersTh){
+        const newTh = document.createElement('th');
+        newTh.setAttribute('data-v16-maxviol-header','1');
+        newTh.textContent = 'الحد الأقصى للمخالفات';
+        ordersTh.after(newTh);
+      }
+    }
+  }
+
+  /* 2) إضافة حقل maxViolations للقسم العام */
+  const genOrders = modal.querySelector('#generalOrders');
+  const genPeriod = modal.querySelector('#generalPeriod');
+  if(genOrders && !modal.querySelector('#generalMaxViol')){
+    const genField = genOrders.closest('.field');
+    if(genField){
+      const currentPeriod = genPeriod ? genPeriod.value : 'monthly';
+      const currentMaxViol = num(db.goals && db.goals[currentPeriod] && db.goals[currentPeriod].maxViolations) || 0;
+      const field = document.createElement('div');
+      field.className = 'field';
+      field.innerHTML = '<label>الحد الأقصى للمخالفات <span class="small muted">(يدوي)</span></label>'
+        + '<input type="number" min="0" step="1" id="generalMaxViol" value="'+currentMaxViol+'" placeholder="0">';
+      genField.after(field);
+
+      const maxViolInp = field.querySelector('#generalMaxViol');
+      maxViolInp.onchange = function(){
+        const period = genPeriod ? genPeriod.value : 'monthly';
+        if(!db.goals) db.goals = defaultGoals();
+        if(!db.goals[period]) db.goals[period] = {};
+        db.goals[period].maxViolations = num(maxViolInp.value);
+        saveDB();
+      };
+
+      if(genPeriod){
+        genPeriod.addEventListener('change', function(){
+          setTimeout(function(){
+            const newPeriod = genPeriod.value;
+            const newVal = num(db.goals && db.goals[newPeriod] && db.goals[newPeriod].maxViolations) || 0;
+            maxViolInp.value = newVal;
+          }, 50);
+        });
+      }
+    }
+  }
+
+  /* 3) تحديث صفوف المشرفين الحالية */
+  const updateSupRow = function(row){
+    if(row.querySelector('[data-sf="maxViolations"]')) return;
+    const ordersInp = row.querySelector('[data-sf="orders"]');
+    if(!ordersInp) return;
+    const ordersCell = ordersInp.closest('td');
+    if(!ordersCell) return;
+
+    const periodSel = row.querySelector('[data-sf="period"]');
+    const supSel = row.querySelector('[data-sf="supId"]');
+    const currentPeriod = periodSel ? periodSel.value : 'monthly';
+    const supId = supSel ? supSel.value : '';
+    let currentMaxViol = 0;
+    if(supId){
+      const sup = getSup(supId);
+      currentMaxViol = sup ? (num(sup.goals && sup.goals[currentPeriod] && sup.goals[currentPeriod].maxViolations) || 0) : 0;
+    }
+
+    const newCell = document.createElement('td');
+    newCell.innerHTML = '<input type="number" min="0" step="1" data-sf="maxViolations" value="'+currentMaxViol+'" placeholder="0" style="min-width:100px;text-align:center">';
+    ordersCell.after(newCell);
+
+    const maxViolInp = newCell.querySelector('[data-sf="maxViolations"]');
+    maxViolInp.onchange = function(){
+      const sid = supSel ? supSel.value : '';
+      const per = periodSel ? periodSel.value : '';
+      if(!sid || !per) return;
+      const sup = getSup(sid);
+      if(!sup) return;
+      if(!sup.goals) sup.goals = defaultGoals();
+      if(!sup.goals[per]) sup.goals[per] = {};
+      sup.goals[per].maxViolations = num(maxViolInp.value);
+      saveDB();
+    };
+
+    if(periodSel){
+      periodSel.addEventListener('change', function(){
+        setTimeout(function(){
+          const sid = supSel ? supSel.value : '';
+          const per = periodSel.value;
+          const sup = sid ? getSup(sid) : null;
+          maxViolInp.value = sup ? (num(sup.goals && sup.goals[per] && sup.goals[per].maxViolations) || 0) : 0;
+        }, 50);
+      });
+    }
+    if(supSel){
+      supSel.addEventListener('change', function(){
+        setTimeout(function(){
+          const sid = supSel.value;
+          const per = periodSel ? periodSel.value : 'monthly';
+          const sup = sid ? getSup(sid) : null;
+          maxViolInp.value = sup ? (num(sup.goals && sup.goals[per] && sup.goals[per].maxViolations) || 0) : 0;
+        }, 50);
+      });
+    }
+  };
+
+  modal.querySelectorAll('[data-sup-target-row]').forEach(updateSupRow);
+
+  /* 4) ربط زر إضافة صف مشرف لإضافة maxViolations للصف الجديد */
+  const addBtn = modal.querySelector('#addSupTargetBtn');
+  if(addBtn && !addBtn.dataset.v16hooked){
+    addBtn.dataset.v16hooked = '1';
+    const origClick = addBtn.onclick;
+    addBtn.onclick = function(e){
+      if(origClick) origClick.call(this, e);
+      setTimeout(function(){
+        const rows = modal.querySelectorAll('[data-sup-target-row]');
+        const lastRow = rows[rows.length - 1];
+        if(lastRow) updateSupRow(lastRow);
+      }, 60);
+    };
+  }
+
+  /* 5) إضافة قسم المعادلة في نهاية النموذج */
+  const form = modal.querySelector('#gForm');
+  if(form && !modal.querySelector('#goalFormulaSection')){
+    const formulaSection = document.createElement('div');
+    formulaSection.id = 'goalFormulaSection';
+    formulaSection.style.cssText = 'margin-top:18px;padding:16px;border-radius:14px;background:linear-gradient(135deg,rgba(139,92,246,.08),rgba(6,182,212,.05));border:1px dashed var(--primary)';
+    formulaSection.innerHTML = ''
+      + '<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">'
+      +   '<span style="font-size:22px">🧮</span>'
+      +   '<div style="flex:1;min-width:150px">'
+      +     '<div style="font-weight:800;font-size:14px">إنشاء هدف بمعادلة</div>'
+      +     '<div class="small muted" style="margin-top:2px">اختياري — يتيح إنشاء مؤشر ديناميكي يُحسب تلقائياً</div>'
+      +   '</div>'
+      + '</div>'
+      + '<div class="form-grid" style="gap:12px">'
+      +   '<div class="field"><label>اسم المؤشر</label>'
+      +     '<input id="v16FormulaName" placeholder="مثال: كفاءة التسليم"></div>'
+      +   '<div class="field"><label>المعادلة</label>'
+      +     '<input id="v16FormulaExpr" dir="ltr" placeholder="orders / reps" style="font-family:monospace">'
+      +     '<span class="hint">المتغيرات: orders, hours, violations, accepted, rejected, reps, days — العمليات: + - * / ( )</span>'
+      +     '<div id="v16FormulaPreview" class="small" style="margin-top:4px;font-weight:700"></div></div>'
+      +   '<div class="field"><label>الهدف</label>'
+      +     '<input type="number" id="v16FormulaTarget" step="0.01" value="0" placeholder="0"></div>'
+      +   '<div class="field"><label>الفترة</label>'
+      +     '<select id="v16FormulaPeriod">'
+      +       '<option value="daily">يومي</option>'
+      +       '<option value="weekly">أسبوعي</option>'
+      +       '<option value="monthly" selected>شهري</option>'
+      +     '</select></div>'
+      + '</div>'
+      + '<div class="row" style="margin-top:12px;justify-content:flex-end">'
+      +   '<button type="button" class="btn btn-sm btn-primary" id="v16AddFormulaBtn">➕ إضافة المعادلة</button>'
+      + '</div>';
+    form.appendChild(formulaSection);
+
+    const exprInp = formulaSection.querySelector('#v16FormulaExpr');
+    const preview = formulaSection.querySelector('#v16FormulaPreview');
+    exprInp.oninput = function(){
+      if(!exprInp.value.trim()){ preview.textContent = ''; return; }
+      try{
+        if(typeof safeEval === 'function'){
+          const v = safeEval(exprInp.value, {orders:100,hours:50,violations:5,accepted:4,rejected:1,reps:4,days:30});
+          preview.textContent = '✅ القيمة التجريبية: ' + v;
+          preview.style.color = '#10b981';
+        }
+      }catch(e){
+        preview.textContent = '❌ ' + e.message;
+        preview.style.color = '#ef4444';
+      }
+    };
+
+    formulaSection.querySelector('#v16AddFormulaBtn').onclick = function(){
+      const name = formulaSection.querySelector('#v16FormulaName').value.trim();
+      const expr = formulaSection.querySelector('#v16FormulaExpr').value.trim();
+      const target = num(formulaSection.querySelector('#v16FormulaTarget').value);
+      const period = formulaSection.querySelector('#v16FormulaPeriod').value;
+
+      if(!name || !expr){ if(typeof toast === 'function') toast('يرجى إدخال اسم المؤشر والمعادلة','warn'); return; }
+
+      try{
+        if(typeof safeEval === 'function'){
+          safeEval(expr, {orders:1,hours:1,violations:1,accepted:1,rejected:1,reps:1,days:1});
+        }
+      }catch(e){
+        if(typeof toast === 'function') toast('معادلة غير صالحة: ' + e.message, 'err');
+        return;
+      }
+
+      if(!db.settings.goalFormulas) db.settings.goalFormulas = [];
+      db.settings.goalFormulas.push({
+        id: 'fml_' + Date.now() + '_' + Math.random().toString(36).slice(2,6),
+        name: name, expression: expr, target: target, period: period
+      });
+      saveDB();
+      if(typeof toast === 'function') toast('✅ تمت إضافة المعادلة', 'ok');
+
+      formulaSection.querySelector('#v16FormulaName').value = '';
+      formulaSection.querySelector('#v16FormulaExpr').value = '';
+      formulaSection.querySelector('#v16FormulaTarget').value = 0;
+      preview.textContent = '';
+    };
+  }
+}
+
+const _origGoalsModalV16 = window.goalsModal;
+if(typeof _origGoalsModalV16 === 'function'){
+  window.goalsModal = function(){
+    _origGoalsModalV16.apply(this, arguments);
+    setTimeout(enhanceGoalsModalV16, 200);
+  };
+}
+
+/* ═══════════════════════════════════════════════════════════
+   F7 + F6 (تكامل) — تعديل viewGoals
+   - إزالة بطاقة "الحد الأدنى لنسبة القبول"
+   - إضافة زر تعديل لحدود المخالفات
+   - إزالة عمودها من الجدول
+   ═══════════════════════════════════════════════════════════ */
+const _origViewGoalsV16 = window.viewGoals;
+if(typeof _origViewGoalsV16 === 'function'){
+  window.viewGoals = function(){
+    let html = _origViewGoalsV16.apply(this, arguments);
+
+    try{
+      const temp = document.createElement('div');
+      temp.innerHTML = html;
+
+      /* 1) إزالة بطاقة الحد الأدنى لنسبة القبول */
+      temp.querySelectorAll('.goal-card').forEach(function(card){
+        const text = card.textContent || '';
+        if(text.includes('الحد الأدنى لنسبة قبول المخالفات') ||
+           text.includes('Min Violation Acceptance')){
+          card.remove();
+        }
+      });
+
+      /* 2) إضافة زر تعديل لبطة الحد الأقصى للمخالفات */
+      temp.querySelectorAll('.goal-card').forEach(function(card){
+        const text = card.textContent || '';
+        if((text.includes('الحد الأقصى للمخالفات') || text.includes('Max Violations')) &&
+           !card.querySelector('[data-edit-maxviol]')){
+          const title = card.querySelector('.goal-title');
+          if(title){
+            title.style.display = 'flex';
+            title.style.alignItems = 'center';
+            title.style.gap = '8px';
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.setAttribute('data-edit-maxviol','1');
+            btn.className = 'btn btn-ghost btn-sm';
+            btn.style.marginInlineStart = 'auto';
+            btn.style.color = 'var(--primary)';
+            btn.style.padding = '4px 8px';
+            btn.innerHTML = '✏️';
+            btn.title = 'تعديل الحد الأقصى';
+            title.appendChild(btn);
+          }
+        }
+      });
+
+      /* 3) إزالة عمود "الحد الأدنى لنسبة القبول" من الجدول */
+      temp.querySelectorAll('table').forEach(function(table){
+        const headerRow = table.querySelector('thead tr');
+        if(!headerRow) return;
+        const headers = Array.from(headerRow.children);
+        let colIdx = -1;
+        headers.forEach(function(th, i){
+          const text = th.textContent || '';
+          if(text.includes('الحد الأدنى لنسبة قبول') || text.includes('Min Violation Acceptance')){
+            colIdx = i;
+          }
+        });
+        if(colIdx < 0) return;
+        table.querySelectorAll('tr').forEach(function(tr){
+          const cells = tr.children;
+          if(cells[colIdx]) cells[colIdx].remove();
+        });
+      });
+
+      html = temp.innerHTML;
+    }catch(e){ console.warn('[v16 viewGoals]', e); }
+
+    return html;
+  };
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Override render — attendance + hooks + print button
+   ═══════════════════════════════════════════════════════════ */
+const _origRenderV16 = window.render;
+if(typeof _origRenderV16 === 'function'){
+  window.render = function(){
+    /* 1) الحضور — النسخة المعدّلة */
+    if(state.section === 'attendance'){
+      try{
+        if(typeof applyBranding === 'function') applyBranding();
+        document.documentElement.dir = state.lang === 'ar' ? 'rtl' : 'ltr';
+        document.documentElement.lang = state.lang;
+        if(typeof renderNav === 'function') renderNav();
+        const pt = document.getElementById('pageTitle');
+        if(pt) pt.textContent = 'الحضور والغياب';
+        const view = document.getElementById('view');
+        if(view) view.innerHTML = myViewAttendanceV16();
+        myAfterAttendanceV16();
+        if(typeof applySettings === 'function') applySettings();
+        if(typeof attachCollapseButtons === 'function') attachCollapseButtons();
+        if(typeof applyFont === 'function') applyFont();
+      }catch(e){ console.error('[v16 attendance]', e); }
+      return;
+    }
+
+    /* 2) باقي الأقسام — ندعها تعمل طبيعياً */
+    const r = _origRenderV16.apply(this, arguments);
+
+    setTimeout(function(){
+      try{ setupPrintButtonV16(); }catch(e){}
+      try{ rebindForgotLink(); }catch(e){}
+      /* ربط أزرار تعديل حدود المخالفات */
+      try{
+        document.querySelectorAll('[data-edit-maxviol]').forEach(function(b){
+          if(b.dataset.v16bound === '1') return;
+          b.dataset.v16bound = '1';
+          b.onclick = function(e){
+            e.preventDefault();
+            e.stopPropagation();
+            window.openMaxViolEditModal();
+          };
+        });
+      }catch(e){}
+    }, 80);
+
+    return r;
+  };
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Boot
+   ═══════════════════════════════════════════════════════════ */
+function bootV16(){
+  try{ setupPrintButtonV16(); }catch(e){ console.warn('[v16 print]', e); }
+  try{ ensureForgotLink(); }catch(e){}
+  try{ addRememberMe(); }catch(e){}
+  try{ loadSavedCreds(); }catch(e){}
+}
+
+if(document.readyState === 'loading'){
+  document.addEventListener('DOMContentLoaded', bootV16);
+} else {
+  bootV16();
+}
+window.addEventListener('load', function(){
+  setTimeout(bootV16, 500);
+  setTimeout(bootV16, 1500);
+  setTimeout(bootV16, 3000);
+});
+
+console.log('%c[v16] ✅ All requested changes applied:', 'color:#10b981;font-weight:bold;font-size:13px');
+console.log('  • 🔑 Sync keys shown for supervisors');
+console.log('  • 🖨️ Print orientation button (portrait/landscape/auto)');
+console.log('  • 🔐 Forgot password from login screen');
+console.log('  • 💾 Remember password checkbox');
+console.log('  • 📅 Attendance: empty default + leave/rest statuses');
+console.log('  • ✏️ Max violations manually editable (modal + inline)');
+console.log('  • 🚫 Min accept rate card removed (view + table)');
+console.log('  • 🧮 Formula field inside goal creation modal');
+})();
+</script>
 </body>
 </html>
