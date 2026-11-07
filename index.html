@@ -11699,5 +11699,530 @@ console.log('  • 🚫 Min accept rate card removed (view + table)');
 console.log('  • 🧮 Formula field inside goal creation modal');
 })();
 </script>
+<!-- ============================================================
+     FINAL PATCH v17 — Sync persistence + Hours goal + Per-section export
+     ============================================================ -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+(function(){
+'use strict';
+if(window._v17Loaded) return;
+window._v17Loaded = true;
+console.log('%c[v17] Loading final patch...', 'color:#6366f1;font-weight:bold;font-size:13px');
+
+/* ═══════════════════════════════════════════════════════════
+   1) المزامنة بدون انقطاع — إلغاء Auto-Logout
+   ═══════════════════════════════════════════════════════════ */
+window.resetInactivity = function(){
+  try{ clearTimeout(inactivityTimer); }catch(e){}
+  // لا يوجد مؤقت — الجلسة تبقى نشطة طالما التبويب مفتوح
+  // الفصل فقط عبر زر "تسجيل الخروج" اليدوي
+};
+
+/* الحفاظ على مفاتيح السحابة حتى بعد أي logout تلقائي */
+const _origDoLogoutV17 = window.doLogout;
+window.doLogout = function(silent){
+  const savedCfg = (cloudCfg && cloudCfg.key && cloudCfg.binId) ? {key:cloudCfg.key, binId:cloudCfg.binId} : null;
+  const savedMode = state.cloudMode;
+  const result = _origDoLogoutV17.call(this, silent);
+  if(silent && savedCfg){
+    cloudCfg = savedCfg;
+    state.cloudMode = savedMode;
+    try{
+      if(savedMode) sessionStorage.setItem(CLOUD_SESSION_KEY, JSON.stringify(savedCfg));
+      if(typeof setCloudStatus === 'function') setCloudStatus('on');
+    }catch(e){}
+  }
+  return result;
+};
+
+/* ═══════════════════════════════════════════════════════════
+   2) هدف ساعات العمل — تعديل يدوي
+   ═══════════════════════════════════════════════════════════ */
+window.openHoursEditModal = function(){
+  const period = state.goalPeriod || (db.settings && db.settings.activeGoalPeriod) || 'monthly';
+  const targetId = state.goalTarget || 'owner';
+  let currentVal = 0, targetLabel = '';
+  if(targetId === 'owner'){
+    currentVal = num(db.goals && db.goals[period] && db.goals[period].hours) || 0;
+    targetLabel = 'الهدف العام';
+  } else {
+    const sup = getSup(targetId);
+    currentVal = sup ? (num(sup.goals && sup.goals[period] && sup.goals[period].hours) || 0) : 0;
+    targetLabel = sup ? sup.name : '';
+  }
+  const periodLabel = period === 'daily' ? 'يومي' : period === 'weekly' ? 'أسبوعي' : 'شهري';
+  const body = `
+    <form id="hoursForm" class="form-grid" novalidate>
+      <div class="field" style="grid-column:1/-1">
+        <div class="small muted" style="padding:12px 14px;border-radius:10px;background:var(--primary-soft);border:1px solid var(--border)">
+          🎯 ${targetLabel} · ${periodLabel}
+        </div>
+      </div>
+      <div class="field" style="grid-column:1/-1">
+        <label>هدف ساعات العمل <span class="req">*</span></label>
+        <input type="number" id="hoursInput" min="0" step="0.5" value="${currentVal}" required>
+        <span class="hint">أدخل 0 لتعطيل هذا المؤشر</span>
+      </div>
+      <div id="hoursErr" class="err" style="display:none;grid-column:1/-1"></div>
+    </form>`;
+  openModal({
+    title: '✏️ تعديل هدف ساعات العمل',
+    body: body,
+    submitText: '💾 حفظ',
+    onSubmit(root){
+      const val = num(root.querySelector('#hoursInput').value);
+      if(targetId === 'owner'){
+        if(!db.goals) db.goals = defaultGoals();
+        if(!db.goals[period]) db.goals[period] = {};
+        db.goals[period].hours = val;
+      } else {
+        const sup = getSup(targetId);
+        if(sup){
+          if(!sup.goals) sup.goals = defaultGoals();
+          if(!sup.goals[period]) sup.goals[period] = {};
+          sup.goals[period].hours = val;
+        }
+      }
+      saveDB(); render();
+      if(typeof toast === 'function') toast('✅ تم حفظ هدف ساعات العمل','ok');
+      if(typeof autoSyncAfterSave === 'function') autoSyncAfterSave();
+      return true;
+    }
+  });
+};
+
+/* تحسين نافذة الأهداف: إضافة حقل الساعات للقسم العام ولصفوف المشرفين */
+const _origGoalsModalV17 = window.goalsModal;
+window.goalsModal = function(){
+  _origGoalsModalV17.apply(this, arguments);
+  setTimeout(enhanceGoalsModalHours, 240);
+};
+
+function enhanceGoalsModalHours(){
+  const modal = document.querySelector('#modalRoot .modal');
+  if(!modal || modal.querySelector('#hoursEnhancedV17')) return;
+  const marker = document.createElement('div');
+  marker.id = 'hoursEnhancedV17'; marker.style.display = 'none';
+  modal.appendChild(marker);
+
+  // رأس عمود "هدف الساعات" في جدول المشرفين
+  const table = modal.querySelector('#supTargetsBody') ? modal.querySelector('#supTargetsBody').closest('table') : null;
+  if(table){
+    const headerRow = table.querySelector('thead tr');
+    if(headerRow && !headerRow.querySelector('[data-v17-hours-header]')){
+      const ordersTh = headerRow.querySelector('th:nth-child(3)');
+      if(ordersTh){
+        const newTh = document.createElement('th');
+        newTh.setAttribute('data-v17-hours-header','1');
+        newTh.textContent = 'هدف الساعات';
+        ordersTh.after(newTh);
+      }
+    }
+  }
+
+  // حقل الساعات للقسم العام
+  const genOrders = modal.querySelector('#generalOrders');
+  const genPeriod = modal.querySelector('#generalPeriod');
+  if(genOrders && !modal.querySelector('#generalHours')){
+    const genField = genOrders.closest('.field');
+    if(genField){
+      const curPeriod = genPeriod ? genPeriod.value : 'monthly';
+      const curHours = num(db.goals && db.goals[curPeriod] && db.goals[curPeriod].hours) || 0;
+      const field = document.createElement('div');
+      field.className = 'field';
+      field.innerHTML = `<label>هدف ساعات العمل <span class="small muted">(يدوي)</span></label>
+        <input type="number" min="0" step="0.5" id="generalHours" value="${curHours}" placeholder="0">`;
+      genField.after(field);
+      const hoursInp = field.querySelector('#generalHours');
+      hoursInp.onchange = function(){
+        const period = genPeriod ? genPeriod.value : 'monthly';
+        if(!db.goals) db.goals = defaultGoals();
+        if(!db.goals[period]) db.goals[period] = {};
+        db.goals[period].hours = num(hoursInp.value);
+        saveDB();
+      };
+      if(genPeriod){
+        genPeriod.addEventListener('change', function(){
+          setTimeout(function(){
+            const newP = genPeriod.value;
+            hoursInp.value = num(db.goals && db.goals[newP] && db.goals[newP].hours) || 0;
+          }, 50);
+        });
+      }
+    }
+  }
+
+  // حقل الساعات لكل صف مشرف
+  const updateSupRow = function(row){
+    if(row.querySelector('[data-sf="hours"]')) return;
+    const ordersInp = row.querySelector('[data-sf="orders"]');
+    if(!ordersInp) return;
+    const ordersCell = ordersInp.closest('td');
+    if(!ordersCell) return;
+    const periodSel = row.querySelector('[data-sf="period"]');
+    const supSel = row.querySelector('[data-sf="supId"]');
+    const curPeriod = periodSel ? periodSel.value : 'monthly';
+    const supId = supSel ? supSel.value : '';
+    let curHours = 0;
+    if(supId){
+      const sup = getSup(supId);
+      curHours = sup ? (num(sup.goals && sup.goals[curPeriod] && sup.goals[curPeriod].hours) || 0) : 0;
+    }
+    const newCell = document.createElement('td');
+    newCell.innerHTML = '<input type="number" min="0" step="0.5" data-sf="hours" value="'+curHours+'" placeholder="0" style="min-width:100px;text-align:center">';
+    ordersCell.after(newCell);
+    const hoursInp = newCell.querySelector('[data-sf="hours"]');
+    hoursInp.onchange = function(){
+      const sid = supSel ? supSel.value : '';
+      const per = periodSel ? periodSel.value : '';
+      if(!sid || !per) return;
+      const sup = getSup(sid); if(!sup) return;
+      if(!sup.goals) sup.goals = defaultGoals();
+      if(!sup.goals[per]) sup.goals[per] = {};
+      sup.goals[per].hours = num(hoursInp.value);
+      saveDB();
+    };
+    if(periodSel){
+      periodSel.addEventListener('change', function(){
+        setTimeout(function(){
+          const sid = supSel ? supSel.value : '';
+          const per = periodSel.value;
+          const sup = sid ? getSup(sid) : null;
+          hoursInp.value = sup ? (num(sup.goals && sup.goals[per] && sup.goals[per].hours) || 0) : 0;
+        }, 50);
+      });
+    }
+    if(supSel){
+      supSel.addEventListener('change', function(){
+        setTimeout(function(){
+          const sid = supSel.value;
+          const per = periodSel ? periodSel.value : 'monthly';
+          const sup = sid ? getSup(sid) : null;
+          hoursInp.value = sup ? (num(sup.goals && sup.goals[per] && sup.goals[per].hours) || 0) : 0;
+        }, 50);
+      });
+    }
+  };
+  modal.querySelectorAll('[data-sup-target-row]').forEach(updateSupRow);
+
+  const addBtn = modal.querySelector('#addSupTargetBtn');
+  if(addBtn && !addBtn.dataset.v17hooked){
+    addBtn.dataset.v17hooked = '1';
+    const origClick = addBtn.onclick;
+    addBtn.onclick = function(e){
+      if(origClick) origClick.call(this, e);
+      setTimeout(function(){
+        const rows = modal.querySelectorAll('[data-sup-target-row]');
+        const last = rows[rows.length - 1];
+        if(last) updateSupRow(last);
+      }, 60);
+    };
+  }
+}
+
+/* زر ✏️ على بطاقة هدف الساعات في شاشة الأهداف */
+const _origViewGoalsV17 = window.viewGoals;
+window.viewGoals = function(){
+  let html = _origViewGoalsV17.apply(this, arguments);
+  try{
+    const temp = document.createElement('div');
+    temp.innerHTML = html;
+    temp.querySelectorAll('.goal-card').forEach(function(card){
+      const text = card.textContent || '';
+      if((text.includes('هدف ساعات العمل') || text.includes('Hours Target')) &&
+         !card.querySelector('[data-edit-hours]')){
+        const title = card.querySelector('.goal-title');
+        if(title){
+          title.style.display = 'flex';
+          title.style.alignItems = 'center';
+          title.style.gap = '8px';
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.setAttribute('data-edit-hours','1');
+          btn.className = 'btn btn-ghost btn-sm';
+          btn.style.marginInlineStart = 'auto';
+          btn.style.color = 'var(--primary)';
+          btn.style.padding = '4px 8px';
+          btn.innerHTML = '✏️';
+          btn.title = 'تعديل هدف الساعات';
+          title.appendChild(btn);
+        }
+      }
+    });
+    html = temp.innerHTML;
+  }catch(e){ console.warn('[v17 viewGoals]', e); }
+  return html;
+};
+
+/* ═══════════════════════════════════════════════════════════
+   3) التصدير لكل قسم — PDF / Excel / CSV
+   ═══════════════════════════════════════════════════════════ */
+async function loadScript(src){
+  return new Promise(function(resolve, reject){
+    const s = document.createElement('script');
+    s.src = src; s.onload = resolve; s.onerror = reject;
+    document.head.appendChild(s);
+  });
+}
+async function ensureExportLibs(){
+  if(!window.html2canvas){
+    try{ await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js'); }catch(e){}
+  }
+  if(!window.jspdf){
+    try{ await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'); }catch(e){}
+  }
+  if(!window.XLSX){
+    throw new Error('XLSX library not loaded');
+  }
+}
+
+function addExportButtons(){
+  document.querySelectorAll('#view .card').forEach(function(card){
+    if(card.querySelector('.export-btn-v17')) return;
+    const head = card.querySelector('.card-head');
+    if(!head) return;
+    if(!card.querySelector('table, .cards-grid, .item-card, svg.chart')) return;
+    const btn = document.createElement('button');
+    btn.className = 'btn btn-ghost btn-sm export-btn-v17';
+    btn.type = 'button';
+    btn.innerHTML = '📤';
+    btn.title = 'تصدير هذا القسم';
+    btn.style.marginInlineStart = '4px';
+    btn.style.color = 'var(--primary)';
+    btn.onclick = function(e){
+      e.stopPropagation();
+      openExportModalV17(card);
+    };
+    const collapseBtn = head.querySelector('.card-collapse');
+    if(collapseBtn) collapseBtn.before(btn);
+    else head.appendChild(btn);
+  });
+}
+
+function prepareExportTarget(card){
+  const clone = card.cloneNode(true);
+  clone.classList.remove('collapsed');
+  clone.querySelectorAll('.export-btn-v17, .card-collapse, .view-toggle, .chart-type-selector, .day-picker, .toolbar, .tabs, .notif-badge').forEach(function(el){ el.remove(); });
+  clone.querySelectorAll('.btn, .icon-btn').forEach(function(el){
+    if(!el.closest('.chart-type-selector') && !el.classList.contains('chip')){
+      const td = el.closest('td');
+      if(td && td.querySelectorAll('*').length === 1) td.remove();
+      else el.remove();
+    }
+  });
+  clone.querySelectorAll('.tbl-actions').forEach(function(el){
+    const td = el.closest('td');
+    if(td) td.remove(); else el.remove();
+  });
+  return clone;
+}
+
+function openExportModalV17(card){
+  const cardHead = card.querySelector('.card-head');
+  const title = (cardHead ? cardHead.textContent : 'تصدير').trim().replace(/📤/g,'').replace(/▾|▸/g,'').trim();
+  const defaultFilename = 'export-' + (state.section || 'data') + '-' + todayStr();
+  const thCount = card.querySelectorAll('table thead th').length;
+  const isLandscape = thCount > 6;
+
+  const body = `
+    <form id="exportForm" class="form-grid" novalidate>
+      <div class="field" style="grid-column:1/-1">
+        <div class="small muted" style="padding:10px 14px;border-radius:10px;background:var(--primary-soft);border:1px solid var(--border)">
+          📤 تصدير: <b>${esc(title)}</b>
+        </div>
+      </div>
+      <div class="field" style="grid-column:1/-1">
+        <label>التنسيق <span class="req">*</span></label>
+        <div class="row" style="gap:8px">
+          <label class="perm-check" style="cursor:pointer">
+            <input type="radio" name="format" value="pdf" checked> <span>📄 PDF</span>
+          </label>
+          <label class="perm-check" style="cursor:pointer">
+            <input type="radio" name="format" value="excel"> <span>📊 Excel</span>
+          </label>
+          <label class="perm-check" style="cursor:pointer">
+            <input type="radio" name="format" value="csv"> <span>📋 CSV</span>
+          </label>
+        </div>
+      </div>
+      <div class="field" id="pdfOpts" style="grid-column:1/-1">
+        <label>اتجاه PDF</label>
+        <select name="orientation">
+          <option value="portrait" ${!isLandscape?'selected':''}>📄 رأسي (Portrait)</option>
+          <option value="landscape" ${isLandscape?'selected':''}>📃 أفقي (Landscape)</option>
+        </select>
+      </div>
+      <div class="field" style="grid-column:1/-1">
+        <label>اسم الملف <span class="req">*</span></label>
+        <input name="filename" value="${esc(defaultFilename)}" required dir="ltr">
+      </div>
+      <div id="expErr" class="err" style="display:none;grid-column:1/-1"></div>
+    </form>`;
+
+  openModal({
+    title: '📤 تصدير',
+    body: body,
+    submitText: '📤 تصدير',
+    onMount: function(root){
+      root.querySelectorAll('[name="format"]').forEach(function(r){
+        r.onchange = function(){
+          const fmt = root.querySelector('[name="format"]:checked').value;
+          root.querySelector('#pdfOpts').style.display = fmt === 'pdf' ? '' : 'none';
+        };
+      });
+    },
+    onSubmit: async function(root){
+      const format = root.querySelector('[name="format"]:checked').value;
+      const filename = root.querySelector('[name="filename"]').value.trim();
+      const orientation = root.querySelector('[name="orientation"]') ? root.querySelector('[name="orientation"]').value : 'portrait';
+      const err = root.querySelector('#expErr');
+      const saveBtn = document.getElementById('mSave');
+      if(!filename){ err.textContent = 'يرجى إدخال اسم الملف'; err.style.display = 'block'; return false; }
+      if(saveBtn){ saveBtn.disabled = true; saveBtn.textContent = '⏳ جاري التصدير...'; }
+      try{
+        await ensureExportLibs();
+        const target = prepareExportTarget(card);
+        if(format === 'pdf') await exportAsPDFV17(target, filename, { orientation: orientation });
+        else if(format === 'excel') await exportAsExcelV17(target, filename);
+        else await exportAsCSVV17(target, filename);
+        if(saveBtn){ saveBtn.disabled = false; saveBtn.textContent = '📤 تصدير'; }
+        toast('✅ تم التصدير: ' + filename, 'ok');
+        return true;
+      } catch(e){
+        console.error('[export]', e);
+        if(saveBtn){ saveBtn.disabled = false; saveBtn.textContent = '📤 تصدير'; }
+        err.textContent = 'فشل التصدير: ' + (e.message || e);
+        err.style.display = 'block';
+        return false;
+      }
+    }
+  });
+}
+
+async function exportAsPDFV17(element, filename, opts){
+  if(!window.html2canvas) throw new Error('html2canvas غير محمّل');
+  if(!window.jspdf) throw new Error('jsPDF غير محمّل');
+  const container = document.createElement('div');
+  container.style.cssText = 'position:fixed;left:-99999px;top:0;background:#fff;padding:20px;width:1100px;font-family:Tajawal,Inter,sans-serif;direction:rtl;z-index:-1';
+  container.appendChild(element);
+  document.body.appendChild(container);
+  try{
+    const company = (db.settings && db.settings.company) || {};
+    const logo = db.branding && db.branding.logo ? '<img src="'+db.branding.logo+'" style="max-height:50px;margin-bottom:6px;display:block;margin-left:auto;margin-right:auto">' : '';
+    const header = document.createElement('div');
+    header.style.cssText = 'text-align:center;padding:10px 0 16px;border-bottom:2px solid #6366f1;margin-bottom:16px';
+    header.innerHTML = logo
+      + '<div style="font-size:18px;font-weight:800;color:#0b1220">' + esc(company.name || (db.branding && db.branding.title) || '') + '</div>'
+      + '<div style="font-size:11px;color:#64748b;margin-top:4px">'
+      + (company.cr ? 'السجل التجاري: ' + esc(company.cr) + ' · ' : '')
+      + (company.phone ? 'هاتف: ' + esc(company.phone) + ' · ' : '')
+      + 'التاريخ: ' + new Date().toLocaleDateString('ar-SA') + '</div>';
+    container.insertBefore(header, element);
+
+    const canvas = await html2canvas(container, { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false, windowWidth: 1100 });
+    const imgData = canvas.toDataURL('image/jpeg', 0.92);
+    const jsPDFCtor = window.jspdf.jsPDF;
+    const pdf = new jsPDFCtor({ orientation: opts.orientation || 'portrait', unit: 'mm', format: 'a4' });
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    const margin = 8;
+    const imgWidth = pageWidth - margin * 2;
+    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+    const totalPages = Math.ceil(imgHeight / (pageHeight - margin * 2));
+    for(let i = 0; i < totalPages; i++){
+      if(i > 0) pdf.addPage();
+      const yOffset = margin - i * (pageHeight - margin * 2);
+      pdf.addImage(imgData, 'JPEG', margin, yOffset, imgWidth, imgHeight);
+    }
+    pdf.save(filename + '.pdf');
+  } finally {
+    document.body.removeChild(container);
+  }
+}
+
+async function exportAsExcelV17(element, filename){
+  if(!window.XLSX) throw new Error('XLSX غير محمّل');
+  const tables = element.querySelectorAll('table');
+  const wb = XLSX.utils.book_new();
+  if(tables.length){
+    tables.forEach(function(table, idx){
+      const ws = XLSX.utils.table_to_sheet(table, { raw: false });
+      const sheetName = tables.length > 1 ? ('Table' + (idx+1)) : 'Data';
+      XLSX.utils.book_append_sheet(wb, ws, sheetName);
+    });
+  } else {
+    const rows = [];
+    element.querySelectorAll('.item-card, .goal-card').forEach(function(card){
+      const name = card.querySelector('.ic-name, .card-head, .goal-title');
+      if(name) rows.push([name.textContent.trim()]);
+      card.querySelectorAll('.ic-rows > div').forEach(function(row){
+        const k = row.querySelector('.k'); const v = row.querySelector('.v');
+        if(k) rows.push([k.textContent.trim(), v ? v.textContent.trim() : '']);
+      });
+    });
+    const ws = XLSX.utils.aoa_to_sheet(rows.length ? rows : [['لا توجد بيانات جدولية']]);
+    XLSX.utils.book_append_sheet(wb, ws, 'Data');
+  }
+  XLSX.writeFile(wb, filename + '.xlsx');
+}
+
+async function exportAsCSVV17(element, filename){
+  const table = element.querySelector('table');
+  let csv = '';
+  if(table){
+    table.querySelectorAll('tr').forEach(function(row){
+      const cells = row.querySelectorAll('th, td');
+      const line = Array.from(cells).map(function(c){
+        const text = (c.textContent || '').trim().replace(/"/g, '""');
+        return '"' + text + '"';
+      }).join(',');
+      if(line.trim()) csv += line + '\n';
+    });
+  } else {
+    csv = 'لا توجد بيانات جدولية\n';
+  }
+  const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = filename + '.csv';
+  link.click();
+  URL.revokeObjectURL(link.href);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   4) ربط كل شيء بعد كل render
+   ═══════════════════════════════════════════════════════════ */
+const _origRenderV17 = window.render;
+window.render = function(){
+  const r = _origRenderV17.apply(this, arguments);
+  setTimeout(function(){
+    try{ addExportButtons(); }catch(e){}
+    try{
+      document.querySelectorAll('[data-edit-hours]').forEach(function(b){
+        if(b.dataset.v17bound === '1') return;
+        b.dataset.v17bound = '1';
+        b.onclick = function(e){
+          e.preventDefault(); e.stopPropagation();
+          window.openHoursEditModal();
+        };
+      });
+    }catch(e){}
+  }, 130);
+  return r;
+};
+
+window.addEventListener('load', function(){
+  setTimeout(addExportButtons, 800);
+  setTimeout(addExportButtons, 2500);
+});
+
+console.log('%c[v17] ✅ Final patch loaded:', 'color:#10b981;font-weight:bold;font-size:13px');
+console.log('  • 🔄 Sync persists without interruption (no auto-logout)');
+console.log('  • ⏱️ Hours goal manually editable');
+console.log('  • 📤 Per-section export (PDF/Excel/CSV)');
+})();
+</script>
 </body>
 </html>
