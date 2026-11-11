@@ -87,7 +87,7 @@ button{cursor:pointer;border:0;background:none;padding:0}
   background-repeat:no-repeat;
   background-position:right top;
 }
-[dir="ltr"].app{background-position:left top;}
+[dir="ltr"] .app { background-position:left top; }
 @media(max-width:980px){.app{background:none}}
 .main{flex:1;min-width:0;display:flex;flex-direction:column}
 
@@ -709,7 +709,7 @@ img,svg,table{max-width:100%}
 
 <script>
 /* ================================================================
-   📊 DRIVER PERFORMANCE DASHBOARD — CLEAN BUILD v31.1
+   📊 DRIVER PERFORMANCE DASHBOARD — CLEAN BUILD v33
    ================================================================ */
 'use strict';
 
@@ -766,6 +766,9 @@ const I18N = {
     msg_imported:'تم الاستيراد', msg_import_err:'ملف غير صالح',
     msg_confirm_del:'هل أنت متأكد من الحذف؟', msg_confirm_reset:'سيتم حذف كل البيانات. متابعة؟',
     msg_confirm_logout:'هل تريد تسجيل الخروج؟',
+    msg_confirm_push:'هل أنت متأكد من رفع البيانات إلى السحابة؟',
+    msg_confirm_pull:'هل أنت متأكد من جلب البيانات من السحابة؟ سيتم استبدال البيانات الحالية.',
+    msg_confirm_sync:'هل أنت متأكد من المزامنة الكاملة مع السحابة؟',
     msg_required:'يرجى تعبئة الحقول المطلوبة',
     msg_login_err:'البريد أو كلمة المرور غير صحيحة',
     msg_cloud_ok:'متصل بالسحابة', msg_cloud_off:'غير متصل', msg_cloud_sync:'جارٍ...',
@@ -819,6 +822,8 @@ const I18N = {
     cloud_save:'حفظ', cloud_sync_now:'مزامنة الآن', cloud_pull_now:'جلب', cloud_test:'اختبار',
     cloud_desc:'أدخل المفتاح و Bin ID من jsonbin.io.',
     cloud_owner_only:'مرئية للمالك فقط.',
+    cloud_create_bin:'إنشاء Bin ID جديد',
+    cloud_create_hint:'أدخل Master Key أولاً ثم اضغط إنشاء',
     branding_section:'🎨 الهوية', brand_app_name:'اسم الواجهة', brand_app_sub:'الوصف',
     brand_logo:'الشعار', brand_logo_hint:'صورة PNG/JPG أقصى 500KB',
     brand_logo_remove:'إزالة', brand_save:'حفظ',
@@ -989,6 +994,9 @@ const I18N = {
     msg_imported:'Imported', msg_import_err:'Invalid file',
     msg_confirm_del:'Confirm delete?', msg_confirm_reset:'All data will be erased. Continue?',
     msg_confirm_logout:'Logout?',
+    msg_confirm_push:'Are you sure you want to upload to cloud?',
+    msg_confirm_pull:'Are you sure you want to pull from cloud? Current data will be overwritten.',
+    msg_confirm_sync:'Are you sure you want to perform a full sync with cloud?',
     msg_required:'Fill required fields',
     msg_login_err:'Invalid credentials',
     msg_cloud_ok:'Connected', msg_cloud_off:'Offline', msg_cloud_sync:'Syncing...',
@@ -1042,6 +1050,8 @@ const I18N = {
     cloud_save:'Save', cloud_sync_now:'Sync', cloud_pull_now:'Pull', cloud_test:'Test',
     cloud_desc:'Enter credentials from jsonbin.io.',
     cloud_owner_only:'Owner only.',
+    cloud_create_bin:'Create New Bin ID',
+    cloud_create_hint:'Enter Master Key first then click create',
     branding_section:'🎨 Branding', brand_app_name:'App Name', brand_app_sub:'Subtitle',
     brand_logo:'Logo', brand_logo_hint:'PNG/JPG max 500KB',
     brand_logo_remove:'Remove', brand_save:'Save',
@@ -1338,9 +1348,10 @@ const state = {
   attendanceView: 'daily',
   attendanceMonth: todayStr().slice(0,7),
   analyticsFilter: {
-    type:'all', repId:'', date: todayStr(), weekDate: todayStr(),
+    type:'all', repId:'', date: todayStr(),
     month: new Date().toISOString().slice(0,7),
-    d1: todayStr(), d2: todayStr(), w1: todayStr(), w2: todayStr(),
+    d1: todayStr(), d2: todayStr(),
+    w1: todayStr(), w2: addDaysStr(todayStr(), 6),
     m1: new Date().toISOString().slice(0,7), m2: new Date().toISOString().slice(0,7),
     repPeriod: 'all'
   },
@@ -1937,6 +1948,7 @@ function mergeCloudData(local, remote){
 }
 async function pushToCloud(silent){
   if(!isCloudReady()){ if(!silent) toast(t('msg_no_cloud'),'warn'); return false; }
+  if(!silent && !confirm(t('msg_confirm_push'))) return false;
   if(state.cloudBusy) return false;
   state.cloudBusy = true; setCloudStatus('syncing');
   try{
@@ -1958,6 +1970,7 @@ async function pushToCloud(silent){
 }
 async function pullFromCloud(silent){
   if(!isCloudReady()){ if(!silent) toast(t('msg_no_cloud'),'warn'); return false; }
+  if(!silent && !confirm(t('msg_confirm_pull'))) return false;
   if(state.cloudBusy) return false;
   state.cloudBusy = true; setCloudStatus('syncing');
   try{
@@ -1979,6 +1992,7 @@ async function pullFromCloud(silent){
 }
 async function fullSync(silent){
   if(!isCloudReady()){ if(!silent) toast(t('msg_no_cloud'),'warn'); return false; }
+  if(!silent && !confirm(t('msg_confirm_sync'))) return false;
   if(state.cloudBusy) return false;
   state.cloudBusy = true; setCloudStatus('syncing');
   try{
@@ -3588,13 +3602,13 @@ function analyticsFilterRange(){
   switch(f.type){
     case 'rep': {
       if(f.repPeriod === 'day') return { from:f.date, to:f.date, repId:f.repId };
-      if(f.repPeriod === 'week'){ const s = weekStartOf(f.weekDate); return { from:s, to:addDaysStr(s,6), repId:f.repId }; }
+      if(f.repPeriod === 'week') return { from:f.w1, to:f.w2, repId:f.repId };
       if(f.repPeriod === 'month'){ const s = f.month+'-01'; return { from:s, to:monthEndOf(s), repId:f.repId }; }
       if(f.repPeriod === 'range_days') return { from:f.d1, to:f.d2, repId:f.repId };
       return { from:'', to:'', repId:f.repId };
     }
     case 'day': return { from:f.date, to:f.date };
-    case 'week': { const s = weekStartOf(f.weekDate); return { from:s, to:addDaysStr(s,6) }; }
+    case 'week': return { from:f.w1, to:f.w2 };
     case 'month': { const s = f.month+'-01'; return { from:s, to:monthEndOf(s) }; }
     case 'range_days': return { from:f.d1, to:f.d2 };
     case 'range_weeks': { const s=weekStartOf(f.w1); const e=addDaysStr(weekStartOf(f.w2),6); return { from:s, to:e }; }
@@ -3618,13 +3632,13 @@ function filterSummaryText(){
     case 'rep': {
       const name = repName(f.repId) || t('select_rep');
       if(f.repPeriod === 'day') return name + ' — ' + f.date;
-      if(f.repPeriod === 'week'){ const s = weekStartOf(f.weekDate); return name + ' — ' + s + ' → ' + addDaysStr(s,6); }
+      if(f.repPeriod === 'week') return name + ' — ' + f.w1 + ' → ' + f.w2;
       if(f.repPeriod === 'month') return name + ' — ' + f.month;
       if(f.repPeriod === 'range_days') return name + ' — ' + f.d1 + ' → ' + f.d2;
       return name + ' — ' + t('filter_all');
     }
     case 'day': return `${dayName(f.date)} ${f.date}`;
-    case 'week': { const s=weekStartOf(f.weekDate); return `${s} → ${addDaysStr(s,6)}`; }
+    case 'week': return `${f.w1} → ${f.w2}`;
     case 'month': return f.month;
     case 'range_days': return `${f.d1} → ${f.d2}`;
     case 'range_weeks': { const s=weekStartOf(f.w1); const e=addDaysStr(weekStartOf(f.w2),6); return `${s} → ${e}`; }
@@ -3654,13 +3668,17 @@ function analyticsFilterHTML(){
         <option value="range_days" ${f.repPeriod==='range_days'?'selected':''}>↔️ ${t('filter_range_days')}</option>
       </select></div>`;
     if(f.repPeriod === 'day') controls += `<div class="field"><label>${t('filter_day')}</label><input type="date" id="fRepDate" value="${f.date||todayStr()}"></div>`;
-    else if(f.repPeriod === 'week') controls += `<div class="field"><label>${t('filter_week')}</label><input type="date" id="fRepWeek" value="${f.weekDate||todayStr()}"></div>`;
+    else if(f.repPeriod === 'week') {
+      controls += `<div class="field"><label>${t('from_date')}</label><input type="date" id="fRepW1" value="${f.w1}"></div>
+        <div class="field"><label>${t('to_date')}</label><input type="date" id="fRepW2" value="${f.w2}"></div>`;
+    }
     else if(f.repPeriod === 'month') controls += `<div class="field"><label>${t('filter_month')}</label><input type="month" id="fRepMonth" value="${f.month||todayStr().slice(0,7)}"></div>`;
     else if(f.repPeriod === 'range_days') controls += `<div class="field"><label>${t('from_date')}</label><input type="date" id="fRepD1" value="${f.d1||todayStr()}"></div><div class="field"><label>${t('to_date')}</label><input type="date" id="fRepD2" value="${f.d2||todayStr()}"></div>`;
   } else if(f.type==='day'){
     controls = `<div class="field"><label>${t('filter_day')}</label><input type="date" id="fDate" value="${f.date}"></div>`;
   } else if(f.type==='week'){
-    controls = `<div class="field"><label>${t('filter_week')}</label><input type="date" id="fWeek" value="${f.weekDate}"></div>`;
+    controls = `<div class="field"><label>${t('from_date')}</label><input type="date" id="fWeekStart" value="${f.w1}"></div>
+      <div class="field"><label>${t('to_date')}</label><input type="date" id="fWeekEnd" value="${f.w2}"></div>`;
   } else if(f.type==='month'){
     controls = `<div class="field"><label>${t('filter_month')}</label><input type="month" id="fMonth" value="${f.month}"></div>`;
   } else if(f.type==='range_days'){
@@ -3732,10 +3750,11 @@ function viewAnalytics(){
     {label:t('kpi_accepted'), value: sum(reports,'accepted')},
     {label:t('kpi_rejected'), value: sum(reports,'rejected')}
   ];
+  // Fix: last7 should use filtered reports so selected driver shows their own trend
   const last7 = [...Array(7)].map((_,i)=>{
     const d = new Date(); d.setDate(d.getDate()-(6-i));
     const ds = d.toISOString().slice(0,10);
-    return { label: dayName(ds), value: sum(allReports.filter(r=>r.date===ds),'orders') };
+    return { label: dayName(ds), value: sum(reports.filter(r=>r.date===ds),'orders') };
   });
   const bySup = sups.map(s=>{
     const sreps = db.reps.filter(r=>r.supervisorId===s.id);
@@ -3824,12 +3843,14 @@ function afterAnalytics(){
   $('#fRep')?.addEventListener('change', e=>{ state.analyticsFilter.repId = e.target.value; render(); });
   $('#fRepPeriod')?.addEventListener('change', e=>{ state.analyticsFilter.repPeriod = e.target.value; render(); });
   $('#fRepDate')?.addEventListener('change', e=>{ state.analyticsFilter.date = e.target.value; render(); });
-  $('#fRepWeek')?.addEventListener('change', e=>{ state.analyticsFilter.weekDate = e.target.value; render(); });
+  $('#fRepW1')?.addEventListener('change', e=>{ state.analyticsFilter.w1 = e.target.value; render(); });
+  $('#fRepW2')?.addEventListener('change', e=>{ state.analyticsFilter.w2 = e.target.value; render(); });
   $('#fRepMonth')?.addEventListener('change', e=>{ state.analyticsFilter.month = e.target.value; render(); });
   $('#fRepD1')?.addEventListener('change', e=>{ state.analyticsFilter.d1 = e.target.value; render(); });
   $('#fRepD2')?.addEventListener('change', e=>{ state.analyticsFilter.d2 = e.target.value; render(); });
   $('#fDate')?.addEventListener('change', e=>{ state.analyticsFilter.date = e.target.value; render(); });
-  $('#fWeek')?.addEventListener('change', e=>{ state.analyticsFilter.weekDate = e.target.value; render(); });
+  $('#fWeekStart')?.addEventListener('change', e=>{ state.analyticsFilter.w1 = e.target.value; render(); });
+  $('#fWeekEnd')?.addEventListener('change', e=>{ state.analyticsFilter.w2 = e.target.value; render(); });
   $('#fMonth')?.addEventListener('change', e=>{ state.analyticsFilter.month = e.target.value; render(); });
   $('#fD1')?.addEventListener('change', e=>{ state.analyticsFilter.d1 = e.target.value; render(); });
   $('#fD2')?.addEventListener('change', e=>{ state.analyticsFilter.d2 = e.target.value; render(); });
@@ -4284,20 +4305,6 @@ function openModal({title, body, onSubmit, onMount, submitText, wide, tableId, r
   }
   if(onMount) onMount(root);
   root.querySelector('input,select,textarea')?.focus();
-}
-
-function selectWithAdd(opts){
-  const optionsHTML = (opts.options||[]).map(o =>
-    `<option value="${esc(o.value)}" ${opts.selected===o.value?'selected':''}>${esc(o.label)}</option>`
-  ).join('');
-  return `<div class="select-add-wrap">
-    <select name="${opts.name}" ${opts.id?`id="${opts.id}"`:''} ${opts.required?'required':''}>
-      ${optionsHTML}
-    </select>
-  </div>`;
-}
-function emptySelectHTML(message, addType, addLabel){
-  return `<div style="padding:16px;border:1.5px dashed var(--border);border-radius:12px;background:var(--bg-2);text-align:center"><div class="small muted">${esc(message)}</div></div>`;
 }
 
 /* ===== Rep Modal ===== */
@@ -5193,8 +5200,15 @@ function settingsModal(){
         <div class="small muted" style="margin-bottom:8px">${t('cloud_desc')}</div>
         <div class="form-grid">
           <div class="field"><label>${t('cloud_key')}</label><input type="password" id="jbKey" dir="ltr" value="${esc(state.cloudCfg.key||'')}" placeholder="$2b$10$••••••"></div>
-          <div class="field"><label>${t('cloud_bin')}</label><input id="jbBin" dir="ltr" value="${esc(state.cloudCfg.binId||'')}" placeholder="64a598039d312622a37ab8a2"></div>
+          <div class="field">
+            <label>${t('cloud_bin')}</label>
+            <div class="row" style="gap:6px;flex-wrap:nowrap">
+              <input id="jbBin" dir="ltr" value="${esc(state.cloudCfg.binId||'')}" placeholder="64a598039d312622a37ab8a2" style="flex:1">
+              <button class="btn btn-sm btn-primary" id="createJbBin" type="button" style="flex:0 0 auto;padding:0 12px" title="${t('cloud_create_bin')}">🆕 ${t('cloud_create_bin')}</button>
+            </div>
+          </div>
         </div>
+        <div class="small muted" style="margin-top:6px">💡 ${t('cloud_create_hint')}</div>
         <div class="row" style="margin-top:10px">
           <button class="btn btn-sm btn-primary" id="saveJb" type="button">💾 ${t('cloud_save')}</button>
           <button class="btn btn-sm" id="testJb" type="button">🧪 ${t('cloud_test')}</button>
@@ -5493,6 +5507,31 @@ function settingsModal(){
       $('#supSyncNow', root)?.addEventListener('click', async ()=>{ const ok = await fullSync(); if(ok) render(); });
       $('#supSyncPush', root)?.addEventListener('click', async ()=>{ const ok = await pushToCloud(); if(ok) render(); });
       $('#supSyncPull', root)?.addEventListener('click', async ()=>{ const ok = await pullFromCloud(); if(ok) render(); });
+      $('#createJbBin', root)?.addEventListener('click', async ()=>{
+        const k = $('#jbKey', root).value.trim();
+        if(!k){ toast(t('cloud_create_hint'),'warn'); return; }
+        const btn = $('#createJbBin', root);
+        btn.disabled = true; btn.textContent = '⏳ جاري الإنشاء...';
+        try{
+          const res = await fetch(`${JSONBIN_BASE}/b`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-Master-Key': k, 'X-Bin-Private': 'true' },
+            body: JSON.stringify({ data: {} })
+          });
+          if(!res.ok) throw new Error(await res.text());
+          const json = await res.json();
+          if(json.metadata && json.metadata.id){
+            $('#jbBin', root).value = json.metadata.id;
+            toast('✅ تم إنشاء Bin ID بنجاح، يمكنك الآن الحفظ والمزامنة','ok');
+          } else {
+            throw new Error('لم يتم استلام ID');
+          }
+        }catch(e){
+          toast('❌ فشل الإنشاء: ' + e.message, 'err');
+        }finally{
+          btn.disabled = false; btn.textContent = '🆕 ' + t('cloud_create_bin');
+        }
+      });
       $('#saveJb', root)?.addEventListener('click', ()=>{
         const k = $('#jbKey', root).value.trim();
         const bin = $('#jbBin', root).value.trim();
@@ -6405,6 +6444,11 @@ async function init(){
   state.attendanceDate = todayStr();
   state.attendanceMonth = todayStr().slice(0,7);
 
+  // Set Language from LocalStorage
+  state.lang = localStorage.getItem('repPerfLang') || 'ar';
+  document.documentElement.dir = state.lang === 'ar' ? 'rtl' : 'ltr';
+  document.documentElement.lang = state.lang;
+
   // Bind global buttons
   $('#menuBtn').onclick = ()=> $('#sidebar').classList.toggle('open');
   $('#sidebarCollapse').onclick = ()=>{
@@ -6423,7 +6467,8 @@ async function init(){
   updateThemeBtn();
   $('#langBtn').onclick = ()=>{
     state.lang = state.lang==='ar' ? 'en' : 'ar';
-    render(); toast(state.lang==='ar'?'تم التبديل إلى العربية':'Switched to English','ok');
+    localStorage.setItem('repPerfLang', state.lang);
+    window.location.reload();
   };
   $('#topSet').onclick  = ()=> settingsModal();
   $('#btnSet').onclick  = ()=> settingsModal();
